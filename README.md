@@ -57,6 +57,8 @@ Then scan the QR code with Expo Go, or press `a`/`i` for an Android/iOS emulator
 
 > **Physical device testing:** `EXPO_PUBLIC_API_URL` must point at your machine's LAN IP (not `localhost`), and your phone must be on the same Wi-Fi network. Find your IP with `ipconfig` (Windows) and re-check it if you reconnect to Wi-Fi.
 
+> **`tsx watch` gotcha:** `apps/api`'s dev server only watches `apps/api/src/**`. If you edit `packages/services`, `packages/trpc`, or `packages/database` while the API is running, those changes are **not** picked up automatically (they're consumed through a pnpm-symlinked `node_modules`, which the watcher ignores) — restart `pnpm --filter @repo/api dev` after editing anything outside `apps/api` itself.
+
 ## Demo credentials
 
 `pnpm db:seed` wipes and reseeds one demo society ("Palm Meadows", 2 towers, 10 flats). All seeded
@@ -73,7 +75,7 @@ Password for all of the above: **`Portl@123`**
 
 (8 residents total are seeded — `resident1@portl.dev` through `resident8@portl.dev` — across flats A-101 through B-202; 2 flats are left intentionally vacant. See `packages/database/seed.ts` for the full data set: sample visitors, notices, a poll, complaints, amenities + a booking, a pending due, and staff directory entries.)
 
-> Login itself isn't wired up yet (Phase 2) — these accounts exist in the database now so Phase 2's auth work has real data to authenticate against.
+Login is live: `POST /trpc/auth.login` with `{ identifier, password }` (identifier = phone or email) returns a 15-minute JWT access token plus a 30-day opaque refresh token. See `packages/trpc/server/routes/auth/route.ts` for the full set of endpoints (`login`, `refresh`, `logout`, `me`, `setPassword`) and `packages/trpc/server/routes/admin/route.ts` for admin-only onboarding (`inviteResident`, `inviteGuard`, `deactivateUser`).
 
 ## Status
 

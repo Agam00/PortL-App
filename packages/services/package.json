@@ -8,13 +8,17 @@
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@types/jsonwebtoken": "^9.0.10",
     "dotenv-cli": "^11.0.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
     "@repo/database": "workspace:*",
     "@repo/logger": "workspace:*",
+    "@trpc/server": "^11.8.1",
+    "bcryptjs": "^3.0.3",
     "google-auth-library": "^10.5.0",
+    "jsonwebtoken": "^9.0.3",
     "zod": "^4.3.5"
   }
 }

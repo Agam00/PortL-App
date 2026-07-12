@@ -82,17 +82,24 @@ Also added `check-types` scripts to `apps/api`, `packages/services`, `packages/t
 ## Phase 2 — Backend Core: Auth, RBAC, Router Skeleton
 **Day 2 (afternoon) – Day 3. Goal: any client can log in, get a role-scoped JWT, and call at least one protected endpoint per role.**
 
-- [ ] Add `bcrypt` (or `argon2`) + `jsonwebtoken` to `packages/services` or a new `packages/auth` package
-- [ ] Implement `AuthService`: `hashPassword`, `verifyPassword`, `signAccessToken` (short-lived, ~15 min, claims: `sub`, `role`, `societyId`, `flatId`), `signRefreshToken` (long-lived, opaque + hashed in DB per `refreshToken.ts`), `rotateRefreshToken`, `revokeAllForUser`
-- [ ] Update `packages/trpc/server/context.ts`: `createContext` now receives the Express req, reads `Authorization: Bearer <token>`, verifies JWT, loads `{ userId, role, societyId, flatId }` into context (soft-fail to `null` user, not a throw — let procedures decide)
-- [ ] Update `packages/trpc/server/trpc.ts`: add `protectedProcedure` (throws `UNAUTHORIZED` if no ctx user), and role-scoped wrappers `residentProcedure`, `guardProcedure`, `adminProcedure` (throw `FORBIDDEN` on role mismatch)
-- [ ] New router `packages/trpc/server/routes/auth/route.ts` additions: `login` (phone/email + password → access+refresh token pair), `refresh` (rotate), `logout` (revoke refresh token), `me` (returns current user profile), `setPassword` (first-login forced reset when `mustResetPassword`)
-- [ ] New router `routes/admin/onboarding/route.ts`: `adminProcedure` mutations `inviteResident` (creates user + flat link + temp password, returns it for admin to relay), `inviteGuard`, `deactivateUser`
-- [ ] Stub out remaining routers (empty routers wired into `serverRouter` so the shape exists early): `towers`, `flats`, `residents`, `visitors`, `notices`, `polls`, `complaints`, `amenities`, `dues`, `staffDirectory`, `notifications`
-- [ ] Register all new routers in `packages/trpc/server/index.ts`
-- [ ] Manually verify via `/docs` (Scalar UI, already wired) that login → protected endpoint works with a bearer token
-- [ ] Write a short Postman/Thunder-client or `curl` smoke script covering login-as-admin, login-as-guard, login-as-resident, and one 403 case (resident hitting an admin-only route)
-- [ ] Commit: `feat(auth): JWT auth, RBAC procedures, router skeleton`
+- [x] Add `bcrypt` (or `argon2`) + `jsonwebtoken` to `packages/services` or a new `packages/auth` package — added `bcryptjs` + `jsonwebtoken` + `@trpc/server` to `packages/services`
+- [x] Implement `AuthService` (`packages/services/auth`): `login`, `refresh`, `logout`, `setPassword`, `signAccessToken`/`verifyAccessToken`, `getById`
+  > Deviation: no `signRefreshToken`/`rotateRefreshToken` as JWTs — refresh tokens are opaque `crypto.randomBytes(32)` strings, SHA-256-hashed for DB lookup (deterministic hash, unlike bcrypt, so a direct `WHERE tokenHash = ?` lookup works). This is the standard pattern for high-entropy session tokens; bcrypt is for low-entropy passwords. Dropped the planned `REFRESH_TOKEN_SECRET` env var since it's unused under this design.
+- [x] Update `packages/trpc/server/context.ts`: reads `Authorization: Bearer <token>`, verifies JWT via `authService`, soft-fails to `null` user on missing/invalid token
+- [x] Update `packages/trpc/server/trpc.ts`: `protectedProcedure` (`UNAUTHORIZED` if no ctx user) + `residentProcedure`/`guardProcedure`/`adminProcedure` (`FORBIDDEN` on role mismatch), built via a shared `requireRole()` middleware factory
+- [x] `packages/trpc/server/routes/auth/route.ts` additions: `login`, `refresh`, `logout`, `me`, `setPassword` — all with full OpenAPI meta, matching the existing convention
+- [x] New router `packages/trpc/server/routes/admin/route.ts`: `adminProcedure` mutations `inviteResident`, `inviteGuard` (both return a random temp password + `mustResetPassword: true`), `deactivateUser` — logic lives in `UserService` (`packages/services/user`)
+- [x] Stub out remaining routers: `towers`, `flats`, `residents`, `visitors`, `notices`, `polls`, `complaints`, `amenities`, `dues`, `staff-directory`, `notifications` — each an empty `router({})` with a comment pointing at the phase that fills it in
+- [x] Register all new routers in `packages/trpc/server/index.ts`
+- [x] Manually verify via `/docs` (Scalar UI) — confirmed `openapi.json` lists all 9 new auth/admin paths and `/docs` returns 200
+- [x] `curl` smoke test covering: login as admin/guard/resident, wrong password (401), `/me` with no token (401), `/me` with valid token, guard/resident hitting `admin.inviteGuard` (403 each), admin hitting it (success), duplicate invite (409 CONFLICT), refresh token rotation + reuse-after-rotation (401), logout + reuse-after-logout (401) — every case behaved exactly as designed
+- [x] Commit: `feat(auth): JWT auth, RBAC procedures, router skeleton`
+
+**Bugs found and fixed during verification (not just typos — genuine behavioral bugs):**
+- Boolean columns with a `.default()` but no `.notNull()` (`users.emailVerified/mustResetPassword/isActive`, `polls.multiSelect`, `amenities.isActive`, `staff_directory.isVerifiedByAdmin`) typed as `boolean | null` in Drizzle even though they're always populated — tightened all to `.notNull()` (new migration, reseeded) so the auth output schemas can be honestly non-nullable.
+- `isUniqueConstraintError()` in `UserService` initially checked `err.code === "23505"` on the top-level thrown error — but drizzle-orm wraps the real `pg` `DatabaseError` as `err.cause`, so duplicate-invite errors were surfacing as raw 500s instead of a clean 409 `CONFLICT`. Confirmed the real shape with a throwaway probe script, fixed by checking `err.cause` recursively.
+- **Process gotcha, not a code bug:** `apps/api`'s `tsx watch ./src/index.ts` only watches `apps/api/src/**` — edits to `packages/services`/`packages/trpc`/`packages/database` (consumed through a pnpm-symlinked `node_modules`) are silently ignored until the dev server is restarted. Cost real debugging time (a fix appeared not to work because the server was still running old code) — documented in the README so it doesn't recur in later phases.
+- Also found and killed a stray `apps/api` process from the Phase 0 verification pass that had been squatting on port 8000 since Phase 0, silently serving stale (pre-auth) code the whole time — every later `pnpm dev` in this session had been silently failing with `EADDRINUSE` in the background.
 
 ---
 

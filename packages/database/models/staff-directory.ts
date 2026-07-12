@@ -14,7 +14,7 @@ export const staffDirectoryTable = pgTable("staff_directory", {
   phone: varchar("phone", { length: 20 }).notNull(),
   photoUrl: text("photo_url"),
 
-  isVerifiedByAdmin: boolean("is_verified_by_admin").default(false),
+  isVerifiedByAdmin: boolean("is_verified_by_admin").notNull().default(false),
   addedByUserId: uuid("added_by_user_id")
     .notNull()
     .references(() => usersTable.id),

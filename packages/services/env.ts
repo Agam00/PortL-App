@@ -4,6 +4,7 @@ const envSchema = z.object({
   GOOGLE_OAUTH_CLIENT_ID: z.string().optional(),
   GOOGLE_OAUTH_CLIENT_SECRET: z.string().optional(),
   GOOGLE_OAUTH_REDIRECT_URI: z.string().optional(),
+  ACCESS_TOKEN_SECRET: z.string().min(10),
 });
 
 function createEnv(env: NodeJS.ProcessEnv) {

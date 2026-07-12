@@ -14,7 +14,7 @@ export const pollsTable = pgTable("polls", {
 
   question: varchar("question", { length: 200 }).notNull(),
   description: text("description"),
-  multiSelect: boolean("multi_select").default(false),
+  multiSelect: boolean("multi_select").notNull().default(false),
 
   closesAt: timestamp("closes_at"),
   createdAt: timestamp("created_at").defaultNow(),

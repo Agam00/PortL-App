@@ -26,7 +26,7 @@ export const amenitiesTable = pgTable("amenities", {
   closeTime: time("close_time").notNull().default("22:00"),
   slotMinutes: integer("slot_minutes").notNull().default(60),
 
-  isActive: boolean("is_active").default(true),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

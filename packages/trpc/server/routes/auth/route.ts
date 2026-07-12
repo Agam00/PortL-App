@@ -1,7 +1,17 @@
+import { TRPCError } from "@trpc/server";
 import { z, zodUndefinedModel } from "../../schema";
-import { userService } from "../../services";
+import { userService, authService } from "../../services";
 import { getAuthenticationMethodOutputSchema } from "@repo/services/user/model";
-import { publicProcedure, router } from "../../trpc";
+import {
+  loginInputSchema,
+  authTokensOutputSchema,
+  refreshInputSchema,
+  refreshOutputSchema,
+  logoutInputSchema,
+  authUserSchema,
+  setPasswordInputSchema,
+} from "@repo/services/auth/model";
+import { publicProcedure, protectedProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
 const TAGS = ["Authentication"];
@@ -15,5 +25,51 @@ export const authRouter = router({
     .query(async () => {
       const supportedMethods = await userService.getAuthenticationMethods();
       return supportedMethods;
+    }),
+
+  login: publicProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/login"), tags: TAGS } })
+    .input(loginInputSchema)
+    .output(authTokensOutputSchema)
+    .mutation(async ({ input }) => {
+      return authService.login(input.identifier, input.password);
+    }),
+
+  refresh: publicProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/refresh"), tags: TAGS } })
+    .input(refreshInputSchema)
+    .output(refreshOutputSchema)
+    .mutation(async ({ input }) => {
+      return authService.refresh(input.refreshToken);
+    }),
+
+  logout: publicProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/logout"), tags: TAGS } })
+    .input(logoutInputSchema)
+    .output(z.object({ success: z.literal(true) }))
+    .mutation(async ({ input }) => {
+      await authService.logout(input.refreshToken);
+      return { success: true as const };
+    }),
+
+  me: protectedProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/me"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(authUserSchema)
+    .query(async ({ ctx }) => {
+      const user = await authService.getById(ctx.user.sub);
+      if (!user) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+      }
+      return user;
+    }),
+
+  setPassword: protectedProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/set-password"), tags: TAGS } })
+    .input(setPasswordInputSchema)
+    .output(z.object({ success: z.literal(true) }))
+    .mutation(async ({ ctx, input }) => {
+      await authService.setPassword(ctx.user.sub, input.newPassword);
+      return { success: true as const };
     }),
 });
