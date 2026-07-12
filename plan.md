@@ -71,6 +71,10 @@ Add new files under `packages/database/models/`, export each from `packages/data
 - [x] Add `db:seed` script to root `package.json` / `turbo.json`
 - [x] Commit: `feat(db): full domain schema + seed script`
 
+**Post-commit verification pass caught a real gap:** `packages/database` had no `check-types` script, so `pnpm check-types` at the root was silently skipping it — meaning `seed.ts` had never actually been typechecked. Running `tsc --noEmit` directly inside `packages/database` surfaced ~60 errors: this repo's shared `tsconfig` sets `noUncheckedIndexedAccess: true`, so every Drizzle `.returning()` array-destructure and every computed array index (`flats[i]`, `residents[i]`) is `T | undefined`, not `T`. Fixed by adding a `one()` helper for single-row `.returning()` results, a `resident(i)` accessor with an explicit bounds check, explicit `SelectFlat[]`/`SelectUser[]` annotations, and switching the resident-seeding loop to `residentDefs.entries()` instead of index access. Re-verified: `tsc --noEmit` clean, and the seed script re-runs with identical output/row counts.
+
+Also added `check-types` scripts to `apps/api`, `packages/services`, `packages/trpc`, and `packages/logger` — none of them had one, so the root `pnpm check-types` pipeline was only ever checking `mobile` and `web`. All four now typecheck clean. `apps/web` still fails on the pre-existing `react-resizable-panels` scaffold issue (out of scope, untouched).
+
 **Also fixed while here:** `apps/mobile/tsconfig.json` had two latent TS errors unrelated to the schema work — `baseUrl` is deprecated under the TS 6 canary that ships with Expo SDK 57 (removed it, `paths` alone works fine with `moduleResolution: "bundler"`), and `global.css`'s side-effect import had no type declaration (added `css.d.ts` with `declare module "*.css"`). Confirmed via `pnpm check-types` at the root — `mobile` and `database` are clean. `apps/web` still fails typecheck on a pre-existing `react-resizable-panels` version mismatch from the original scaffold; left untouched since `apps/web` is explicitly out of scope for this build.
 
 ---
