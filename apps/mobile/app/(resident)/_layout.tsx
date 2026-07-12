@@ -1,9 +1,8 @@
 import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRoleGuard } from "../../hooks/use-role-guard";
 import { LoadingScreen } from "../../components/ui/loading-screen";
-
-const ACCENT = "#2563eb";
+import { tabBarScreenOptions } from "../../lib/tab-bar-options";
 
 export default function ResidentLayout() {
   const { hasHydrated, user } = useRoleGuard("resident");
@@ -13,18 +12,12 @@ export default function ResidentLayout() {
   }
 
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: ACCENT,
-        tabBarInactiveTintColor: "#94a3b8",
-      }}
-    >
+    <Tabs screenOptions={tabBarScreenOptions}>
       <Tabs.Screen
         name="home"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, size }) => <Ionicons name="home" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <MaterialIcons name="home" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
@@ -32,7 +25,7 @@ export default function ResidentLayout() {
         options={{
           title: "Notices",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="megaphone" color={color} size={size} />
+            <MaterialIcons name="campaign" color={color} size={size} />
           ),
         }}
       />
@@ -41,7 +34,7 @@ export default function ResidentLayout() {
         options={{
           title: "Helpdesk",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="construct" color={color} size={size} />
+            <MaterialIcons name="support-agent" color={color} size={size} />
           ),
         }}
       />
@@ -50,7 +43,7 @@ export default function ResidentLayout() {
         options={{
           title: "Amenities",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="calendar" color={color} size={size} />
+            <MaterialIcons name="event" color={color} size={size} />
           ),
         }}
       />
@@ -58,7 +51,9 @@ export default function ResidentLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => <Ionicons name="person" color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="person" color={color} size={size} />
+          ),
         }}
       />
     </Tabs>

@@ -1,40 +1,61 @@
 import { View, Text, ScrollView } from "react-native";
-import { useAuthStore } from "../../stores/auth-store";
-import { Card } from "../../components/ui/card";
+import { MaterialIcons } from "@expo/vector-icons";
+import { ScreenHeader } from "../../components/ui/screen-header";
+import { StatusDot } from "../../components/ui/status-dot";
+
+const STATS: {
+  label: string;
+  value: string;
+  icon: React.ComponentProps<typeof MaterialIcons>["name"];
+  dot?: "green" | "amber";
+}[] = [
+  { label: "TOTAL RESIDENTS", value: "—", icon: "group" },
+  { label: "ACTIVE VISITORS", value: "—", icon: "badge", dot: "green" },
+  { label: "OPEN COMPLAINTS", value: "—", icon: "report-problem", dot: "amber" },
+  { label: "DUES PENDING", value: "—", icon: "payments" },
+];
 
 export default function AdminDashboard() {
-  const user = useAuthStore((s) => s.user);
-
   return (
-    <ScrollView className="flex-1 bg-slate-50" contentContainerClassName="gap-4 pb-8">
-      <View className="gap-1 bg-white px-4 pb-4 pt-6">
-        <Text className="text-2xl font-bold text-slate-900">
-          Welcome{user ? `, ${user.fullName.split(" ")[0]}` : ""}
-        </Text>
-        <Text className="text-base text-slate-500">Society operations at a glance.</Text>
-      </View>
+    <View className="flex-1 bg-background">
+      <ScreenHeader title="Dashboard" role="admin" />
+      <ScrollView contentContainerClassName="gap-6 p-4 pb-8">
+        <View className="flex-row flex-wrap gap-3">
+          {STATS.map((stat) => (
+            <View
+              key={stat.label}
+              className="min-w-[45%] flex-1 justify-between gap-4 rounded-lg border border-border-subtle bg-surface-elevated p-4"
+            >
+              <View className="flex-row items-start justify-between">
+                <Text className="flex-1 text-meta-text uppercase tracking-wider text-text-muted">
+                  {stat.label}
+                </Text>
+                <MaterialIcons name={stat.icon} size={18} color="#8A8F98" />
+              </View>
+              <View className="flex-row items-center gap-2">
+                <Text className="text-headline-lg font-medium text-on-surface">{stat.value}</Text>
+                {stat.dot && (
+                  <View
+                    className={`h-1.5 w-1.5 rounded-full ${stat.dot === "green" ? "bg-status-green" : "bg-status-amber"}`}
+                  />
+                )}
+              </View>
+            </View>
+          ))}
+        </View>
 
-      <View className="flex-row flex-wrap gap-4 px-4">
-        {[
-          { label: "Flats occupied", value: "—" },
-          { label: "Open complaints", value: "—" },
-          { label: "Pending dues", value: "—" },
-          { label: "Visitors today", value: "—" },
-        ].map((stat) => (
-          <Card key={stat.label} className="min-w-[45%] flex-1 gap-1">
-            <Text className="text-2xl font-bold text-slate-900">{stat.value}</Text>
-            <Text className="text-sm text-slate-500">{stat.label}</Text>
-          </Card>
-        ))}
-      </View>
-
-      <View className="px-4">
-        <Card>
-          <Text className="text-center text-sm text-slate-500">
-            Live metrics land in Phase 6 (Society Admin Dashboard).
-          </Text>
-        </Card>
-      </View>
-    </ScrollView>
+        <View className="gap-3">
+          <Text className="text-headline-md font-semibold text-on-surface">Live Activity</Text>
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <View className="items-center gap-2 p-6">
+              <Text className="text-body-sm text-text-muted">
+                Live gate activity feed lands in Phase 6.
+              </Text>
+              <StatusDot label="Waiting on data" tone="neutral" />
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    </View>
   );
 }

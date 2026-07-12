@@ -30,9 +30,9 @@ export function Avatar({
   return (
     <View
       style={{ width: size, height: size, borderRadius: size / 2 }}
-      className="items-center justify-center bg-slate-200"
+      className="items-center justify-center border border-border-subtle bg-surface-container-high"
     >
-      <Text className="font-semibold text-slate-600" style={{ fontSize: size * 0.4 }}>
+      <Text className="font-medium text-on-surface-variant" style={{ fontSize: size * 0.4 }}>
         {initialsFrom(name)}
       </Text>
     </View>

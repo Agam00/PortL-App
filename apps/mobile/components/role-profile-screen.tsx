@@ -1,19 +1,42 @@
-import { View, Text } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../lib/trpc";
 import { useAuthStore } from "../stores/auth-store";
 import { useUiStore } from "../stores/ui-store";
 import { getErrorMessage } from "../lib/error-message";
-import { Avatar } from "./ui/avatar";
-import { Card } from "./ui/card";
+import { ScreenHeader } from "./ui/screen-header";
+import { RoleBadge } from "./ui/role-badge";
 import { Button } from "./ui/button";
-import { StatusPill } from "./ui/status-pill";
 
-const ROLE_LABEL: Record<string, string> = {
-  resident: "Resident",
-  guard: "Security Guard",
-  admin: "Society Admin",
-};
+function initialsFrom(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentProps<typeof MaterialIcons>["name"];
+  label: string;
+  value: string;
+}) {
+  return (
+    <View className="flex-row items-center justify-between rounded-lg border border-border-subtle bg-surface p-4">
+      <View className="flex-row items-center gap-3">
+        <MaterialIcons name={icon} size={20} color="#8A8F98" />
+        <Text className="text-body-md text-text-muted">{label}</Text>
+      </View>
+      <Text className="text-body-md font-medium text-on-surface">{value}</Text>
+    </View>
+  );
+}
 
 export function RoleProfileScreen() {
   const router = useRouter();
@@ -33,40 +56,39 @@ export function RoleProfileScreen() {
   if (!user) return null;
 
   return (
-    <View className="flex-1 gap-4 bg-slate-50 p-4">
-      <Card className="items-center gap-3 py-6">
-        <Avatar name={user.fullName} size={64} />
-        <View className="items-center gap-1">
-          <Text className="text-lg font-bold text-slate-900">{user.fullName}</Text>
-          <StatusPill label={ROLE_LABEL[user.role] ?? user.role} tone="info" />
+    <View className="flex-1 bg-background">
+      <ScreenHeader title="Profile" role={user.role} />
+      <ScrollView contentContainerClassName="gap-4 p-4 pb-8">
+        <View className="items-center gap-4 rounded-xl border border-border-subtle bg-surface-elevated p-6">
+          <View className="h-24 w-24 items-center justify-center rounded-full border-2 border-primary-container bg-surface-container-high">
+            <Text className="text-headline-lg font-semibold text-on-surface">
+              {initialsFrom(user.fullName)}
+            </Text>
+          </View>
+          <Text className="text-headline-md font-semibold text-on-surface">{user.fullName}</Text>
+          <RoleBadge role={user.role} />
         </View>
-      </Card>
 
-      <Card className="gap-3">
-        <View className="flex-row justify-between">
-          <Text className="text-sm text-slate-500">Phone</Text>
-          <Text className="text-sm font-medium text-slate-900">{user.phone}</Text>
+        <View className="gap-2">
+          <InfoRow icon="phone" label="Phone" value={user.phone} />
+          <InfoRow icon="mail" label="Email" value={user.email} />
         </View>
-        <View className="flex-row justify-between">
-          <Text className="text-sm text-slate-500">Email</Text>
-          <Text className="text-sm font-medium text-slate-900">{user.email}</Text>
-        </View>
-      </Card>
 
-      <Button
-        variant="outline"
-        loading={logoutMutation.isPending}
-        onPress={() => {
-          if (refreshToken) {
-            logoutMutation.mutate({ refreshToken });
-          } else {
-            logout();
-            router.replace("/(auth)/login");
-          }
-        }}
-      >
-        Log out
-      </Button>
+        <Button
+          variant="danger"
+          loading={logoutMutation.isPending}
+          onPress={() => {
+            if (refreshToken) {
+              logoutMutation.mutate({ refreshToken });
+            } else {
+              logout();
+              router.replace("/(auth)/login");
+            }
+          }}
+        >
+          Log out
+        </Button>
+      </ScrollView>
     </View>
   );
 }

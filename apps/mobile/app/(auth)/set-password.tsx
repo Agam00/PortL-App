@@ -2,6 +2,7 @@ import { View, Text } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
 import { setPasswordInputSchema } from "@repo/services/auth/model";
 import { trpc } from "../../lib/trpc";
 import { useAuthStore } from "../../stores/auth-store";
@@ -39,36 +40,49 @@ export default function SetPasswordScreen() {
   });
 
   return (
-    <View className="flex-1 justify-center gap-6 bg-white px-6">
-      <View className="gap-2">
-        <Text className="text-2xl font-bold text-slate-900">Set a new password</Text>
-        <Text className="text-base text-slate-500">
-          For security, choose a new password before continuing.
-        </Text>
+    <View className="flex-1 bg-background">
+      <View className="w-full flex-row items-center justify-center gap-2 py-8">
+        <MaterialIcons name="grid-view" size={20} color="#5e6ad2" />
+        <Text className="text-headline-md font-bold tracking-tight text-on-surface">PORTL</Text>
       </View>
 
-      <Controller
-        control={control}
-        name="newPassword"
-        render={({ field: { onChange, onBlur, value } }) => (
-          <Input
-            label="New password"
-            secureTextEntry
-            placeholder="********"
-            onBlur={onBlur}
-            onChangeText={onChange}
-            value={value}
-            error={errors.newPassword?.message}
-          />
-        )}
-      />
+      <View className="flex-1 items-center px-6">
+        <View className="w-full max-w-[400px] gap-2 rounded-lg border border-border-subtle bg-surface-elevated p-6">
+          <Text className="text-headline-lg font-semibold text-on-surface">
+            Set new password
+          </Text>
+          <Text className="mb-4 text-body-md text-text-muted">
+            Enter a new secure password for your account.
+          </Text>
 
-      <Button
-        onPress={handleSubmit((values) => setPasswordMutation.mutate(values))}
-        loading={setPasswordMutation.isPending}
-      >
-        Save and continue
-      </Button>
+          <Controller
+            control={control}
+            name="newPassword"
+            render={({ field: { onChange, onBlur, value } }) => (
+              <Input
+                label="New password"
+                secureTextEntry
+                placeholder="********"
+                onBlur={onBlur}
+                onChangeText={onChange}
+                value={value}
+                error={errors.newPassword?.message}
+              />
+            )}
+          />
+          <Text className="mb-2 text-meta-text text-text-muted">
+            Must be at least 6 characters long.
+          </Text>
+
+          <Button
+            className="mt-2"
+            onPress={handleSubmit((values) => setPasswordMutation.mutate(values))}
+            loading={setPasswordMutation.isPending}
+          >
+            Save and continue
+          </Button>
+        </View>
+      </View>
     </View>
   );
 }

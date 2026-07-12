@@ -10,10 +10,19 @@ interface ButtonProps extends Omit<PressableProps, "children"> {
 }
 
 const VARIANT_STYLES: Record<Variant, { container: string; text: string }> = {
-  primary: { container: "bg-slate-900 active:bg-slate-800", text: "text-white" },
-  secondary: { container: "bg-slate-100 active:bg-slate-200", text: "text-slate-900" },
-  outline: { container: "border border-slate-300 active:bg-slate-50", text: "text-slate-900" },
-  danger: { container: "bg-red-600 active:bg-red-700", text: "text-white" },
+  primary: { container: "bg-primary-container active:bg-inverse-primary", text: "text-white" },
+  secondary: {
+    container: "bg-surface-elevated border border-border-subtle active:bg-white/5",
+    text: "text-on-surface",
+  },
+  outline: {
+    container: "bg-transparent border border-border-subtle active:bg-white/5",
+    text: "text-on-surface",
+  },
+  danger: {
+    container: "bg-transparent border border-status-red/40 active:bg-status-red/10",
+    text: "text-status-red",
+  },
 };
 
 export function Button({
@@ -31,17 +40,17 @@ export function Button({
     <Pressable
       accessibilityRole="button"
       disabled={isDisabled}
-      className={`flex-row items-center justify-center rounded-xl px-4 py-3.5 ${styles.container} ${isDisabled ? "opacity-50" : ""} ${className ?? ""}`}
+      className={`flex-row items-center justify-center rounded-md px-3 py-2.5 ${styles.container} ${isDisabled ? "opacity-50" : ""} ${className ?? ""}`}
       {...props}
     >
       {loading && (
         <ActivityIndicator
           size="small"
-          color={variant === "primary" || variant === "danger" ? "#fff" : "#0f172a"}
+          color={variant === "primary" ? "#fff" : "#bdc2ff"}
           className="mr-2"
         />
       )}
-      <Text className={`text-base font-semibold ${styles.text}`}>{children}</Text>
+      <Text className={`text-body-md font-medium ${styles.text}`}>{children}</Text>
     </Pressable>
   );
 }

@@ -16,6 +16,7 @@
 - Work top to bottom. Don't start a phase's polish steps until its "walking skeleton" step is checked off.
 - Check items off as you go (`- [x]`). If you skip something intentionally, leave it unchecked and add a `> Skipped: reason` note rather than deleting it — useful for the README's "what we didn't get to" section.
 - File paths referenced below are relative to the repo root `D:\Portl`.
+- **Design system check, every phase:** `apps/mobile/DESIGN_SYSTEM.md` is the canonical visual reference (tokens + a screen → Stitch-mockup map). Before checking off any phase that builds a new screen, open the matching `screen.png` in the Stitch export and eyeball the built screen against it — colors, spacing, component patterns (status dots not filled pills, hairline borders not shadows, etc.) should match. Update the map's row to ✅ when a screen is retrofitted/built to match.
 
 ---
 
@@ -124,6 +125,14 @@ Also added `check-types` scripts to `apps/api`, `packages/services`, `packages/t
 **Unplanned but necessary: downgraded Expo SDK 57 → 54.** The user's installed Expo Go only supports the SDK version Expo Go itself ships with (SDK 54 at time of testing) — SDK 57 (what `create-expo-app@latest` scaffolded in Phase 0) is rejected outright with "Project is incompatible with this version of Expo Go." Fixed via `expo install expo@54` + `expo install --fix` (realigns every `expo-*`/`react-native`/`react` package to SDK-54-compatible versions) + a manual fix for `@expo/metro-runtime` (still pinned to the old version after `--fix`). Verified with a clean `tsc --noEmit` and `expo export --platform web` after the downgrade — both clean.
 
 **Bug found during device testing (not just an SDK mismatch):** after the downgrade, the physical device got a 404 `UnableToResolveError` for `expo-router/entry` even though the exact same module resolved fine in `expo export`. Root cause: stale Metro bundler cache left over from repeatedly starting/stopping the dev server across the SDK 57→54 transition — `expo start --clear` (cache wipe) plus killing every stray process still bound to ports 8081/8082/8000 fixed it. Confirmed by curling the exact bundle URL the device requests before asking for a re-test, rather than guessing.
+
+**Post-Phase-3 addendum: full visual design system retrofit.** After Phase 3 shipped with an ad-hoc light blue/amber/slate palette, the user generated a complete UI design system in Google Stitch (32 screens + a token spec) and asked for the app to match it exactly going forward. Retrofitted everything built so far to the new system:
+- Added `apps/mobile/DESIGN_SYSTEM.md` — the canonical reference (colors, typography, radius, spacing, component patterns, and a screen→Stitch-mockup map covering all 32 generated screens, most still "pending" for later phases).
+- Visual direction changed completely: dark-mode-only (no light theme), monochrome-plus-one-violet-accent (`#5e6ad2`), hairline borders instead of shadows, small consistent radius (6px buttons/inputs, 8px cards — Tailwind's default `rounded-md`/`rounded-lg` already match, no config override needed), status shown as a 6px dot + plain text instead of a filled colored pill.
+- `tailwind.config.js`: replaced the old `resident`/`guard`/`admin` color trio with the exact Stitch token set, plus custom `fontSize` tokens (`headline-lg/md`, `body-md/sm`, `label-caps`, `meta-text`) matching the spec's type scale.
+- Rebuilt every Phase 3 primitive (`Button`, `Card`, `Input`, `Avatar`, `EmptyState`, `LoadingScreen`, `SectionHeader`) plus two new ones the reference calls for: `StatusDot` (replaced the old filled `StatusPill`) and `RoleBadge` (the bordered uppercase RESIDENT/GUARD/ADMIN tag) and `ScreenHeader` (page title + role badge row, matching the mockups' per-screen header pattern rather than a single app-wide header).
+- Rebuilt login, set-password, all three tab bars (dark, hairline top border, violet active icon, switched `Ionicons`→`MaterialIcons` to match the reference's Material Symbols look), the three landing screens (resident home, guard gate, admin dashboard) against their exact mockups, and the shared profile screen against `profile/code.html`.
+- Verified with `tsc --noEmit` (clean) and `expo export --platform web` (clean) after the full retrofit, then restarted both dev servers with a cleared Metro cache for a device re-test.
 
 ---
 

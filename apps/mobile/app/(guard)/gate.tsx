@@ -1,30 +1,42 @@
 import { View, Text, ScrollView } from "react-native";
-import { useAuthStore } from "../../stores/auth-store";
-import { Card } from "../../components/ui/card";
-import { SectionHeader } from "../../components/ui/section-header";
+import { MaterialIcons } from "@expo/vector-icons";
+import { ScreenHeader } from "../../components/ui/screen-header";
+import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
 
 export default function GuardGate() {
-  const user = useAuthStore((s) => s.user);
-
   return (
-    <ScrollView className="flex-1 bg-slate-50" contentContainerClassName="gap-4 pb-8">
-      <View className="gap-1 bg-white px-4 pb-4 pt-6">
-        <Text className="text-2xl font-bold text-slate-900">
-          {user ? user.fullName.split(" ")[0] : "Guard"}'s Gate
-        </Text>
-        <Text className="text-base text-slate-500">Today's activity at the gate.</Text>
-      </View>
+    <View className="flex-1 bg-background">
+      <ScreenHeader title="Gate" role="guard" />
+      <ScrollView contentContainerClassName="gap-4 p-4 pb-8">
+        <View className="flex-row gap-4">
+          <View className="flex-1 justify-center gap-1 rounded-lg border border-border-subtle bg-surface-elevated p-3">
+            <Text className="text-meta-text text-text-muted">Total In</Text>
+            <Text className="text-headline-lg font-semibold text-on-surface">—</Text>
+          </View>
+          <View className="flex-1 justify-center gap-1 rounded-lg border border-border-subtle bg-surface-elevated p-3">
+            <Text className="text-meta-text text-text-muted">Total Out</Text>
+            <Text className="text-headline-lg font-semibold text-on-surface">—</Text>
+          </View>
+        </View>
 
-      <SectionHeader title="Live queue" />
-      <View className="px-4">
-        <Card>
+        <View className="flex-row gap-2">
+          <Button className="flex-1" variant="primary" disabled>
+            Scan Pass
+          </Button>
+          <Button className="flex-1" variant="outline" disabled>
+            Manual Entry
+          </Button>
+        </View>
+
+        <View className="rounded-lg border border-border-subtle bg-surface-elevated">
           <EmptyState
-            title="Nothing to show yet"
+            title="No gate activity yet"
             description="Register a visitor and track approvals here — coming in Phase 4."
+            icon="local-shipping"
           />
-        </Card>
-      </View>
-    </ScrollView>
+        </View>
+      </ScrollView>
+    </View>
   );
 }

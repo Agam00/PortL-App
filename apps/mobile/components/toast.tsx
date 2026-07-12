@@ -3,9 +3,15 @@ import { View, Text } from "react-native";
 import { useUiStore } from "../stores/ui-store";
 
 const TONE_STYLES: Record<string, string> = {
-  error: "bg-red-600",
-  success: "bg-emerald-600",
-  info: "bg-slate-900",
+  error: "border-status-red/40 bg-surface-elevated",
+  success: "border-status-green/40 bg-surface-elevated",
+  info: "border-border-subtle bg-surface-elevated",
+};
+
+const TONE_DOT: Record<string, string> = {
+  error: "bg-status-red",
+  success: "bg-status-green",
+  info: "bg-primary-container",
 };
 
 export function Toast() {
@@ -25,8 +31,11 @@ export function Toast() {
       pointerEvents="none"
       className="absolute inset-x-4 top-14 z-50 items-center"
     >
-      <View className={`rounded-xl px-4 py-3 ${TONE_STYLES[toast.type] ?? TONE_STYLES.info}`}>
-        <Text className="text-center text-sm font-medium text-white">{toast.message}</Text>
+      <View
+        className={`flex-row items-center gap-2 rounded-lg border px-4 py-3 ${TONE_STYLES[toast.type] ?? TONE_STYLES.info}`}
+      >
+        <View className={`h-1.5 w-1.5 rounded-full ${TONE_DOT[toast.type] ?? TONE_DOT.info}`} />
+        <Text className="text-body-sm text-on-surface">{toast.message}</Text>
       </View>
     </View>
   );
