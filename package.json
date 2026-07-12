@@ -1,0 +1,27 @@
+{
+  "name": "trpc-monorepo",
+  "private": true,
+  "scripts": {
+    "build": "dotenv -- turbo build",
+    "dev": "dotenv -- turbo dev",
+    "db:generate": "dotenv -- turbo db:generate",
+    "db:migrate": "dotenv -- turbo db:migrate",
+    "db:seed": "dotenv -- turbo db:seed",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "check-types": "turbo run check-types",
+    "env:sync": "node -e \"const fs=require('fs');const t=['apps/api','packages/database','packages/services'];for(const d of t){fs.copyFileSync('.env', d+'/.env');console.log('synced -> '+d+'/.env')}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.7.4",
+    "turbo": "^2.7.2",
+    "typescript": "5.9.2"
+  },
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv-cli": "^11.0.0"
+  }
+}
