@@ -106,19 +106,24 @@ Also added `check-types` scripts to `apps/api`, `packages/services`, `packages/t
 ## Phase 3 — Expo App Foundation
 **Day 3 (afternoon) – Day 4. Goal: navigation shell, design system, and API/state plumbing exist before any real screen is built.**
 
-- [ ] Install `@trpc/client`, `@trpc/react-query`, `@tanstack/react-query` in `apps/mobile`; create `apps/mobile/lib/trpc.ts` exposing a typed client using `RouterOutputs`/`RouterInputs`/`ServerRouter` from `@repo/trpc`
-- [ ] Build an `authLink`/custom `fetch` that attaches the access token from secure storage to every request, and a response interceptor that on `401` tries one silent `refresh` then retries once, else force-logout
-- [ ] Install `expo-secure-store`; create `lib/auth-storage.ts` (get/set/clear access+refresh tokens)
-- [ ] Install `zustand`; create `stores/auth-store.ts` (current user, role, hydration state) and `stores/ui-store.ts` (misc UI flags) — Zustand for client state, react-query (via tRPC) for all server state
-- [ ] Set up Expo Router route groups: `app/(auth)/login.tsx`, `app/(auth)/set-password.tsx`, `app/(resident)/...`, `app/(guard)/...`, `app/(admin)/...`, root `app/_layout.tsx` that hydrates auth state and redirects to the correct group based on role
-- [ ] Build the design system primitives under `components/ui/` (NativeWind-styled): `Button`, `Card`, `Input`, `Badge`/`StatusPill`, `EmptyState`, `Spinner/LoadingScreen`, `Avatar`, `Sheet/BottomModal`, `SectionHeader`
-- [ ] Set up `react-hook-form` + `zod` resolver convention for all forms (reuse zod input schemas exported from `@repo/trpc` routers where possible so client validation == server validation)
-- [ ] Build global `ErrorBoundary` + a tRPC error-to-toast helper (use `sonner`-equivalent for RN, e.g. a simple toast lib) so every mutation failure surfaces a readable message instead of a silent failure
-- [ ] Build bottom-tab navigators per role (e.g. Resident: Home / Notices / Helpdesk / Amenities / Profile; Guard: Gate / Visitors / History / Profile; Admin: Dashboard / Society / Requests / More)
-- [ ] Implement Login screen end-to-end against Phase 2's `auth.login`, storing tokens, redirecting by role
-- [ ] Implement forced "set new password" screen for first login
-- [ ] Smoke test: log in as seeded admin, guard, and resident on a device/emulator and confirm each lands on their own tab shell
-- [ ] Commit: `feat(mobile): app shell, navigation, design system, auth wiring`
+- [x] Install `@trpc/client`, `@trpc/react-query`, `@tanstack/react-query` in `apps/mobile`; create `apps/mobile/lib/trpc.ts` exposing a typed client using `RouterOutputs`/`RouterInputs`/`ServerRouter` from `@repo/trpc`
+- [x] Build an `authLink`/custom `fetch` (`lib/trpc-client.ts`) that attaches the access token to every request, and on `401` tries one silent refresh (with in-flight de-duplication so concurrent 401s don't each trigger their own refresh) then retries once, else force-logout
+- [x] Install `expo-secure-store`; auth tokens + user profile persist via a zustand `persist` middleware backed by a `secureStorage` adapter (`lib/secure-storage.ts`) rather than a separate hand-rolled storage module — one source of truth instead of two
+- [x] Install `zustand`; `stores/auth-store.ts` (tokens, user, `hasHydrated`) and `stores/ui-store.ts` (toast state) — Zustand for client state, react-query (via tRPC) for all server state
+- [x] Expo Router route groups: `app/(auth)/login.tsx`, `app/(auth)/set-password.tsx`, `app/(resident)/...`, `app/(guard)/...`, `app/(admin)/...`, root `app/index.tsx` redirect gate based on hydrated auth state + role
+- [x] Design system primitives under `components/ui/`: `Button`, `Card`, `Input`, `StatusPill`, `EmptyState`, `LoadingScreen`, `Avatar`, `SectionHeader`
+  > Deviation: skipped `Sheet`/`BottomModal` — nothing in Phase 3 needs it; will add in whichever later phase first needs a bottom sheet, per "don't build for hypothetical requirements."
+- [x] `react-hook-form` + `zod` convention — login/set-password forms use `zodResolver` with `loginInputSchema`/`setPasswordInputSchema` imported directly from `@repo/services/auth/model` (added `@repo/services` as a mobile dependency), so client-side validation is provably identical to what the server enforces
+- [x] Global `ErrorBoundary` (class component) + `components/toast.tsx` driven by `ui-store`, plus `lib/error-message.ts` to turn a `TRPCClientError` into a readable string
+- [x] Bottom-tab navigators per role, each gated by `hooks/use-role-guard.ts` (redirects away if the hydrated user's role doesn't match the group): Resident (Home/Notices/Helpdesk/Amenities/Profile), Guard (Gate/Visitors/History/Profile), Admin (Dashboard/Society/Requests/More) — role-tinted accents from Phase 0's tailwind config
+- [x] Login screen wired end-to-end to `auth.login`, storing the session and redirecting by role
+- [x] Forced "set new password" screen for `mustResetPassword` users
+- [x] **Smoke test on a real physical device** (not just emulator/web export) — logged in as admin/guard/resident with the seeded demo credentials, confirmed correct tab shell per role
+- [x] Commit: `feat(mobile): app shell, navigation, design system, auth wiring`
+
+**Unplanned but necessary: downgraded Expo SDK 57 → 54.** The user's installed Expo Go only supports the SDK version Expo Go itself ships with (SDK 54 at time of testing) — SDK 57 (what `create-expo-app@latest` scaffolded in Phase 0) is rejected outright with "Project is incompatible with this version of Expo Go." Fixed via `expo install expo@54` + `expo install --fix` (realigns every `expo-*`/`react-native`/`react` package to SDK-54-compatible versions) + a manual fix for `@expo/metro-runtime` (still pinned to the old version after `--fix`). Verified with a clean `tsc --noEmit` and `expo export --platform web` after the downgrade — both clean.
+
+**Bug found during device testing (not just an SDK mismatch):** after the downgrade, the physical device got a 404 `UnableToResolveError` for `expo-router/entry` even though the exact same module resolved fine in `expo export`. Root cause: stale Metro bundler cache left over from repeatedly starting/stopping the dev server across the SDK 57→54 transition — `expo start --clear` (cache wipe) plus killing every stray process still bound to ports 8081/8082/8000 fixed it. Confirmed by curling the exact bundle URL the device requests before asking for a re-test, rather than guessing.
 
 ---
 

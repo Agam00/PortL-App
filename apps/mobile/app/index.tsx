@@ -1,24 +1,31 @@
-import { Text, View } from "react-native";
+import { Redirect } from "expo-router";
+import { useAuthStore } from "../stores/auth-store";
+import { LoadingScreen } from "../components/ui/loading-screen";
 
-export default function Home() {
-  return (
-    <View className="flex-1 items-center justify-center gap-6 bg-white px-6">
-      <Text className="text-3xl font-bold text-slate-900">Portl</Text>
-      <Text className="text-center text-base text-slate-500">
-        Society gate, community & operations — one app.
-      </Text>
+export default function Index() {
+  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const user = useAuthStore((s) => s.user);
 
-      <View className="w-full gap-3">
-        <View className="rounded-xl bg-resident-light px-4 py-3">
-          <Text className="font-semibold text-resident">Resident</Text>
-        </View>
-        <View className="rounded-xl bg-guard-light px-4 py-3">
-          <Text className="font-semibold text-guard">Security Guard</Text>
-        </View>
-        <View className="rounded-xl bg-admin-light px-4 py-3">
-          <Text className="font-semibold text-admin">Society Admin</Text>
-        </View>
-      </View>
-    </View>
-  );
+  if (!hasHydrated) {
+    return <LoadingScreen />;
+  }
+
+  if (!user) {
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  if (user.mustResetPassword) {
+    return <Redirect href="/(auth)/set-password" />;
+  }
+
+  switch (user.role) {
+    case "resident":
+      return <Redirect href="/(resident)/home" />;
+    case "guard":
+      return <Redirect href="/(guard)/gate" />;
+    case "admin":
+      return <Redirect href="/(admin)/dashboard" />;
+    default:
+      return <Redirect href="/(auth)/login" />;
+  }
 }
