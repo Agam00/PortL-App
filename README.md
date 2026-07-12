@@ -37,7 +37,7 @@ cp apps/mobile/.env.example apps/mobile/.env   # then set EXPO_PUBLIC_API_URL to
 docker-compose up -d          # starts Postgres on localhost:5432
 pnpm db:generate               # generate SQL migrations from the Drizzle schema
 pnpm db:migrate                # apply migrations
-pnpm db:seed                   # seed demo society/residents/guards/admin (once Phase 1 lands)
+pnpm db:seed                   # wipes and reseeds a demo society, towers, flats, users, visitors, etc.
 ```
 
 ## Running locally (3 terminals)
@@ -59,7 +59,21 @@ Then scan the QR code with Expo Go, or press `a`/`i` for an Android/iOS emulator
 
 ## Demo credentials
 
-_Added once the seed script (Phase 1) lands._
+`pnpm db:seed` wipes and reseeds one demo society ("Palm Meadows", 2 towers, 10 flats). All seeded
+accounts share the same password:
+
+| Role     | Phone           | Email               |
+| -------- | --------------- | -------------------- |
+| Admin    | +911000000001   | admin@portl.dev       |
+| Guard    | +911000000002   | guard1@portl.dev      |
+| Guard    | +911000000003   | guard2@portl.dev      |
+| Resident | +911000000010   | resident1@portl.dev (flat A-101) |
+
+Password for all of the above: **`Portl@123`**
+
+(8 residents total are seeded — `resident1@portl.dev` through `resident8@portl.dev` — across flats A-101 through B-202; 2 flats are left intentionally vacant. See `packages/database/seed.ts` for the full data set: sample visitors, notices, a poll, complaints, amenities + a booking, a pending due, and staff directory entries.)
+
+> Login itself isn't wired up yet (Phase 2) — these accounts exist in the database now so Phase 2's auth work has real data to authenticate against.
 
 ## Status
 

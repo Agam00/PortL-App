@@ -23,12 +23,10 @@
 **Day 1 (morning). Goal: everyone can run the whole stack locally in one command.**
 
 - [x] Confirm Node ≥18, pnpm 9, and Expo CLI/EAS CLI installed (`pnpm dlx expo --version`, `pnpm dlx eas-cli --version`)
-- [ ] `docker-compose up -d` and confirm Postgres is reachable on `5432`
-  > Blocked: Docker Desktop isn't running on this machine yet. Start it, then run `docker-compose up -d` — everything else in Phase 0 is done and doesn't depend on this.
+- [x] `docker-compose up -d` and confirm Postgres is reachable on `5432` (container `postgresdb` up, verified with `psql -c "select 1;"`)
 - [x] Copy `.env` templates for `apps/api`, `packages/database`, `packages/services` — fill `DATABASE_URL`, `BASE_URL`, `PORT` (root `.env.example`/`.env` created, `pnpm env:sync` script added to copy into each package)
 - [x] Run `pnpm install` at root, confirm `pnpm dev` boots `apps/api` cleanly and `/health` returns 200 (verified via `apps/api` dev server + `curl /health`)
-- [ ] Confirm `pnpm db:generate` / `pnpm db:migrate` work against the local Postgres (drizzle-kit)
-  > Blocked on Docker/Postgres above — do this right after `docker-compose up -d`.
+- [x] Confirm `pnpm db:generate` / `pnpm db:migrate` work against the local Postgres (drizzle-kit) — ran both, verified the `users` table actually exists in Postgres via `psql \dt`
 - [x] Create `apps/mobile` Expo app: `pnpm dlx create-expo-app@latest apps/mobile --template blank-typescript`
 - [x] Wire `apps/mobile` into the pnpm workspace (already covered by `apps/*` glob in `pnpm-workspace.yaml` — confirmed `pnpm install` picks it up)
 - [x] Install & configure **Expo Router** (file-based routing) in `apps/mobile`
@@ -47,30 +45,33 @@
 
 Add new files under `packages/database/models/`, export each from `packages/database/schema.ts` (currently only re-exports `user`).
 
-- [ ] `society.ts` — `societies` (id, name, address, city, createdAt) — supports multi-society even though we seed one
-- [ ] `tower.ts` — `towers` (id, societyId FK, name/code)
-- [ ] `flat.ts` — `flats` (id, towerId FK, flatNumber, floor, type, ownerUserId FK nullable)
-- [ ] Extend `user.ts`: add `role` enum (`resident | guard | admin`), `phone` (unique), `passwordHash`, `flatId` FK nullable (residents), `societyId` FK, `isActive`, `mustResetPassword` boolean (for first-login-after-invite flow)
-- [ ] `refreshToken.ts` — `refresh_tokens` (id, userId FK, tokenHash, expiresAt, revokedAt, deviceInfo) — supports rotation + logout-all-devices
-- [ ] `visitor.ts` — `visitors` (id, societyId FK, flatId FK, name, phone, photoUrl, type enum `guest|delivery|cab|service|other`, source enum `guard_initiated|resident_preapproved`, status enum `pending|approved|rejected|expired|checked_in|checked_out`, requestedByGuardId FK nullable, decidedByUserId FK nullable, validFrom/validUntil (for pre-approvals), createdAt, decidedAt)
-- [ ] `visitorLog.ts` — `visitor_logs` (id, visitorId FK, action enum `entry|exit`, guardId FK, occurredAt) — append-only movement ledger, separate from the visitor's current status for a clean history/audit trail
-- [ ] `notice.ts` — `notices` (id, societyId FK, authorId FK, title, body, targetScope enum `all|tower|flat`, targetTowerId nullable, targetFlatId nullable, publishedAt, expiresAt nullable)
-- [ ] `poll.ts` + `pollOption.ts` + `pollVote.ts` — poll (question, description, multiSelect bool, closesAt), options (label), votes (pollId, optionId, userId, unique(pollId,userId) unless multiSelect)
-- [ ] `complaint.ts` — `complaints` (id, societyId FK, raisedByUserId FK, category, title, description, photoUrl, status enum `open|in_progress|resolved|closed`, priority enum `low|medium|high`, assignedToUserId FK nullable, createdAt, resolvedAt)
-- [ ] `complaintComment.ts` — `complaint_comments` (id, complaintId FK, authorId FK, body, createdAt) — timeline/status thread
-- [ ] `amenity.ts` — `amenities` (id, societyId FK, name, description, imageUrl, capacity, openTime, closeTime, slotMinutes, isActive)
-- [ ] `amenityBooking.ts` — `amenity_bookings` (id, amenityId FK, flatId FK, bookedByUserId FK, date, slotStart, slotEnd, status enum `confirmed|cancelled`)
-- [ ] `due.ts` — `dues` (id, flatId FK, period e.g. "2026-07", amount, status enum `pending|paid|overdue`, dueDate)
-- [ ] `payment.ts` — `payments` (id, dueId FK, amount, provider, providerRefId, status enum `created|success|failed`, paidAt)
-- [ ] `staffDirectory.ts` — `staff_directory` (id, societyId FK, name, category e.g. `plumber|electrician|maid|cook|other`, phone, photoUrl, isVerifiedByAdmin, addedByUserId FK)
-- [ ] `pushToken.ts` — `push_tokens` (id, userId FK, expoPushToken, deviceInfo, createdAt) — unique(userId, expoPushToken)
-- [ ] `notification.ts` — `notifications` (id, userId FK, type, title, body, data jsonb, readAt nullable, createdAt) — in-app notification feed, independent of push delivery
-- [ ] Update `packages/database/schema.ts` to `export * from` every new model
-- [ ] Run `pnpm db:generate` (drizzle-kit generate) and review the generated SQL migration for sanity
-- [ ] Run `pnpm db:migrate` against local Postgres, confirm all tables exist (`psql \dt` or a GUI client)
-- [ ] Write `packages/database/seed.ts`: creates 1 society, 2 towers, ~10 flats, 1 admin, 2 guards, ~8 residents (with known demo passwords), 1 pending + 1 approved visitor, 2 notices, 1 open poll, 2 complaints (different statuses), 2 amenities with a booking each, 1 pending due, 3 staff directory entries
-- [ ] Add `db:seed` script to root `package.json` / `turbo.json`
-- [ ] Commit: `feat(db): full domain schema + seed script`
+- [x] `society.ts` — `societies` (id, name, address, city, createdAt) — supports multi-society even though we seed one
+- [x] `tower.ts` — `towers` (id, societyId FK, name/code)
+- [x] `flat.ts` — `flats` (id, towerId FK, flatNumber, floor, type)
+  > Deviation: dropped `ownerUserId` from `flats` (the plan's original idea). `flats` → `users` would have created a circular import/FK with `users` → `flats` for no functional gain — the resident↔flat link is fully covered by `users.flatId` (many residents/family members can point at one flat), which is all Phase 4's "family members share a flat" flow needs.
+- [x] Extend `user.ts`: add `role` enum (`resident | guard | admin`), `phone` (unique), `passwordHash`, `flatId` FK nullable (residents), `societyId` FK, `isActive`, `mustResetPassword` boolean (for first-login-after-invite flow)
+- [x] `refresh-token.ts` — `refresh_tokens` (id, userId FK, tokenHash, expiresAt, revokedAt, deviceInfo) — supports rotation + logout-all-devices
+- [x] `visitor.ts` — `visitors` (id, societyId FK, flatId FK, name, phone, photoUrl, type enum `guest|delivery|cab|service|other`, source enum `guard_initiated|resident_preapproved`, status enum `pending|approved|rejected|expired|checked_in|checked_out`, requestedByGuardId FK nullable, decidedByUserId FK nullable, validFrom/validUntil (for pre-approvals), createdAt, decidedAt)
+- [x] `visitor-log.ts` — `visitor_logs` (id, visitorId FK, action enum `entry|exit`, guardId FK, occurredAt) — append-only movement ledger, separate from the visitor's current status for a clean history/audit trail
+- [x] `notice.ts` — `notices` (id, societyId FK, authorId FK, title, body, targetScope enum `all|tower|flat`, targetTowerId nullable, targetFlatId nullable, publishedAt, expiresAt nullable)
+- [x] `poll.ts` + `poll-option.ts` + `poll-vote.ts` — poll (question, description, multiSelect bool, closesAt), options (label), votes (pollId, optionId, userId, unique(pollId,optionId,userId) — exact-duplicate-row guard; single-vs-multi-select semantics enforced in the tRPC procedure in Phase 7, not the DB constraint)
+- [x] `complaint.ts` — `complaints` (id, societyId FK, raisedByUserId FK, category, title, description, photoUrl, status enum `open|in_progress|resolved|closed`, priority enum `low|medium|high`, assignedToUserId FK nullable, createdAt, resolvedAt)
+- [x] `complaint-comment.ts` — `complaint_comments` (id, complaintId FK, authorId FK, body, createdAt) — timeline/status thread
+- [x] `amenity.ts` — `amenities` (id, societyId FK, name, description, imageUrl, capacity, openTime, closeTime, slotMinutes, isActive)
+- [x] `amenity-booking.ts` — `amenity_bookings` (id, amenityId FK, flatId FK, bookedByUserId FK, date, slotStart, slotEnd, status enum `confirmed|cancelled`)
+- [x] `due.ts` — `dues` (id, flatId FK, period e.g. "2026-07", amount, status enum `pending|paid|overdue`, dueDate)
+- [x] `payment.ts` — `payments` (id, dueId FK, amount, provider, providerRefId, status enum `created|success|failed`, paidAt)
+- [x] `staff-directory.ts` — `staff_directory` (id, societyId FK, name, category e.g. `plumber|electrician|maid|cook|other`, phone, photoUrl, isVerifiedByAdmin, addedByUserId FK)
+- [x] `push-token.ts` — `push_tokens` (id, userId FK, expoPushToken, deviceInfo, createdAt) — unique(userId, expoPushToken)
+- [x] `notification.ts` — `notifications` (id, userId FK, type, title, body, data jsonb, readAt nullable, createdAt) — in-app notification feed, independent of push delivery
+- [x] Update `packages/database/schema.ts` to `export * from` every new model
+- [x] Run `pnpm db:generate` (drizzle-kit generate) and review the generated SQL migration for sanity — 20 tables, 11 enum types, all FKs correct on first pass
+- [x] Run `pnpm db:migrate` against local Postgres, confirm all tables exist (`psql \dt` or a GUI client) — verified all 20 tables live
+- [x] Write `packages/database/seed.ts`: creates 1 society, 2 towers, 10 flats (2 left vacant), 1 admin, 2 guards, 8 residents (shared demo password), 1 pending + 1 checked-in + 1 pre-approved visitor (+ 1 visitor log entry), 2 notices, 1 open poll with 3 votes, 2 complaints (open w/ comment + resolved), 2 amenities with 1 booking, 1 pending due, 3 staff directory entries — full-reset-then-insert, so it's safely re-runnable
+- [x] Add `db:seed` script to root `package.json` / `turbo.json`
+- [x] Commit: `feat(db): full domain schema + seed script`
+
+**Also fixed while here:** `apps/mobile/tsconfig.json` had two latent TS errors unrelated to the schema work — `baseUrl` is deprecated under the TS 6 canary that ships with Expo SDK 57 (removed it, `paths` alone works fine with `moduleResolution: "bundler"`), and `global.css`'s side-effect import had no type declaration (added `css.d.ts` with `declare module "*.css"`). Confirmed via `pnpm check-types` at the root — `mobile` and `database` are clean. `apps/web` still fails typecheck on a pre-existing `react-resizable-panels` version mismatch from the original scaffold; left untouched since `apps/web` is explicitly out of scope for this build.
 
 ---
 
