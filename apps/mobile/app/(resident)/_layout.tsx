@@ -58,6 +58,7 @@ export default function ResidentLayout() {
       />
       <Tabs.Screen name="pre-approve" options={{ href: null }} />
       <Tabs.Screen name="pre-approvals" options={{ href: null }} />
+      <Tabs.Screen name="visitor-history" options={{ href: null }} />
     </Tabs>
   );
 }

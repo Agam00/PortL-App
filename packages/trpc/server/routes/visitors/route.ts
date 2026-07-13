@@ -7,10 +7,11 @@ import {
   visitorIdInputSchema,
   preApproveVisitorInputSchema,
   searchPreApprovedInputSchema,
+  historyFilterInputSchema,
   visitorOutputSchema,
   listVisitorsOutputSchema,
 } from "@repo/services/visitor/model";
-import { guardProcedure, residentProcedure, router } from "../../trpc";
+import { guardProcedure, residentProcedure, protectedProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
 const TAGS = ["Visitors"];
@@ -106,5 +107,17 @@ export const visitorsRouter = router({
     .output(listVisitorsOutputSchema)
     .query(async ({ ctx, input }) => {
       return visitorService.searchPreApproved(requireSocietyId(ctx.user.societyId), input.query);
+    }),
+
+  /** Resident sees only their flat's history; guard/admin see the whole society. */
+  history: protectedProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/history"), tags: TAGS } })
+    .input(historyFilterInputSchema)
+    .output(listVisitorsOutputSchema)
+    .query(async ({ ctx, input }) => {
+      if (ctx.user.role === "resident") {
+        return visitorService.history({ flatId: requireFlatId(ctx.user.flatId) }, input);
+      }
+      return visitorService.history({ societyId: requireSocietyId(ctx.user.societyId) }, input);
     }),
 });

@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
@@ -42,7 +42,9 @@ export default function MyPreApprovals() {
         contentContainerClassName="gap-4 p-4 pb-8"
         refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
       >
-        {all.length === 0 ? (
+        {query.isLoading ? (
+          <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : all.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No pre-approvals yet" description="Pre-approve a guest and it'll show up here." icon="qr-code" />
           </View>

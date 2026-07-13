@@ -3,7 +3,6 @@ import { View, ScrollView, RefreshControl, ActivityIndicator } from "react-nativ
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
-import { Input } from "../../components/ui/input";
 import { EmptyState } from "../../components/ui/empty-state";
 import { Chip } from "../../components/ui/chip";
 import { HistoryRow } from "../../components/history-row";
@@ -17,27 +16,19 @@ const FILTERS: { label: string; status?: VisitorOutput["status"] }[] = [
   { label: "Rejected", status: "rejected" },
 ];
 
-export default function GuardHistory() {
+export default function ResidentVisitorHistory() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>(FILTERS[0]);
-  const [search, setSearch] = useState("");
 
   const query = trpc.visitors.history.useQuery({ status: filter.status });
-  const visitors = (query.data ?? []).filter(
-    (v) =>
-      search.trim().length === 0 ||
-      v.name.toLowerCase().includes(search.toLowerCase()) ||
-      v.flatNumber?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const visitors = query.data ?? [];
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Entry & Exit Log" role="guard" />
+      <ScreenHeader title="Visitor History" role="resident" />
       <ScrollView
         contentContainerClassName="gap-4 p-4 pb-8"
         refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
       >
-        <Input placeholder="Search by name or flat number" value={search} onChangeText={setSearch} />
-
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
           {FILTERS.map((f) => (
             <Chip key={f.label} label={f.label} selected={filter.label === f.label} onPress={() => setFilter(f)} />
@@ -48,12 +39,16 @@ export default function GuardHistory() {
           <ActivityIndicator className="py-8" color="#5e6ad2" />
         ) : visitors.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
-            <EmptyState title="No matching activity" description="Nothing found for this search or filter." icon="history" />
+            <EmptyState
+              title="No visitors found"
+              description="Nothing matches this filter yet."
+              icon="history"
+            />
           </View>
         ) : (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             {visitors.map((visitor) => (
-              <HistoryRow key={visitor.id} visitor={visitor} showFlat />
+              <HistoryRow key={visitor.id} visitor={visitor} />
             ))}
           </View>
         )}

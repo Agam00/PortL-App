@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
@@ -66,7 +66,9 @@ export default function GuardGate() {
           </Button>
         </View>
 
-        {queue.length === 0 ? (
+        {queueQuery.isLoading ? (
+          <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : queue.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState
               title="No requests yet"

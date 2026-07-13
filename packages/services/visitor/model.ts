@@ -44,6 +44,13 @@ export const searchPreApprovedInputSchema = z.object({
   query: z.string().min(1).max(50),
 });
 
+export const historyFilterInputSchema = z.object({
+  type: visitorTypeSchema.optional(),
+  status: visitorStatusSchema.optional(),
+  fromDate: z.string().datetime().optional(),
+  toDate: z.string().datetime().optional(),
+});
+
 export const visitorOutputSchema = z.object({
   id: z.string().uuid(),
   flatId: z.string().uuid(),
@@ -58,6 +65,8 @@ export const visitorOutputSchema = z.object({
   decidedByUserId: z.string().uuid().nullable(),
   validFrom: z.string().nullable(),
   validUntil: z.string().nullable(),
+  entryAt: z.string().nullable(),
+  exitAt: z.string().nullable(),
   createdAt: z.string(),
   decidedAt: z.string().nullable(),
 });

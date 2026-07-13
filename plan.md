@@ -173,12 +173,17 @@ Also added `check-types` scripts to `apps/api`, `packages/services`, `packages/t
 **Backend verification (curl, fresh instance + reseed):** pre-approve "Rohan Guest" for a 2-hour window → auto-`approved` immediately; a reversed window (`validUntil` before `validFrom`) correctly fails `BAD_REQUEST`; resident's own list shows it; guard searches "Rohan" and finds it; guard calls `markEntry` directly with zero resident interaction → `checked_in`. Separately, pre-approved someone with a `validUntil` already in the past: guard search for their name returns an empty array (filtered out), and calling `markEntry` with the visitor's ID directly still correctly fails `CONFLICT` ("This pre-approval has expired") — confirming the expiry check isn't just cosmetic filtering, it's enforced at the mutation layer too.
 
 ### 4D. History & polish
-- [ ] `visitors.history` (resident + guard + admin, scoped appropriately) with filters (date range, type, status)
-- [ ] Resident "Visitor History" screen — past visitors to their flat
-- [ ] Guard "Entry/Exit History" screen — full movement ledger for the day/date range, searchable
-- [ ] Empty states ("No pending requests — you're all caught up"), loading skeletons, and pull-to-refresh on all visitor lists
-- [ ] Handle edge cases: pre-approval expiry, resident rejects then visitor still shows up (guard sees "Rejected" clearly, cannot override), multiple family members in a flat all get the approval prompt (first responder wins, others see it resolved)
-- [ ] Commit: `feat(visitors): full gate approval, pre-approval, entry/exit, history`
+- [x] `visitors.history`: **one** `protectedProcedure` (not three role-specific endpoints) — branches on `ctx.user.role` inside the resolver: resident → scoped to their `flatId`, guard/admin → scoped to their `societyId`. Filters: `type`, `status`, `fromDate`, `toDate`. Enriched with `entryAt`/`exitAt` pulled from `visitor_logs` (batched `inArray` lookup, not N+1) — `markEntry`/`markExit` now also return the exact log timestamp inline instead of a DB round-trip
+- [x] Resident "Visitor History" screen (`app/(resident)/visitor-history.tsx`) — status filter chips, reached via a "View All" link next to Home's "Pending Approvals" header (matching the mockup's link pattern), `href: null` in the tab layout
+- [x] Guard "Entry/Exit History" screen — replaced the `history.tsx` tab placeholder directly (it was already a visible tab) with a real search box (client-side name/flat filter — `history`'s filters don't include free-text search) + the same status filter chips, `showFlat` on each row since guard sees the whole society
+- [x] Empty states, and pull-to-refresh were already present everywhere from Phases 4A–4C; this phase's polish gap was **premature empty-state flashes** — every list screen showed "No X yet" for a frame before its first fetch resolved (`data ?? []` is `[]` during `isLoading`). Added an explicit `query.isLoading` guard (spinner instead of the list/empty-state) to all 5 screens driven by `useQuery`: Home, Gate, both History screens, My Pre-Approvals. (`check-preapproved.tsx` was already correct — its empty state is gated behind `debounced.length > 0`, so it never flashes.)
+- [x] Edge cases — all three re-verified fresh via curl with real scenarios, not just reasoned about:
+  - Pre-approval expiry: already covered in 4C (two independent layers — hidden from search, rejected by `markEntry`)
+  - Rejected visitor still shows up to the guard with a clear "Rejected" status dot, and `markEntry` correctly refuses to override it (`CONFLICT`, "must be approved")
+  - Multi-resident-per-flat: used `admin.inviteResident` to add a second real account to flat A-101, confirmed both residents see a new request as pending, the first to decide wins, the second's `decide` call correctly fails `CONFLICT` ("already been decided"), and the second's pending list correctly no longer shows it
+- [x] Commit: `feat(visitors): full gate approval, pre-approval, entry/exit, history`
+
+**Phase 4 complete.** The headline feature — "the conversation that used to happen at the gate now happens in the app" — is fully built and verified: guard-initiated requests with live cross-device approval (4A), full search/photo/entry-exit lifecycle (4B), resident-initiated pre-approval with zero-call gate check-in (4C), and history/polish/edge-case hardening (4D). Every endpoint has been curl-verified fresh at least once after the mobile build, and the core loop (4A) and full guard flow + pre-approval (4B/4C) were also confirmed live on the user's physical device.
 
 ---
 

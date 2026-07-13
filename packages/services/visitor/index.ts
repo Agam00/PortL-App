@@ -1,11 +1,15 @@
 import { TRPCError } from "@trpc/server";
-import { db, eq, and, or, ilike, gt, isNull, desc } from "@repo/database";
+import { db, eq, and, or, ilike, gt, gte, lte, isNull, inArray, desc } from "@repo/database";
 import { visitorsTable, visitorLogsTable, flatsTable, towersTable } from "@repo/database/schema";
 import type { VisitorOutput } from "./model";
 
 type VisitorRow = typeof visitorsTable.$inferSelect;
 
-function serialize(row: VisitorRow, flatNumber: string | null): VisitorOutput {
+function serialize(
+  row: VisitorRow,
+  flatNumber: string | null,
+  logs?: { entryAt: string | null; exitAt: string | null },
+): VisitorOutput {
   return {
     id: row.id,
     flatId: row.flatId,
@@ -20,6 +24,8 @@ function serialize(row: VisitorRow, flatNumber: string | null): VisitorOutput {
     decidedByUserId: row.decidedByUserId,
     validFrom: row.validFrom ? row.validFrom.toISOString() : null,
     validUntil: row.validUntil ? row.validUntil.toISOString() : null,
+    entryAt: logs?.entryAt ?? null,
+    exitAt: logs?.exitAt ?? null,
     createdAt: (row.createdAt ?? new Date()).toISOString(),
     decidedAt: row.decidedAt ? row.decidedAt.toISOString() : null,
   };
@@ -148,7 +154,10 @@ class VisitorService {
       throw new TRPCError({ code: "CONFLICT", message: "This pre-approval has expired" });
     }
 
-    await db.insert(visitorLogsTable).values({ visitorId, guardId, action: opts.action });
+    const [log] = await db
+      .insert(visitorLogsTable)
+      .values({ visitorId, guardId, action: opts.action })
+      .returning();
 
     const [updated] = await db
       .update(visitorsTable)
@@ -157,7 +166,12 @@ class VisitorService {
       .returning();
 
     if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-    return serialize(updated, row.flatNumber);
+    const occurredAt = (log?.occurredAt ?? new Date()).toISOString();
+    return serialize(
+      updated,
+      row.flatNumber,
+      opts.action === "entry" ? { entryAt: occurredAt, exitAt: null } : { entryAt: null, exitAt: occurredAt },
+    );
   }
 
   async markEntry(societyId: string, guardId: string, visitorId: string): Promise<VisitorOutput> {
@@ -240,6 +254,46 @@ class VisitorService {
       .limit(20);
 
     return rows.map((row) => serialize(row.visitor, row.flatNumber));
+  }
+
+  /** Scoped by flat (resident) or society (guard/admin), with optional type/status/date-range filters. */
+  async history(
+    scope: { flatId: string } | { societyId: string },
+    filters: { type?: VisitorRow["type"]; status?: VisitorRow["status"]; fromDate?: string; toDate?: string },
+  ): Promise<VisitorOutput[]> {
+    const conditions = [
+      "flatId" in scope ? eq(visitorsTable.flatId, scope.flatId) : eq(visitorsTable.societyId, scope.societyId),
+    ];
+    if (filters.type) conditions.push(eq(visitorsTable.type, filters.type));
+    if (filters.status) conditions.push(eq(visitorsTable.status, filters.status));
+    if (filters.fromDate) conditions.push(gte(visitorsTable.createdAt, new Date(filters.fromDate)));
+    if (filters.toDate) conditions.push(lte(visitorsTable.createdAt, new Date(filters.toDate)));
+
+    const rows = await db
+      .select({ visitor: visitorsTable, flatNumber: flatsTable.flatNumber })
+      .from(visitorsTable)
+      .innerJoin(flatsTable, eq(visitorsTable.flatId, flatsTable.id))
+      .where(and(...conditions))
+      .orderBy(desc(visitorsTable.createdAt))
+      .limit(100);
+
+    if (rows.length === 0) return [];
+
+    const logRows = await db
+      .select()
+      .from(visitorLogsTable)
+      .where(inArray(visitorLogsTable.visitorId, rows.map((r) => r.visitor.id)));
+
+    const logsByVisitor = new Map<string, { entryAt: string | null; exitAt: string | null }>();
+    for (const log of logRows) {
+      const entry = logsByVisitor.get(log.visitorId) ?? { entryAt: null, exitAt: null };
+      const occurredAt = (log.occurredAt ?? new Date()).toISOString();
+      if (log.action === "entry") entry.entryAt = occurredAt;
+      else entry.exitAt = occurredAt;
+      logsByVisitor.set(log.visitorId, entry);
+    }
+
+    return rows.map((row) => serialize(row.visitor, row.flatNumber, logsByVisitor.get(row.visitor.id)));
   }
 }
 

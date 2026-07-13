@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -59,11 +59,18 @@ export default function ResidentHome() {
         )}
 
         <View className="gap-3">
-          <Text className="text-headline-md font-semibold text-on-surface">
-            Pending Approvals
-          </Text>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-headline-md font-semibold text-on-surface">
+              Pending Approvals
+            </Text>
+            <Pressable onPress={() => router.push("/(resident)/visitor-history")}>
+              <Text className="text-body-sm text-primary">View All</Text>
+            </Pressable>
+          </View>
 
-          {pending.length === 0 ? (
+          {pendingQuery.isLoading ? (
+            <ActivityIndicator className="py-8" color="#5e6ad2" />
+          ) : pending.length === 0 ? (
             <View className="rounded-lg border border-border-subtle bg-surface-elevated">
               <EmptyState
                 title="No pending requests"
