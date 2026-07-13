@@ -1,4 +1,22 @@
-import { router } from "../../trpc";
+import { TRPCError } from "@trpc/server";
+import { residentService } from "../../services";
+import { searchResidentsInputSchema, searchResidentsOutputSchema } from "@repo/services/resident/model";
+import { guardProcedure, router } from "../../trpc";
+import { generatePath } from "../../utils/path-generator";
 
-// Filled out in Phase 5/6 (Guard resident lookup, Admin residents management).
-export const residentsRouter = router({});
+const TAGS = ["Residents"];
+const getPath = generatePath("/residents");
+
+export const residentsRouter = router({
+  // Full admin residents management arrives in Phase 6.
+  search: guardProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/search"), tags: TAGS } })
+    .input(searchResidentsInputSchema)
+    .output(searchResidentsOutputSchema)
+    .query(async ({ ctx, input }) => {
+      if (!ctx.user.societyId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No society assigned to this account" });
+      }
+      return residentService.search(ctx.user.societyId, input.query);
+    }),
+});

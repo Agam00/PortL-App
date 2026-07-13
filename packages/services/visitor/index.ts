@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { db, eq, and, desc } from "@repo/database";
-import { visitorsTable, flatsTable, towersTable } from "@repo/database/schema";
+import { visitorsTable, visitorLogsTable, flatsTable, towersTable } from "@repo/database/schema";
 import type { VisitorOutput } from "./model";
 
 type VisitorRow = typeof visitorsTable.$inferSelect;
@@ -27,20 +27,23 @@ class VisitorService {
   async create(
     societyId: string,
     guardId: string,
-    input: { flatNumber: string; name: string; phone?: string; type: VisitorRow["type"] },
+    input: {
+      flatId: string;
+      name: string;
+      phone?: string;
+      type: VisitorRow["type"];
+      photoBase64?: string;
+    },
   ): Promise<VisitorOutput> {
     const [flat] = await db
       .select({ id: flatsTable.id, flatNumber: flatsTable.flatNumber })
       .from(flatsTable)
       .innerJoin(towersTable, eq(flatsTable.towerId, towersTable.id))
-      .where(and(eq(towersTable.societyId, societyId), eq(flatsTable.flatNumber, input.flatNumber)))
+      .where(and(eq(towersTable.societyId, societyId), eq(flatsTable.id, input.flatId)))
       .limit(1);
 
     if (!flat) {
-      throw new TRPCError({
-        code: "NOT_FOUND",
-        message: `No flat found with number "${input.flatNumber}"`,
-      });
+      throw new TRPCError({ code: "NOT_FOUND", message: "Flat not found in your society" });
     }
 
     const [visitor] = await db
@@ -50,6 +53,7 @@ class VisitorService {
         flatId: flat.id,
         name: input.name,
         phone: input.phone,
+        photoUrl: input.photoBase64,
         type: input.type,
         source: "guard_initiated",
         status: "pending",
@@ -100,16 +104,66 @@ class VisitorService {
     return serialize(updated, null);
   }
 
-  async listForGuard(guardId: string): Promise<VisitorOutput[]> {
+  /** Society-wide, not per-guard — a real gate has multiple guards sharing one queue across shifts. */
+  async listForGuard(societyId: string): Promise<VisitorOutput[]> {
     const rows = await db
       .select({ visitor: visitorsTable, flatNumber: flatsTable.flatNumber })
       .from(visitorsTable)
       .innerJoin(flatsTable, eq(visitorsTable.flatId, flatsTable.id))
-      .where(eq(visitorsTable.requestedByGuardId, guardId))
+      .where(eq(visitorsTable.societyId, societyId))
       .orderBy(desc(visitorsTable.createdAt))
       .limit(50);
 
     return rows.map((row) => serialize(row.visitor, row.flatNumber));
+  }
+
+  private async transitionStatus(
+    societyId: string,
+    guardId: string,
+    visitorId: string,
+    opts: { from: VisitorRow["status"]; to: VisitorRow["status"]; action: "entry" | "exit" },
+  ): Promise<VisitorOutput> {
+    const [row] = await db
+      .select({ visitor: visitorsTable, flatNumber: flatsTable.flatNumber })
+      .from(visitorsTable)
+      .innerJoin(flatsTable, eq(visitorsTable.flatId, flatsTable.id))
+      .where(and(eq(visitorsTable.id, visitorId), eq(visitorsTable.societyId, societyId)))
+      .limit(1);
+
+    if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Visitor request not found" });
+    if (row.visitor.status !== opts.from) {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: `Visitor must be "${opts.from}" to mark ${opts.action} (currently "${row.visitor.status}")`,
+      });
+    }
+
+    await db.insert(visitorLogsTable).values({ visitorId, guardId, action: opts.action });
+
+    const [updated] = await db
+      .update(visitorsTable)
+      .set({ status: opts.to })
+      .where(eq(visitorsTable.id, visitorId))
+      .returning();
+
+    if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    return serialize(updated, row.flatNumber);
+  }
+
+  async markEntry(societyId: string, guardId: string, visitorId: string): Promise<VisitorOutput> {
+    return this.transitionStatus(societyId, guardId, visitorId, {
+      from: "approved",
+      to: "checked_in",
+      action: "entry",
+    });
+  }
+
+  async markExit(societyId: string, guardId: string, visitorId: string): Promise<VisitorOutput> {
+    return this.transitionStatus(societyId, guardId, visitorId, {
+      from: "checked_in",
+      to: "checked_out",
+      action: "exit",
+    });
   }
 }
 

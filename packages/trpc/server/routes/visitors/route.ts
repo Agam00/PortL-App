@@ -4,6 +4,7 @@ import { visitorService } from "../../services";
 import {
   createVisitorInputSchema,
   decideVisitorInputSchema,
+  visitorIdInputSchema,
   visitorOutputSchema,
   listVisitorsOutputSchema,
 } from "@repo/services/visitor/model";
@@ -57,6 +58,22 @@ export const visitorsRouter = router({
     .input(zodUndefinedModel)
     .output(listVisitorsOutputSchema)
     .query(async ({ ctx }) => {
-      return visitorService.listForGuard(ctx.user.sub);
+      return visitorService.listForGuard(requireSocietyId(ctx.user.societyId));
+    }),
+
+  markEntry: guardProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/mark-entry"), tags: TAGS } })
+    .input(visitorIdInputSchema)
+    .output(visitorOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      return visitorService.markEntry(requireSocietyId(ctx.user.societyId), ctx.user.sub, input.visitorId);
+    }),
+
+  markExit: guardProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/mark-exit"), tags: TAGS } })
+    .input(visitorIdInputSchema)
+    .output(visitorOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      return visitorService.markExit(requireSocietyId(ctx.user.societyId), ctx.user.sub, input.visitorId);
     }),
 });

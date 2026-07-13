@@ -154,11 +154,15 @@ Also added `check-types` scripts to `apps/api`, `packages/services`, `packages/t
 ---
 
 ### 4B. Full guard-initiated flow
-- [ ] Resident search: guard can search residents/flats by tower + flat number + resident name
-- [ ] Visitor type selection with distinct UX per type: Guest / Delivery Partner / Cab / Service Staff / Other (icons, quick-fill common delivery brands as chips)
-- [ ] Optional photo capture at the gate (`expo-camera` or `expo-image-picker`) uploaded and attached to the visitor record
-- [ ] `visitors.markEntry` / `visitors.markExit` (guard-only) — writes to `visitor_logs`, updates visitor status to `checked_in` / `checked_out`
-- [ ] Guard "Gate" home screen: live queue grouped by Pending / Approved-awaiting-entry / Checked-in
+- [x] Resident/flat search: `residents.search` (guard-only, `packages/services/resident`) matches by flat number OR resident name within the guard's society, joined flats↔towers↔users, grouped by flat — `FlatSearchField` gives search-as-you-type with a 300ms debounce and a select-to-fill UX (`app/(guard)/visitors.tsx`), replacing 4A's blind flat-number text entry
+  > Deviation: `visitors.create` input changed from `flatNumber` (string, resolved server-side) to `flatId` (uuid, selected from search results) — cleaner and avoids re-resolving a string the guard already picked from a validated list.
+- [x] Visitor type selection: icon chips (Delivery/Guest/Cab/Service/Other) + delivery quick-fill brand chips (Amazon/Zomato/Swiggy/Flipkart) — carried over from 4A, already matched this spec
+- [x] Optional photo capture: `expo-image-picker` (camera) + `expo-image-manipulator` (resize to 400px wide, JPEG quality 0.5) → base64 data URL sent directly in `visitors.create`'s `photoBase64` field, stored as-is in `visitors.photo_url` (`text` column, no size limit) — no file storage infra needed for hackathon scope
+- [x] `visitors.markEntry` / `visitors.markExit` (guard-only): validate the current status first (`approved`→`checked_in`, `checked_in`→`checked_out`), write a `visitor_logs` row, update the visitor's status — wrong-transition attempts fail `CONFLICT` with a message naming the required status
+  > Deviation: `listForGuard` broadened from "this guard's own requests" to "all requests in the guard's society" — a real gate has multiple guards sharing one queue across shifts; scoping to `requestedByGuardId` would hide a visitor from the guard who didn't personally register it.
+- [x] Guard "Gate" home screen: live queue grouped into Pending / Approved — awaiting entry / Checked in via `GroupLabel` sections, each row showing a `Mark Entry`/`Mark Exit` button contextual to its group, still polling every 4s
+
+**Backend verification (curl, fresh instance + reseed):** `residents.search` matches both by flat number ("A-1" → A-101, A-102) and resident name ("Priya" → A-101 only). Full lifecycle on a new visitor: `markEntry` before approval correctly fails `CONFLICT` ("must be approved"); resident approves; `markEntry` succeeds → `checked_in`; `markEntry` again correctly fails `CONFLICT` ("must be approved, currently checked_in"); `markExit` succeeds → `checked_out`; `markExit` again correctly fails `CONFLICT`. Every valid transition succeeded and every invalid one was blocked with a message naming the required state — the state machine has no gaps.
 
 ### 4C. Resident-initiated pre-approval
 - [ ] `visitors.preApprove` (resident-only): resident pre-approves an expected guest/cab with name, phone, type, valid window (e.g. today 5–7pm) *before* they arrive

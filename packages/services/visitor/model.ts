@@ -12,15 +12,24 @@ export const visitorStatusSchema = z.enum([
 ]);
 
 export const createVisitorInputSchema = z.object({
-  flatNumber: z.string().min(1).max(20).describe("e.g. \"A-101\" — resolved to a flat within the guard's society"),
+  flatId: z.string().uuid().describe("Selected via residents.search"),
   name: z.string().min(1).max(80),
   phone: z.string().max(20).optional(),
   type: visitorTypeSchema,
+  photoBase64: z
+    .string()
+    .max(500_000)
+    .optional()
+    .describe("data: URL, e.g. data:image/jpeg;base64,... — kept small, no file storage infra needed"),
 });
 
 export const decideVisitorInputSchema = z.object({
   visitorId: z.string().uuid(),
   decision: z.enum(["approved", "rejected"]),
+});
+
+export const visitorIdInputSchema = z.object({
+  visitorId: z.string().uuid(),
 });
 
 export const visitorOutputSchema = z.object({

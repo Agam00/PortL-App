@@ -25,7 +25,14 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Portl to access your photos to attach a visitor photo.",
+          "cameraPermission": "Allow Portl to use the camera to capture a visitor photo."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
