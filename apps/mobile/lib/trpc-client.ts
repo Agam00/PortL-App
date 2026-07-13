@@ -3,6 +3,25 @@ import { trpc } from "./trpc";
 import { env } from "./env";
 import { useAuthStore } from "../stores/auth-store";
 
+const REQUEST_TIMEOUT_MS = 10_000;
+
+/** Fails fast with a clear error instead of hanging when the API is unreachable. */
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Request timed out — check that the server is reachable.");
+    }
+    throw new Error("Network error — check your connection and that the server is running.");
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 let refreshPromise: Promise<string | null> | null = null;
 
 /** Calls auth.refresh directly (not through the trpc react client) to avoid a circular dependency. */
@@ -14,7 +33,7 @@ async function refreshAccessToken(): Promise<string | null> {
     if (!refreshToken) return null;
 
     try {
-      const res = await fetch(`${env.API_URL}/trpc/auth.refresh`, {
+      const res = await fetchWithTimeout(`${env.API_URL}/trpc/auth.refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
@@ -52,12 +71,12 @@ async function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
     },
   });
 
-  let response = await fetch(input, withAuth(accessToken));
+  let response = await fetchWithTimeout(input, withAuth(accessToken));
 
   if (response.status === 401 && accessToken) {
     const newToken = await refreshAccessToken();
     if (newToken) {
-      response = await fetch(input, withAuth(newToken));
+      response = await fetchWithTimeout(input, withAuth(newToken));
     }
   }
 

@@ -140,14 +140,18 @@ Also added `check-types` scripts to `apps/api`, `packages/services`, `packages/t
 **Day 4 (afternoon) – Day 6. Goal: the actual "gate conversation moves into the app" loop works end-to-end, then gets polished.**
 
 ### 4A. Walking skeleton (build this first, ugly is fine)
-- [ ] `visitors.create` (guard-only): guard searches/selects a flat, enters visitor name/phone/type → creates `visitor` row `status=pending`
-- [ ] `visitors.listPendingForResident` (resident-only): returns pending visitor requests for the caller's flat
-- [ ] `visitors.decide` (resident-only): approve/reject a pending visitor → updates status, `decidedByUserId`, `decidedAt`
-- [ ] `visitors.listForGuard` (guard-only): live queue of requests raised by this guard with current status
-- [ ] Guard screen: minimal form → submit → see request appear with status "Pending"
-- [ ] Resident screen: minimal list of pending requests → Approve/Reject buttons
-- [ ] Guard screen reflects the decision (poll with `refetchInterval` for now — real push comes in Phase 10)
-- [ ] **Milestone check:** guard raises a request on one device, resident approves on another, guard sees "Approved" within a few seconds — confirm this before moving on
+- [x] `visitors.create` (guard-only): takes a `flatNumber` (resolved server-side to a flat within the guard's society — no separate flat-search endpoint needed for the skeleton), visitor name/phone/type → creates a `pending` visitor row (`packages/services/visitor` + `routes/visitors/route.ts`)
+- [x] `visitors.listPendingForResident` (resident-only): pending visitors for the caller's `flatId`
+- [x] `visitors.decide` (resident-only): approve/reject → updates status/`decidedByUserId`/`decidedAt`; rejects with `FORBIDDEN` if the visitor isn't for the caller's flat, `CONFLICT` if already decided
+- [x] `visitors.listForGuard` (guard-only): the calling guard's own requests (joined with `flats` for `flatNumber`), newest first, capped at 50
+- [x] Guard screen (`app/(guard)/visitors.tsx`): type chips, delivery quick-fill brand chips, name/phone/flat-number fields → `visitors.create`
+- [x] Resident screen (`app/(resident)/home.tsx`): real `listPendingForResident` query (5s poll) rendering `VisitorRequestCard`s with Approve/Reject → `visitors.decide`
+- [x] Guard screen (`app/(guard)/gate.tsx`) reflects the decision via `listForGuard` polled every 4s — real push comes in Phase 10
+- [x] **Milestone check — done live on the physical device + curl simulating the other side:** guard registered "Amazon Delivery" for flat A-101 on-device, request appeared in the Gate queue with an amber "Waiting" dot; approved via a curl call to `visitors.decide` as `resident1`; the Gate screen flipped to a green "Approved" dot within the 4s poll window with zero manual refresh — confirmed by the user watching it happen
+
+**Backend verification (curl, before touching the UI):** guard creates a visitor for flat A-101 → resident1 (A-101) sees it in `listPendingForResident` → approves → guard's `listForGuard` reflects `approved` immediately → re-deciding the same visitor correctly fails `CONFLICT` (409) → a different resident (A-102) trying to decide on A-101's visitor correctly fails `FORBIDDEN` (403). All five checks passed before any screen was built, so the UI work was just wiring against an already-correct API.
+
+---
 
 ### 4B. Full guard-initiated flow
 - [ ] Resident search: guard can search residents/flats by tower + flat number + resident name
