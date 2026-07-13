@@ -99,20 +99,24 @@ export default function ResidentHome() {
           )}
         </View>
 
-        <View className="flex-row flex-wrap gap-3">
-          {QUICK_ACTIONS.map((action) => (
-            <Pressable
-              key={action.label}
-              disabled={!action.route}
-              onPress={() => action.route && router.push(action.route)}
-              className="min-w-[45%] flex-1 gap-3 rounded-lg border border-border-subtle bg-surface-elevated p-4 active:bg-white/5"
-            >
-              <MaterialIcons name={action.icon} size={20} color="#5e6ad2" />
-              <View>
-                <Text className="text-body-md font-medium text-on-surface">{action.label}</Text>
-                <Text className="text-meta-text text-text-muted">{action.meta}</Text>
-              </View>
-            </Pressable>
+        <View className="gap-3">
+          {[QUICK_ACTIONS.slice(0, 2), QUICK_ACTIONS.slice(2, 4)].map((row, rowIndex) => (
+            <View key={rowIndex} className="flex-row gap-3">
+              {row.map((action) => (
+                <Pressable
+                  key={action.label}
+                  disabled={!action.route}
+                  onPress={() => action.route && router.push(action.route)}
+                  className="flex-1 gap-3 rounded-lg border border-border-subtle bg-surface-elevated p-4 active:bg-white/5"
+                >
+                  <MaterialIcons name={action.icon} size={20} color="#5e6ad2" />
+                  <View>
+                    <Text className="text-body-md font-medium text-on-surface">{action.label}</Text>
+                    <Text className="text-meta-text text-text-muted">{action.meta}</Text>
+                  </View>
+                </Pressable>
+              ))}
+            </View>
           ))}
         </View>
       </ScrollView>

@@ -196,23 +196,45 @@ Also added `check-types` scripts to `apps/api`, `packages/services`, `packages/t
 - [x] Shift-friendly UX: audited existing components rather than rebuilding — `Button` (`py-2.5`, ~40px tall) and the directory's Call button (explicit `44x44` + `hitSlop`) already meet reasonable tap-target sizing; "minimal typing" was already satisfied by Phase 4B's search-and-select flat picker and quick-fill delivery-brand chips, which this phase's directory search follows the same pattern for
 - [x] Commit: `feat(guard): dashboard + resident lookup`
 
+**Phase 5 re-verified fresh (independent pass — full restart, reseed, typecheck, curl + on-device):** killed the live API process and restarted clean, reseeded the DB, ran a full `pnpm check-types` (all in-scope packages clean; `apps/web`'s pre-existing `react-resizable-panels` scaffold error is the only failure, unrelated and out of scope). Curl-verified against fresh seed data: `residents.search` matches on flat number ("A-1"), resident name ("Priya"), and phone digits ("0010") — all three return correct results. Created a brand-new pre-approval with `validUntil` 45 minutes out; it correctly appears in `visitors.mine` (guard queue) with the exact shape (`source: resident_preapproved`, `status: approved`, future `validUntil` < 2h) the Gate screen's client-side `expiringSoon` filter checks. RBAC re-confirmed: resident and admin tokens both get `403` on `residents.search` and `visitors.mine`. On-device: user confirmed the Gate screen's "Expiring Soon" tile now shows correctly after a bundle reload (initial no-show was a stale Metro bundle on-device, not a code bug), and Resident Directory search/mask/reveal/call/vacant-flat behavior all confirmed working. **Phase 5 is fully done.**
+
 ---
 
 ## Phase 6 — Society Admin Dashboard
 **Day 7 – Day 8. Goal: admin can fully operate the society from the phone.**
 
-- [ ] Admin home: key metrics (total flats occupied, open complaints, pending dues, today's visitor count, upcoming amenity bookings)
-- [ ] Towers CRUD (`towers.create/update/list/delete`)
-- [ ] Flats CRUD, linked to towers (`flats.create/update/list/delete`)
-- [ ] Residents management: list/search residents, invite new resident (ties into Phase 2 `inviteResident`), assign/reassign flat, deactivate resident
-- [ ] Guards & staff-account management: invite guard, deactivate guard
-- [ ] Amenities CRUD (name, schedule, capacity) — feeds Phase 8
-- [ ] Notices CRUD — feeds Phase 7
-- [ ] Polls CRUD — feeds Phase 7
-- [ ] Complaints oversight: view all complaints, assign to staff, change status — feeds Phase 7
-- [ ] Staff/service provider directory CRUD — feeds Phase 9
-- [ ] Admin-side visitor oversight: read-only live feed of all gate activity across the society (great "wow" screen for judges — a real-time-feeling operations view)
-- [ ] Commit: `feat(admin): society, people, and operations management`
+- [x] Admin home: key metrics (total flats occupied, open complaints, pending dues, today's visitor count, upcoming amenity bookings) — new `admin.metrics` endpoint (`packages/services/admin`), wired into `dashboard.tsx`'s stat row
+- [x] Towers CRUD (`towers.create/update/list/delete`) — blocks deleting a tower that still has flats (`CONFLICT`)
+- [x] Flats CRUD, linked to towers (`flats.create/update/list/delete`) — blocks deleting a flat with residents still assigned; list includes live `residentCount`/`towerName`
+- [x] Residents management: list/search residents, invite new resident (reuses Phase 2 `admin.inviteResident`), assign/reassign flat (new `admin.reassignResidentFlat`), deactivate resident
+- [x] Guards & staff-account management: invite guard (reuses Phase 2 `admin.inviteGuard`), deactivate guard, `admin.listGuards`
+- [x] Amenities CRUD (name, schedule, capacity) — feeds Phase 8
+- [x] Notices CRUD — feeds Phase 7
+- [x] Polls CRUD (create with options, close early, delete with cascade cleanup of votes/options) — feeds Phase 7
+- [x] Complaints oversight: view all complaints (with raiser name + flat via join), assign to a guard, advance status — feeds Phase 7
+- [x] Staff/service provider directory CRUD (including verified-badge toggle) — feeds Phase 9
+- [x] Admin-side visitor oversight: read-only live feed of all gate activity across the society — reuses the existing `visitors.history` endpoint (already branches to `societyId` scope for non-resident roles from Phase 4D), polled every 5s on the Dashboard tab
+- [x] Commit: `feat(admin): society, people, and operations management`
+
+**New backend, one router per entity (all `adminProcedure`, scoped to the caller's `societyId`):** `packages/services/{tower,flat,amenity,notice,poll,complaint,staff-directory,admin}` + matching `packages/trpc/server/routes/{towers,flats,amenities,notices,polls,complaints,staff-directory}/route.ts`, plus `listResidents`/`listGuards`/`reassignResidentFlat`/`metrics` added to the existing `admin` router. Resident-facing read/interact endpoints for notices/polls/amenities/staff-directory are explicitly deferred to Phases 7–9 per the original plan — Phase 6 only builds the admin write-side.
+
+**Deviations found and fixed during backend build:**
+- `createNoticeInputSchema`'s `.refine()` calls crashed the API on boot — `trpc-to-openapi`'s doc generator calls `.omit()` internally, which zod v4 disallows on refined schemas. Moved the tower/flat-required-for-scope validation from the zod schema into `NoticeService.create` (throws `BAD_REQUEST` there instead) — confirmed no other service used `.refine()`.
+- `drizzle-orm`'s `alias()` (needed in `ComplaintService` to join `users` twice, for raiser and assignee) isn't re-exported by the root `drizzle-orm` package — added `export { alias } from "drizzle-orm/pg-core"` to `packages/database/index.ts` rather than adding a direct `drizzle-orm` dependency to `packages/services` (keeps the existing "all drizzle access goes through `@repo/database`" convention).
+- `noUncheckedIndexedAccess` caught two real bugs during typecheck: `TowerService.update/remove` and `FlatService.update/remove` destructured `const [{ count }] = await db.select(...)` directly, which is unsound since the array could theoretically be empty — switched to `const [row] = ...` with `row?.count ?? 0`.
+
+**Backend verification (curl, fresh instance + reseed, before any mobile screen was touched):** logged in as admin and swept all 10 new/extended list endpoints (`admin/metrics`, `towers`, `flats`, `admin/residents`, `admin/guards`, `amenities`, `notices`, `polls`, `complaints`, `staff-directory`) — all return `200` against fresh seed data with correct joins (e.g. complaints show `raisedByName`/`flatNumber`/`assignedToName` resolved, not raw IDs). Mutation coverage: created a tower + flat, renamed the tower, confirmed tower-delete is blocked with a flat present (`409`) and succeeds once the flat is removed; reassigned a resident to a vacant flat; created/closed/deleted a poll; created/updated/deleted a staff entry; created/updated(deactivated)/deleted an amenity; confirmed a flat-scoped notice without `targetFlatId` correctly fails `BAD_REQUEST` before creating a valid all-scope notice and deleting it; assigned a complaint to a guard and advanced its status. RBAC re-confirmed on every new admin-only endpoint: resident and guard tokens both get `403`.
+
+**Mobile:** built against the exact Stitch mockups (`manage_society`, `towers_management`, `flats_management`, `residents_management`, `guards_management`, `amenities_management`, `notices_management`, `polls_management`, `complaints_oversight`) — `society.tsx` is the "Management Hub" (grouped Infrastructure/People/Communications sections with live counts, linking to 8 new `href: null` detail screens: `towers.tsx`, `flats.tsx`, `residents.tsx`, `guards.tsx`, `amenities.tsx`, `notices.tsx`, `polls.tsx`, `staff.tsx`), `requests.tsx` is Complaints Oversight (search + status filter chips + expandable detail with assign/advance-status), and `dashboard.tsx`'s stat row + "Live Activity" feed are now wired to real data instead of the Phase 3 placeholder. Each management screen follows the mockup's list-plus-inline-form pattern (no separate modal) with `Alert.alert` confirmation before any delete. Verified: `pnpm check-types` at the root clean for mobile (plus every backend package), `expo export --platform web` bundles clean (1036 modules, no errors).
+
+**Bugs found and fixed during on-device testing:**
+- Dashboard's 4-tile stat grid used `flex-row flex-wrap` + `min-w-[45%] flex-1`, a pattern that misreports its own height on React Native — the "Live Activity" section rendered on top of row 2 of the stat tiles instead of below them. Fixed by rebuilding as an explicit 2×2 grid (two `flex-row` rows of exactly 2 items each, no wrap). Found and fixed the identical latent bug in the Resident Home "Quick Actions" grid (Phase 3/4), which used the same pattern and would have hit the same overlap once anything was added below it.
+- Deactivating a resident/guard was a dead end — there was no way to reactivate them afterward, so "reassign flat, then deactivate option not showing" was actually "deactivate hides forever, as coded." Added `admin.activateUser` (mirrors `deactivateUser`), wired an "Activate" button into both Residents and Guards management. Verified the full deactivate → reassign → activate sequence via curl end-to-end.
+- Resident reassignment was restricted to vacant flats only, which contradicts the data model (Phase 4D already supports multiple residents per flat, e.g. family members). Broadened both the "Invite Resident" and "Reassign Flat" pickers to show all flats with an occupancy count, confirmed reassigning into an already-occupied flat works.
+
+Re-verified after fixes: `pnpm check-types` clean across services/trpc/mobile, fresh curl sweep of activate/deactivate/reassign cycle (including RBAC — resident/guard get `403` on `admin.activateUser`), `expo export --platform web` clean, and a from-scratch Metro restart (two stale competing dev-server processes were found and killed — the user's phone was connected to the stale one).
+
+**User confirmed working on-device** (2026-07-14). Remaining polish (form/keyboard feel, exact pixel match against Stitch mockups) deferred to a later full manual workflow pass, per user's explicit call. **Phase 6 is fully done.**
 
 ---
 

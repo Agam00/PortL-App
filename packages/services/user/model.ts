@@ -38,3 +38,25 @@ export const inviteUserOutputSchema = z.object({
 export const deactivateUserInputSchema = z.object({
   userId: z.string().uuid(),
 });
+
+export const reassignResidentFlatInputSchema = z.object({
+  userId: z.string().uuid(),
+  flatId: z.string().uuid(),
+});
+
+export const adminUserOutputSchema = z.object({
+  id: z.string().uuid(),
+  fullName: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  role: userRoleSchema,
+  isActive: z.boolean(),
+  flatId: z.string().uuid().nullable(),
+  flatNumber: z.string().nullable(),
+  towerName: z.string().nullable(),
+  mustResetPassword: z.boolean(),
+  createdAt: z.string().nullable(),
+});
+export type AdminUserOutput = z.infer<typeof adminUserOutputSchema>;
+
+export const listAdminUsersOutputSchema = z.array(adminUserOutputSchema);

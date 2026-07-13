@@ -1,12 +1,15 @@
 import { TRPCError } from "@trpc/server";
-import { z } from "../../schema";
-import { userService } from "../../services";
+import { z, zodUndefinedModel } from "../../schema";
+import { userService, adminService } from "../../services";
 import {
   inviteResidentInputSchema,
   inviteGuardInputSchema,
   inviteUserOutputSchema,
   deactivateUserInputSchema,
+  reassignResidentFlatInputSchema,
+  listAdminUsersOutputSchema,
 } from "@repo/services/user/model";
+import { adminMetricsOutputSchema } from "@repo/services/admin/model";
 import { adminProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
@@ -45,4 +48,39 @@ export const adminRouter = router({
       await userService.deactivateUser(input.userId);
       return { success: true as const };
     }),
+
+  activateUser: adminProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/users/activate"), tags: TAGS } })
+    .input(deactivateUserInputSchema)
+    .output(z.object({ success: z.literal(true) }))
+    .mutation(async ({ input }) => {
+      await userService.activateUser(input.userId);
+      return { success: true as const };
+    }),
+
+  listResidents: adminProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/residents"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(listAdminUsersOutputSchema)
+    .query(async ({ ctx }) => userService.listResidents(requireSocietyId(ctx.user.societyId))),
+
+  listGuards: adminProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/guards"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(listAdminUsersOutputSchema)
+    .query(async ({ ctx }) => userService.listGuards(requireSocietyId(ctx.user.societyId))),
+
+  reassignResidentFlat: adminProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/residents/reassign-flat"), tags: TAGS } })
+    .input(reassignResidentFlatInputSchema)
+    .output(zodUndefinedModel)
+    .mutation(async ({ ctx, input }) => {
+      await userService.reassignResidentFlat(requireSocietyId(ctx.user.societyId), input.userId, input.flatId);
+    }),
+
+  metrics: adminProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/metrics"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(adminMetricsOutputSchema)
+    .query(async ({ ctx }) => adminService.getMetrics(requireSocietyId(ctx.user.societyId))),
 });
