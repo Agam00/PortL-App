@@ -2,30 +2,21 @@ import { useState } from "react";
 import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { MaterialIcons } from "@expo/vector-icons";
-import { createVisitorInputSchema, type visitorTypeSchema } from "@repo/services/visitor/model";
+import { createVisitorInputSchema } from "@repo/services/visitor/model";
 import type { FlatSearchResult } from "@repo/services/resident/model";
 import type { z } from "zod";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { captureVisitorPhoto } from "../../lib/capture-visitor-photo";
+import { VISITOR_TYPES } from "../../lib/visitor-types";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Chip } from "../../components/ui/chip";
 import { FlatSearchField } from "../../components/flat-search-field";
 
-type VisitorType = z.infer<typeof visitorTypeSchema>;
 type FormValues = z.infer<typeof createVisitorInputSchema>;
-
-const TYPES: { value: VisitorType; label: string; icon: React.ComponentProps<typeof MaterialIcons>["name"] }[] = [
-  { value: "delivery", label: "Delivery", icon: "local-shipping" },
-  { value: "guest", label: "Guest", icon: "person" },
-  { value: "cab", label: "Cab", icon: "local-taxi" },
-  { value: "service", label: "Service", icon: "build" },
-  { value: "other", label: "Other", icon: "more-horiz" },
-];
 
 const QUICK_BRANDS = ["Amazon Delivery", "Zomato", "Swiggy Delivery", "Flipkart"];
 
@@ -106,7 +97,7 @@ export default function GuardRegisterVisitor() {
           <View className="gap-2">
             <Text className="text-label-caps uppercase text-text-muted">Visitor Type</Text>
             <View className="flex-row flex-wrap gap-2">
-              {TYPES.map((t) => (
+              {VISITOR_TYPES.map((t) => (
                 <Chip
                   key={t.value}
                   label={t.label}

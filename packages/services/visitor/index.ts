@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { db, eq, and, desc } from "@repo/database";
+import { db, eq, and, or, ilike, gt, isNull, desc } from "@repo/database";
 import { visitorsTable, visitorLogsTable, flatsTable, towersTable } from "@repo/database/schema";
 import type { VisitorOutput } from "./model";
 
@@ -18,6 +18,8 @@ function serialize(row: VisitorRow, flatNumber: string | null): VisitorOutput {
     status: row.status,
     requestedByGuardId: row.requestedByGuardId,
     decidedByUserId: row.decidedByUserId,
+    validFrom: row.validFrom ? row.validFrom.toISOString() : null,
+    validUntil: row.validUntil ? row.validUntil.toISOString() : null,
     createdAt: (row.createdAt ?? new Date()).toISOString(),
     decidedAt: row.decidedAt ? row.decidedAt.toISOString() : null,
   };
@@ -137,6 +139,14 @@ class VisitorService {
         message: `Visitor must be "${opts.from}" to mark ${opts.action} (currently "${row.visitor.status}")`,
       });
     }
+    if (
+      opts.action === "entry" &&
+      row.visitor.source === "resident_preapproved" &&
+      row.visitor.validUntil &&
+      row.visitor.validUntil.getTime() < Date.now()
+    ) {
+      throw new TRPCError({ code: "CONFLICT", message: "This pre-approval has expired" });
+    }
 
     await db.insert(visitorLogsTable).values({ visitorId, guardId, action: opts.action });
 
@@ -164,6 +174,72 @@ class VisitorService {
       to: "checked_out",
       action: "exit",
     });
+  }
+
+  async preApprove(
+    societyId: string,
+    flatId: string,
+    userId: string,
+    input: { name: string; phone?: string; type: VisitorRow["type"]; validFrom: string; validUntil: string },
+  ): Promise<VisitorOutput> {
+    const validFrom = new Date(input.validFrom);
+    const validUntil = new Date(input.validUntil);
+    if (validUntil <= validFrom) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Valid-until must be after valid-from" });
+    }
+
+    const [visitor] = await db
+      .insert(visitorsTable)
+      .values({
+        societyId,
+        flatId,
+        name: input.name,
+        phone: input.phone,
+        type: input.type,
+        source: "resident_preapproved",
+        status: "approved",
+        decidedByUserId: userId,
+        decidedAt: new Date(),
+        validFrom,
+        validUntil,
+      })
+      .returning();
+
+    if (!visitor) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    return serialize(visitor, null);
+  }
+
+  async listPreApprovedForResident(flatId: string): Promise<VisitorOutput[]> {
+    const rows = await db
+      .select()
+      .from(visitorsTable)
+      .where(and(eq(visitorsTable.flatId, flatId), eq(visitorsTable.source, "resident_preapproved")))
+      .orderBy(desc(visitorsTable.validFrom));
+
+    return rows.map((row) => serialize(row, null));
+  }
+
+  async searchPreApproved(societyId: string, query: string): Promise<VisitorOutput[]> {
+    const like = `%${query}%`;
+    const now = new Date();
+
+    const rows = await db
+      .select({ visitor: visitorsTable, flatNumber: flatsTable.flatNumber })
+      .from(visitorsTable)
+      .innerJoin(flatsTable, eq(visitorsTable.flatId, flatsTable.id))
+      .where(
+        and(
+          eq(visitorsTable.societyId, societyId),
+          eq(visitorsTable.source, "resident_preapproved"),
+          eq(visitorsTable.status, "approved"),
+          or(isNull(visitorsTable.validUntil), gt(visitorsTable.validUntil, now)),
+          or(ilike(visitorsTable.name, like), ilike(visitorsTable.phone, like)),
+        ),
+      )
+      .orderBy(desc(visitorsTable.createdAt))
+      .limit(20);
+
+    return rows.map((row) => serialize(row.visitor, row.flatNumber));
   }
 }
 

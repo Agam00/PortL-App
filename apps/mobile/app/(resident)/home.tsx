@@ -1,5 +1,6 @@
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
 import { useState } from "react";
+import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../../stores/auth-store";
 import { useUiStore } from "../../stores/ui-store";
@@ -13,14 +14,16 @@ const QUICK_ACTIONS: {
   label: string;
   meta: string;
   icon: React.ComponentProps<typeof MaterialIcons>["name"];
+  route?: "/(resident)/pre-approve";
 }[] = [
-  { label: "Pre-Approve", meta: "Generate pass", icon: "qr-code-scanner" },
+  { label: "Pre-Approve", meta: "Generate pass", icon: "qr-code-scanner", route: "/(resident)/pre-approve" },
   { label: "Help Desk", meta: "Raise ticket", icon: "support-agent" },
   { label: "Dues", meta: "View balance", icon: "payments" },
   { label: "Bookings", meta: "Amenities", icon: "event" },
 ];
 
 export default function ResidentHome() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const showToast = useUiStore((s) => s.showToast);
   const utils = trpc.useUtils();
@@ -91,16 +94,18 @@ export default function ResidentHome() {
 
         <View className="flex-row flex-wrap gap-3">
           {QUICK_ACTIONS.map((action) => (
-            <View
+            <Pressable
               key={action.label}
-              className="min-w-[45%] flex-1 gap-3 rounded-lg border border-border-subtle bg-surface-elevated p-4"
+              disabled={!action.route}
+              onPress={() => action.route && router.push(action.route)}
+              className="min-w-[45%] flex-1 gap-3 rounded-lg border border-border-subtle bg-surface-elevated p-4 active:bg-white/5"
             >
               <MaterialIcons name={action.icon} size={20} color="#5e6ad2" />
               <View>
                 <Text className="text-body-md font-medium text-on-surface">{action.label}</Text>
                 <Text className="text-meta-text text-text-muted">{action.meta}</Text>
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
       </ScrollView>

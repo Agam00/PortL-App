@@ -32,7 +32,8 @@
           "photosPermission": "Allow Portl to access your photos to attach a visitor photo.",
           "cameraPermission": "Allow Portl to use the camera to capture a visitor photo."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

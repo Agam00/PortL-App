@@ -32,6 +32,18 @@ export const visitorIdInputSchema = z.object({
   visitorId: z.string().uuid(),
 });
 
+export const preApproveVisitorInputSchema = z.object({
+  name: z.string().min(1).max(80),
+  phone: z.string().max(20).optional(),
+  type: visitorTypeSchema,
+  validFrom: z.string().datetime(),
+  validUntil: z.string().datetime(),
+});
+
+export const searchPreApprovedInputSchema = z.object({
+  query: z.string().min(1).max(50),
+});
+
 export const visitorOutputSchema = z.object({
   id: z.string().uuid(),
   flatId: z.string().uuid(),
@@ -44,6 +56,8 @@ export const visitorOutputSchema = z.object({
   status: visitorStatusSchema,
   requestedByGuardId: z.string().uuid().nullable(),
   decidedByUserId: z.string().uuid().nullable(),
+  validFrom: z.string().nullable(),
+  validUntil: z.string().nullable(),
   createdAt: z.string(),
   decidedAt: z.string().nullable(),
 });

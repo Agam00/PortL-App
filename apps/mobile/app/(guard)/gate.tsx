@@ -61,8 +61,8 @@ export default function GuardGate() {
           <Button className="flex-1" variant="primary" onPress={() => router.push("/(guard)/visitors")}>
             Register Visitor
           </Button>
-          <Button className="flex-1" variant="outline" disabled>
-            Scan Pass
+          <Button className="flex-1" variant="outline" onPress={() => router.push("/(guard)/check-preapproved")}>
+            Pre-Approved
           </Button>
         </View>
 

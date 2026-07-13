@@ -5,6 +5,8 @@ import {
   createVisitorInputSchema,
   decideVisitorInputSchema,
   visitorIdInputSchema,
+  preApproveVisitorInputSchema,
+  searchPreApprovedInputSchema,
   visitorOutputSchema,
   listVisitorsOutputSchema,
 } from "@repo/services/visitor/model";
@@ -75,5 +77,34 @@ export const visitorsRouter = router({
     .output(visitorOutputSchema)
     .mutation(async ({ ctx, input }) => {
       return visitorService.markExit(requireSocietyId(ctx.user.societyId), ctx.user.sub, input.visitorId);
+    }),
+
+  preApprove: residentProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/pre-approve"), tags: TAGS } })
+    .input(preApproveVisitorInputSchema)
+    .output(visitorOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      return visitorService.preApprove(
+        requireSocietyId(ctx.user.societyId),
+        requireFlatId(ctx.user.flatId),
+        ctx.user.sub,
+        input,
+      );
+    }),
+
+  listPreApprovedForResident: residentProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/pre-approved"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(listVisitorsOutputSchema)
+    .query(async ({ ctx }) => {
+      return visitorService.listPreApprovedForResident(requireFlatId(ctx.user.flatId));
+    }),
+
+  searchPreApproved: guardProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/pre-approved/search"), tags: TAGS } })
+    .input(searchPreApprovedInputSchema)
+    .output(listVisitorsOutputSchema)
+    .query(async ({ ctx, input }) => {
+      return visitorService.searchPreApproved(requireSocietyId(ctx.user.societyId), input.query);
     }),
 });
