@@ -50,6 +50,7 @@ export default function GuardLayout() {
         }}
       />
       <Tabs.Screen name="check-preapproved" options={{ href: null }} />
+      <Tabs.Screen name="resident-directory" options={{ href: null }} />
     </Tabs>
   );
 }

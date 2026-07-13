@@ -190,10 +190,11 @@ Also added `check-types` scripts to `apps/api`, `packages/services`, `packages/t
 ## Phase 5 — Guard Dashboard & Operations
 **Day 6 (afternoon). Goal: guard's non-visitor daily tools.**
 
-- [ ] Guard home dashboard: today's stats (visitors in, pending approvals, active pre-approvals expiring soon)
-- [ ] Resident directory search (read-only, phone-masked unless needed) for guard to quickly find/verify a flat
-- [ ] Shift-friendly UX: large tap targets, minimal typing, works one-handed (guard is standing at a gate, often with a visitor waiting)
-- [ ] Commit: `feat(guard): dashboard + resident lookup`
+- [x] Guard home dashboard stats: the Gate screen's stat row grew from 2 tiles to 3 — Pending / Checked In / **Expiring Soon** (pre-approvals with `validUntil` inside the next 2 hours), computed client-side from the same `listForGuard` data already being polled — no new endpoint needed, since society-wide `listForGuard` already includes `resident_preapproved` rows with their `validUntil`
+- [x] Resident directory search (`app/(guard)/resident-directory.tsx`, `href: null`, reached via a new button on Gate): reuses `residents.search` from Phase 4B as-is on the backend. Phone numbers are masked by default (`+91••••••0010`) with tap-to-reveal, and a Call button (`Linking.openURL('tel:...')`) works against the real number regardless of the masked display state
+  > Bug found and fixed during verification: `residents.search` only matched flat number or resident name — searching by phone (explicitly promised by the mockup: "Search by Flat Number, Name, or Phone") returned nothing. Added `ilike(usersTable.phone, like)` to the `or(...)` clause. Re-verified all four paths fresh (phone digits, flat number, resident name, vacant flat) — no regression on the three that already worked, phone now works too.
+- [x] Shift-friendly UX: audited existing components rather than rebuilding — `Button` (`py-2.5`, ~40px tall) and the directory's Call button (explicit `44x44` + `hitSlop`) already meet reasonable tap-target sizing; "minimal typing" was already satisfied by Phase 4B's search-and-select flat picker and quick-fill delivery-brand chips, which this phase's directory search follows the same pattern for
+- [x] Commit: `feat(guard): dashboard + resident lookup`
 
 ---
 

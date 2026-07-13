@@ -37,6 +37,17 @@ export default function GuardGate() {
   const approved = queue.filter((v) => v.status === "approved");
   const checkedIn = queue.filter((v) => v.status === "checked_in");
 
+  const now = Date.now();
+  const twoHoursMs = 2 * 60 * 60 * 1000;
+  const expiringSoon = queue.filter(
+    (v) =>
+      v.source === "resident_preapproved" &&
+      v.status === "approved" &&
+      v.validUntil &&
+      new Date(v.validUntil).getTime() > now &&
+      new Date(v.validUntil).getTime() - now < twoHoursMs,
+  );
+
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Gate" role="guard" />
@@ -46,7 +57,7 @@ export default function GuardGate() {
           <RefreshControl refreshing={queueQuery.isRefetching} onRefresh={() => queueQuery.refetch()} />
         }
       >
-        <View className="flex-row gap-4">
+        <View className="flex-row gap-3">
           <View className="flex-1 justify-center gap-1 rounded-lg border border-border-subtle bg-surface-elevated p-3">
             <Text className="text-meta-text text-text-muted">Pending</Text>
             <Text className="text-headline-lg font-semibold text-on-surface">{pending.length}</Text>
@@ -54,6 +65,13 @@ export default function GuardGate() {
           <View className="flex-1 justify-center gap-1 rounded-lg border border-border-subtle bg-surface-elevated p-3">
             <Text className="text-meta-text text-text-muted">Checked In</Text>
             <Text className="text-headline-lg font-semibold text-on-surface">{checkedIn.length}</Text>
+          </View>
+          <View className="flex-1 justify-center gap-1 rounded-lg border border-border-subtle bg-surface-elevated p-3">
+            <Text className="text-meta-text text-text-muted">Expiring Soon</Text>
+            <View className="flex-row items-center gap-1.5">
+              <Text className="text-headline-lg font-semibold text-on-surface">{expiringSoon.length}</Text>
+              {expiringSoon.length > 0 && <View className="h-1.5 w-1.5 rounded-full bg-status-amber" />}
+            </View>
           </View>
         </View>
 
@@ -65,6 +83,10 @@ export default function GuardGate() {
             Pre-Approved
           </Button>
         </View>
+
+        <Button variant="outline" onPress={() => router.push("/(guard)/resident-directory")}>
+          Resident Directory
+        </Button>
 
         {queueQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />

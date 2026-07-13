@@ -24,7 +24,11 @@ class ResidentService {
       .where(
         and(
           eq(towersTable.societyId, societyId),
-          or(ilike(flatsTable.flatNumber, like), ilike(usersTable.fullName, like)),
+          or(
+            ilike(flatsTable.flatNumber, like),
+            ilike(usersTable.fullName, like),
+            ilike(usersTable.phone, like),
+          ),
         ),
       )
       .limit(30);
