@@ -1,13 +1,14 @@
 import { TRPCError } from "@trpc/server";
 import { zodUndefinedModel } from "../../schema";
-import { pollService } from "../../services";
+import { pollService, notificationService } from "../../services";
 import {
   createPollInputSchema,
   pollIdInputSchema,
   pollOutputSchema,
   listPollsOutputSchema,
+  voteInputSchema,
 } from "@repo/services/poll/model";
-import { adminProcedure, router } from "../../trpc";
+import { adminProcedure, residentProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
 const TAGS = ["Polls"];
@@ -20,13 +21,17 @@ function requireSocietyId(societyId: string | null): string {
   return societyId;
 }
 
-// Resident-facing list/vote procedures arrive in Phase 7.
 export const pollsRouter = router({
   create: adminProcedure
     .meta({ openapi: { method: "POST", path: getPath("/"), tags: TAGS } })
     .input(createPollInputSchema)
     .output(pollOutputSchema)
-    .mutation(async ({ ctx, input }) => pollService.create(requireSocietyId(ctx.user.societyId), ctx.user.sub, input)),
+    .mutation(async ({ ctx, input }) => {
+      const societyId = requireSocietyId(ctx.user.societyId);
+      const poll = await pollService.create(societyId, ctx.user.sub, input);
+      await notificationService.notifyPollOpened(societyId, poll);
+      return poll;
+    }),
 
   list: adminProcedure
     .meta({ openapi: { method: "GET", path: getPath("/"), tags: TAGS } })
@@ -47,4 +52,16 @@ export const pollsRouter = router({
     .mutation(async ({ ctx, input }) => {
       await pollService.remove(requireSocietyId(ctx.user.societyId), input.pollId);
     }),
+
+  listForResident: residentProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/mine"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(listPollsOutputSchema)
+    .query(async ({ ctx }) => pollService.listForResident(requireSocietyId(ctx.user.societyId), ctx.user.sub)),
+
+  vote: residentProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/vote"), tags: TAGS } })
+    .input(voteInputSchema)
+    .output(pollOutputSchema)
+    .mutation(async ({ ctx, input }) => pollService.vote(requireSocietyId(ctx.user.societyId), ctx.user.sub, input)),
 });

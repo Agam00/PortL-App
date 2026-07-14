@@ -28,7 +28,13 @@ export const pollOutputSchema = z.object({
   isClosed: z.boolean(),
   totalVotes: z.number(),
   options: z.array(pollOptionOutputSchema),
+  myVote: z.array(z.string().uuid()),
 });
 export type PollOutput = z.infer<typeof pollOutputSchema>;
 
 export const listPollsOutputSchema = z.array(pollOutputSchema);
+
+export const voteInputSchema = z.object({
+  pollId: z.string().uuid(),
+  optionIds: z.array(z.string().uuid()).min(1),
+});

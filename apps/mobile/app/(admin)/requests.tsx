@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -8,6 +9,17 @@ import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
 import { EmptyState } from "../../components/ui/empty-state";
 import { Button } from "../../components/ui/button";
+
+function timeAgo(iso: string | null) {
+  if (!iso) return "";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
+}
 
 const STATUS_FILTERS: { label: string; value?: "open" | "in_progress" | "resolved" | "closed" }[] = [
   { label: "All" },
@@ -32,9 +44,14 @@ export default function AdminRequests() {
   const [filter, setFilter] = useState<(typeof STATUS_FILTERS)[number]>(STATUS_FILTERS[0]);
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [commentBody, setCommentBody] = useState("");
 
   const guardsQuery = trpc.admin.listGuards.useQuery();
   const complaintsQuery = trpc.complaints.list.useQuery({ status: filter.value });
+  const commentsQuery = trpc.complaints.listComments.useQuery(
+    { complaintId: expandedId ?? "" },
+    { enabled: !!expandedId },
+  );
 
   const complaints = (complaintsQuery.data ?? []).filter(
     (c) =>
@@ -46,6 +63,14 @@ export default function AdminRequests() {
 
   const updateMutation = trpc.complaints.update.useMutation({
     onSuccess: () => utils.complaints.list.invalidate(),
+    onError: (error) => showToast(getErrorMessage(error), "error"),
+  });
+
+  const addCommentMutation = trpc.complaints.addComment.useMutation({
+    onSuccess: () => {
+      setCommentBody("");
+      utils.complaints.listComments.invalidate({ complaintId: expandedId ?? "" });
+    },
     onError: (error) => showToast(getErrorMessage(error), "error"),
   });
 
@@ -125,6 +150,43 @@ export default function AdminRequests() {
                           {`Mark as ${NEXT_STATUS[complaint.status]?.replace("_", " ")}`}
                         </Button>
                       )}
+
+                      <Text className="text-label-caps uppercase text-text-muted">Updates</Text>
+                      {commentsQuery.isLoading ? (
+                        <ActivityIndicator color="#5e6ad2" />
+                      ) : (commentsQuery.data ?? []).length === 0 ? (
+                        <Text className="text-body-sm text-text-muted">No replies yet.</Text>
+                      ) : (
+                        <View className="gap-2">
+                          {(commentsQuery.data ?? []).map((comment) => (
+                            <View key={comment.id} className="rounded-lg border border-border-subtle bg-surface-elevated p-3">
+                              <View className="flex-row items-center justify-between">
+                                <Text className="text-body-sm font-medium text-on-surface">
+                                  {comment.authorName} {comment.authorRole !== "admin" ? `(${comment.authorRole})` : ""}
+                                </Text>
+                                <Text className="text-meta-text text-text-muted">{timeAgo(comment.createdAt)}</Text>
+                              </View>
+                              <Text className="text-body-sm text-on-surface-variant">{comment.body}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+
+                      <View className="flex-row items-center gap-2">
+                        <Input
+                          className="flex-1"
+                          placeholder="Add an internal note or reply..."
+                          value={commentBody}
+                          onChangeText={setCommentBody}
+                        />
+                        <Pressable
+                          disabled={!commentBody.trim() || addCommentMutation.isPending}
+                          onPress={() => addCommentMutation.mutate({ complaintId: complaint.id, body: commentBody.trim() })}
+                          className="h-11 w-11 items-center justify-center rounded-lg bg-primary-container active:bg-inverse-primary"
+                        >
+                          <MaterialIcons name="send" size={18} color="#fff" />
+                        </Pressable>
+                      </View>
                     </View>
                   )}
                 </Pressable>

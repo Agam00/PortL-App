@@ -24,3 +24,4 @@ export const pollService = new PollService();
 export const complaintService = new ComplaintService();
 export const staffDirectoryService = new StaffDirectoryService();
 export const adminService = new AdminService();
+export const notificationService = new NotificationService();
