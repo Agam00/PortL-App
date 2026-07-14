@@ -8,7 +8,7 @@ import {
   amenityOutputSchema,
   listAmenitiesOutputSchema,
 } from "@repo/services/amenity/model";
-import { adminProcedure, router } from "../../trpc";
+import { adminProcedure, residentProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
 const TAGS = ["Amenities"];
@@ -21,7 +21,6 @@ function requireSocietyId(societyId: string | null): string {
   return societyId;
 }
 
-// Resident-facing browse/book procedures arrive in Phase 8.
 export const amenitiesRouter = router({
   create: adminProcedure
     .meta({ openapi: { method: "POST", path: getPath("/"), tags: TAGS } })
@@ -48,4 +47,10 @@ export const amenitiesRouter = router({
     .mutation(async ({ ctx, input }) => {
       await amenityService.remove(requireSocietyId(ctx.user.societyId), input.amenityId);
     }),
+
+  listForResident: residentProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/mine"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(listAmenitiesOutputSchema)
+    .query(async ({ ctx }) => amenityService.list(requireSocietyId(ctx.user.societyId))),
 });

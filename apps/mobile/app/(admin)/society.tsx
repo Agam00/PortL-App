@@ -16,6 +16,7 @@ export default function AdminSociety() {
   const staffQuery = trpc.staffDirectory.list.useQuery();
   const noticesQuery = trpc.notices.list.useQuery();
   const pollsQuery = trpc.polls.list.useQuery();
+  const duesQuery = trpc.dues.list.useQuery();
 
   const sections: {
     label: string;
@@ -51,6 +52,17 @@ export default function AdminSociety() {
           value: `${pollsQuery.data?.filter((p) => !p.isClosed).length ?? "—"} Active`,
           icon: "poll",
           route: "/(admin)/polls",
+        },
+      ],
+    },
+    {
+      label: "Finance",
+      items: [
+        {
+          label: "Dues",
+          value: `${duesQuery.data?.filter((d) => d.status !== "paid").length ?? "—"} Pending`,
+          icon: "payments",
+          route: "/(admin)/dues",
         },
       ],
     },

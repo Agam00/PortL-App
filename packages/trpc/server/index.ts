@@ -11,6 +11,7 @@ import { noticesRouter } from "./routes/notices/route";
 import { pollsRouter } from "./routes/polls/route";
 import { complaintsRouter } from "./routes/complaints/route";
 import { amenitiesRouter } from "./routes/amenities/route";
+import { amenityBookingsRouter } from "./routes/amenity-bookings/route";
 import { duesRouter } from "./routes/dues/route";
 import { staffDirectoryRouter } from "./routes/staff-directory/route";
 import { notificationsRouter } from "./routes/notifications/route";
@@ -27,6 +28,7 @@ export const serverRouter = router({
   polls: pollsRouter,
   complaints: complaintsRouter,
   amenities: amenitiesRouter,
+  amenityBookings: amenityBookingsRouter,
   dues: duesRouter,
   staffDirectory: staffDirectoryRouter,
   notifications: notificationsRouter,

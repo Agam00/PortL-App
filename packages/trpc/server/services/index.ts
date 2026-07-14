@@ -11,6 +11,8 @@ import ComplaintService from "@repo/services/complaint";
 import StaffDirectoryService from "@repo/services/staff-directory";
 import AdminService from "@repo/services/admin";
 import NotificationService from "@repo/services/notification";
+import AmenityBookingService from "@repo/services/amenity-booking";
+import DueService from "@repo/services/due";
 
 export const userService = new UserService();
 export const authService = new AuthService();
@@ -25,3 +27,5 @@ export const complaintService = new ComplaintService();
 export const staffDirectoryService = new StaffDirectoryService();
 export const adminService = new AdminService();
 export const notificationService = new NotificationService();
+export const amenityBookingService = new AmenityBookingService();
+export const dueService = new DueService();

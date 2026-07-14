@@ -259,21 +259,34 @@ Re-verified after fixes: `pnpm check-types` clean across services/trpc/mobile, f
 
 **Bug found and fixed (self-tested, not caught by curl alone):** the admin's Complaints Oversight screen (`app/(admin)/requests.tsx`, built in Phase 6 before the comment backend existed) never had any UI to view or add comments — it only showed description/assign/status. The backend (`complaints.listComments`/`addComment`) worked correctly the whole time, but nothing on the admin side called it, so a resident's comment/update was invisible to admin no matter how correct the API was. Added the same comment-thread-plus-reply-input pattern already used on the resident's Helpdesk screen. Verified by simulating the full round trip via curl end-to-end: resident raises a ticket → resident adds a comment → **admin's exact query** (`complaints.listComments`) returns it → admin replies → **resident's exact query** returns both messages. `pnpm check-types` and `expo export --platform web` both clean after the fix.
 
-**Not yet done:** on-device visual pass — hand off to the user next, same as every prior phase.
+**User confirmed working on-device** (2026-07-14).
+
+**Phase 7 re-verified fresh (independent pass — full restart, reseed, root `pnpm check-types`, curl sweep):** killed the live API, restarted clean, reseeded the DB. Root typecheck: all 6 in-scope packages clean (`apps/web`'s pre-existing `react-resizable-panels` scaffold error is the only failure, unrelated/out of scope, unchanged since Phase 1). Fresh curl sweep against reseeded data: notice fan-out + unread→read transition confirmed (`isRead: false` → `mark-read` → `isRead: true`); poll vote succeeds, a second vote by the same resident correctly fails `409`; helpdesk round trip re-confirmed end-to-end (resident comment visible to admin, admin reply visible to resident) — the exact bug reported and fixed above did not regress. RBAC re-confirmed on every resident-only Phase 7 endpoint: guard gets `403` on `notices.listForResident`, `polls.vote`, and `complaints.create`. **Phase 7 is fully done.**
 
 ---
 
 ## Phase 8 — Amenities Booking & Maintenance Dues
 **Day 9 (afternoon) – Day 10. Goal: the two "money/scheduling" features that read as production-grade.**
 
-- [ ] Amenities list (clubhouse, gym, pool, etc.) with schedule/capacity shown
-- [ ] Slot picker UI (date + time slot) respecting `openTime/closeTime/slotMinutes` and existing bookings (prevent double-booking capacity overflow)
-- [ ] `amenityBookings.create/cancel/myBookings` + admin view of all bookings per amenity/date
-- [ ] Maintenance Dues: resident sees current + past dues per flat, status badges
-- [ ] Payment flow: integrate Razorpay **test mode** checkout for a due → on webhook/callback mark `payments` row + `dues.status = paid`
-  - [ ] **Fallback if time-constrained:** "Mark as Paid (Demo)" mock flow that still writes a real `payments` row — keep the schema/API real even if the gateway UI is mocked; note this clearly in the README
-- [ ] Admin dues management: generate a due for a flat/period, view payment status across the society
-- [ ] Commit: `feat(amenities,dues): booking flow + maintenance payments`
+- [x] Amenities list (clubhouse, gym, pool, etc.) with schedule/capacity shown
+- [x] Slot picker UI (date + time slot) respecting `openTime/closeTime/slotMinutes` and existing bookings (prevent double-booking capacity overflow)
+- [x] `amenityBookings.create/cancel/myBookings` + admin view of all bookings per amenity/date
+- [x] Maintenance Dues: resident sees current + past dues per flat, status badges
+- [x] Payment flow: **used the Cut List's own fallback from day one** — "Mark as Paid (Demo)" mock flow (`dues.payMock`) that still writes a real `payments` row (`provider: "mock"`, `status: "success"`, a generated `providerRefId`) and flips `dues.status` to `paid`. Given how much build surface remains (Phases 9–13) for a hackathon timeline, real Razorpay test-mode integration wasn't worth the setup/webhook-plumbing time against a cut the plan already pre-approved; the schema/API stayed fully real per the fallback's own instruction — only the checkout gateway itself is mocked.
+- [x] Admin dues management: generate a due for a flat/period (`dues.create`), view payment status across the society (`dues.list`, with a Pending/Paid filter in the UI)
+- [x] Commit: `feat(amenities,dues): booking flow + maintenance payments`
+
+**Backend:** two new services — `packages/services/amenity-booking` (slot-grid computed from `openTime`/`closeTime`/`slotMinutes`, capacity-checked per exact slot before insert, not just per-day) and `packages/services/due` (dues CRUD + mock payment). `isOverdue` is a derived display flag (`status === "pending" && dueDate < now`), not a separate stored transition — avoids needing a scheduled job to flip the enum for a hackathon-scope feature. New routers: `amenityBookings` (`availableSlots`/`create`/`myBookings`/`cancel`/`listForAdmin`) and `dues` (`create`/`list`/`mine`/`payMock`); `amenities` gained a `listForResident` (residentProcedure) alongside Phase 6's admin CRUD.
+
+**Backend verification (curl, fresh instance + reseed):** slot grid computed correctly (14 hourly slots for an 08:00–22:00/60-min facility); booking an out-of-grid time (`09:37`) correctly fails `BAD_REQUEST`; a capacity-1 facility correctly lets exactly one resident book a slot and rejects a second resident for the same slot with `CONFLICT`, and `availableSlots` immediately reflects `isAvailable: false`; cancel works once, a second cancel on the same booking correctly fails `CONFLICT`. Dues: admin generates a due for a specific flat, resident sees it `pending`, `payMock` flips it to `paid` with a real `payments` row, a second pay attempt correctly fails `CONFLICT`. RBAC re-confirmed: guard gets `403` on every new resident- and admin-only endpoint (`amenityBookings.create`, `dues.mine`, `dues.create`, `amenityBookings.listForAdmin`). Full sweep re-run clean on a from-scratch restart + reseed right before wiring the mobile screens, and again after they were built.
+
+**Mobile:** `app/(resident)/amenities.tsx` (facility list → inline date-strip + slot-grid booking panel → collapsible "My Bookings" with cancel, matching the `amenities` mockup's inline booking-panel pattern), `app/(resident)/dues.tsx` (total-outstanding banner + per-due Pending/Overdue/Paid badges + "Pay Now" with a confirm dialog noting demo mode, matching the `maintenance_dues` mockup), `app/(admin)/dues.tsx` (new, generate-due form + status-filtered list, linked from a new "Finance" section on the Management Hub), and a "View Bookings" expandable section added to the existing admin Amenities screen (Phase 6) for the "admin view of all bookings per amenity" requirement. Home's `Help Desk`/`Dues`/`Bookings` quick actions (stubbed since Phase 4) are now all wired to real routes. Verified: `pnpm check-types` clean across services/trpc/api/mobile, `expo export --platform web` clean.
+
+**Fix (user feedback):** the admin's "Generate Due" form required typing both `Period (YYYY-MM)` and `Due Date (YYYY-MM-DD)` by hand. Added a new `DateField` primitive (`components/ui/date-field.tsx`, same pattern as the existing `TimeField`) backed by the native `DateTimePicker` in date mode, and removed the separate Period input entirely — it's now auto-derived from the picked due date (shown as a read-only "Billing period: <Month Year>" line) so there's nothing to type except the amount.
+
+**Self-tested (user couldn't find data to check against):** the user's test resident (`resident1`, flat A-101) genuinely had zero seeded dues — `seed.ts` only creates one due, for a different resident — so the empty state they saw was correct, not a bug. Verified the full cycle end-to-end via curl using the exact new flow: confirmed `dues.mine` empty for that resident → admin generates a due for that specific flat (date-derived period) → resident's `dues.mine` shows it `pending` → `payMock` flips it to `paid` with a real `payments` row → admin's list reflects `paid` too. Left this due in the database (did not reseed after) so the user has real data to check on their device. `pnpm check-types` and `expo export --platform web` both clean after the date-picker change.
+
+**Not yet done:** on-device visual pass — hand off to the user next, same as every prior phase.
 
 ---
 

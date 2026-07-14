@@ -14,12 +14,12 @@ const QUICK_ACTIONS: {
   label: string;
   meta: string;
   icon: React.ComponentProps<typeof MaterialIcons>["name"];
-  route?: "/(resident)/pre-approve";
+  route?: "/(resident)/pre-approve" | "/(resident)/helpdesk" | "/(resident)/dues" | "/(resident)/amenities";
 }[] = [
   { label: "Pre-Approve", meta: "Generate pass", icon: "qr-code-scanner", route: "/(resident)/pre-approve" },
-  { label: "Help Desk", meta: "Raise ticket", icon: "support-agent" },
-  { label: "Dues", meta: "View balance", icon: "payments" },
-  { label: "Bookings", meta: "Amenities", icon: "event" },
+  { label: "Help Desk", meta: "Raise ticket", icon: "support-agent", route: "/(resident)/helpdesk" },
+  { label: "Dues", meta: "View balance", icon: "payments", route: "/(resident)/dues" },
+  { label: "Bookings", meta: "Amenities", icon: "event", route: "/(resident)/amenities" },
 ];
 
 export default function ResidentHome() {

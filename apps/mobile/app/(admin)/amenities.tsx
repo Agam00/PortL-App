@@ -32,8 +32,13 @@ export default function AdminAmenities() {
   const [openTime, setOpenTime] = useState(timeToDate("06:00"));
   const [closeTime, setCloseTime] = useState(timeToDate("22:00"));
   const [slotMinutes, setSlotMinutes] = useState("60");
+  const [bookingsAmenityId, setBookingsAmenityId] = useState<string | null>(null);
 
   const amenitiesQuery = trpc.amenities.list.useQuery();
+  const bookingsQuery = trpc.amenityBookings.listForAdmin.useQuery(
+    { amenityId: bookingsAmenityId ?? undefined },
+    { enabled: !!bookingsAmenityId },
+  );
 
   function resetForm() {
     setShowForm(false);
@@ -198,6 +203,38 @@ export default function AdminAmenities() {
                     {amenity.isActive ? "Deactivate" : "Activate"}
                   </Button>
                 </View>
+
+                <Pressable
+                  onPress={() => setBookingsAmenityId(bookingsAmenityId === amenity.id ? null : amenity.id)}
+                  className="flex-row items-center gap-1.5 p-1"
+                >
+                  <MaterialIcons name={bookingsAmenityId === amenity.id ? "expand-less" : "expand-more"} size={18} color="#5e6ad2" />
+                  <Text className="text-body-sm font-medium text-primary-container">View Bookings</Text>
+                </Pressable>
+
+                {bookingsAmenityId === amenity.id && (
+                  <View className="gap-2 border-t border-border-subtle pt-3">
+                    {bookingsQuery.isLoading ? (
+                      <ActivityIndicator color="#5e6ad2" />
+                    ) : (bookingsQuery.data ?? []).length === 0 ? (
+                      <Text className="text-body-sm text-text-muted">No bookings yet.</Text>
+                    ) : (
+                      (bookingsQuery.data ?? []).map((booking) => (
+                        <View key={booking.id} className="flex-row items-center justify-between rounded-lg border border-border-subtle bg-surface-elevated p-3">
+                          <View className="min-w-0 flex-1">
+                            <Text className="text-body-sm font-medium text-on-surface" numberOfLines={1}>
+                              {booking.flatNumber} · {booking.bookedByName}
+                            </Text>
+                            <Text className="text-meta-text text-text-muted">
+                              {booking.date} · {booking.slotStart.slice(0, 5)}–{booking.slotEnd.slice(0, 5)}
+                            </Text>
+                          </View>
+                          <View className={`h-1.5 w-1.5 rounded-full ${booking.status === "confirmed" ? "bg-status-green" : "bg-text-muted"}`} />
+                        </View>
+                      ))
+                    )}
+                  </View>
+                )}
               </View>
             ))}
           </View>

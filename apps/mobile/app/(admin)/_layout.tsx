@@ -55,6 +55,7 @@ export default function AdminLayout() {
       <Tabs.Screen name="notices" options={{ href: null }} />
       <Tabs.Screen name="polls" options={{ href: null }} />
       <Tabs.Screen name="staff" options={{ href: null }} />
+      <Tabs.Screen name="dues" options={{ href: null }} />
     </Tabs>
   );
 }
