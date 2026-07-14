@@ -286,16 +286,26 @@ Re-verified after fixes: `pnpm check-types` clean across services/trpc/mobile, f
 
 **Self-tested (user couldn't find data to check against):** the user's test resident (`resident1`, flat A-101) genuinely had zero seeded dues — `seed.ts` only creates one due, for a different resident — so the empty state they saw was correct, not a bug. Verified the full cycle end-to-end via curl using the exact new flow: confirmed `dues.mine` empty for that resident → admin generates a due for that specific flat (date-derived period) → resident's `dues.mine` shows it `pending` → `payMock` flips it to `paid` with a real `payments` row → admin's list reflects `paid` too. Left this due in the database (did not reseed after) so the user has real data to check on their device. `pnpm check-types` and `expo export --platform web` both clean after the date-picker change.
 
-**Not yet done:** on-device visual pass — hand off to the user next, same as every prior phase.
+**User confirmed working on-device** (2026-07-14), including the date-picker fix and the freshly-generated test due.
+
+**Phase 8 re-verified fresh (independent pass — full restart, reseed, root `pnpm check-types`, curl sweep):** killed the live API, restarted clean, reseeded the DB. Root typecheck: all 6 in-scope packages clean (same pre-existing out-of-scope `apps/web` failure, unchanged). Fresh curl sweep: amenity slot grid computes correctly, booking a valid slot succeeds, an off-grid slot correctly fails `BAD_REQUEST`, cancel succeeds; admin generates a due for A-101 using the exact date-derived-period flow, resident sees it `pending`, `payMock` succeeds, a second pay attempt correctly fails `CONFLICT`. RBAC re-confirmed: guard gets `403` on every resident- and admin-only Phase 8 endpoint (`amenityBookings.create`, `dues.mine`, `dues.create`). **Phase 8 is fully done.**
 
 ---
 
 ## Phase 9 — Staff & Service Provider Directory
 **Day 10 (morning). Goal: resident-facing read view of admin-managed directory.**
 
-- [ ] Resident "Society Directory" screen: browse staff/service providers by category, tap-to-call
-- [ ] "Verified by society" badge for admin-vetted entries
-- [ ] Commit: `feat(directory): resident-facing staff/service provider view`
+- [x] Resident "Society Directory" screen: browse staff/service providers by category, tap-to-call
+- [x] "Verified by society" badge for admin-vetted entries
+- [x] Commit: `feat(directory): resident-facing staff/service provider view`
+
+**Backend:** one addition — `staffDirectory.listForResident`, a `protectedProcedure` (not resident-only) reusing Phase 6's `StaffDirectoryService.list`, since there's no reason to keep read-only service-provider contact info from guards/admin either. Admin-only `create`/`update`/`remove` from Phase 6 untouched.
+
+**Mobile:** `app/(resident)/staff-directory.tsx` (`href: null`, reached via a "Society Directory" button on the resident Profile screen) — grouped by category with `GroupLabel` sections, verified badge (`MaterialIcons "verified"`) next to admin-vetted entries, tap-to-call via `Linking.openURL`, matching the guard Resident Directory screen's established pattern from Phase 5.
+
+**Verification (curl, fresh instance):** resident sees the full seeded directory (plumber/electrician/other) with `isVerifiedByAdmin` correctly reflected; guard can also read it (by design); resident still correctly gets `403` attempting `staffDirectory.create` (admin-only, unchanged). `pnpm check-types` and `expo export --platform web` both clean.
+
+**Not yet done:** on-device visual pass — hand off to the user next, same as every prior phase.
 
 ---
 

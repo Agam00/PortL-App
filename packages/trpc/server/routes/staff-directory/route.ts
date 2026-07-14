@@ -8,7 +8,7 @@ import {
   staffOutputSchema,
   listStaffOutputSchema,
 } from "@repo/services/staff-directory/model";
-import { adminProcedure, router } from "../../trpc";
+import { adminProcedure, protectedProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
 const TAGS = ["StaffDirectory"];
@@ -21,7 +21,6 @@ function requireSocietyId(societyId: string | null): string {
   return societyId;
 }
 
-// Resident-facing browse procedure arrives in Phase 9.
 export const staffDirectoryRouter = router({
   create: adminProcedure
     .meta({ openapi: { method: "POST", path: getPath("/"), tags: TAGS } })
@@ -48,4 +47,10 @@ export const staffDirectoryRouter = router({
     .mutation(async ({ ctx, input }) => {
       await staffDirectoryService.remove(requireSocietyId(ctx.user.societyId), input.staffId);
     }),
+
+  listForResident: protectedProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/mine"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(listStaffOutputSchema)
+    .query(async ({ ctx }) => staffDirectoryService.list(requireSocietyId(ctx.user.societyId))),
 });

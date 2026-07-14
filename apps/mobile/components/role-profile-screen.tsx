@@ -74,6 +74,12 @@ export function RoleProfileScreen() {
           <InfoRow icon="mail" label="Email" value={user.email} />
         </View>
 
+        {user.role === "resident" && (
+          <Button variant="outline" onPress={() => router.push("/(resident)/staff-directory")}>
+            Society Directory
+          </Button>
+        )}
+
         <Button
           variant="danger"
           loading={logoutMutation.isPending}
