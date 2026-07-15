@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { AppProviders } from "../providers/app-providers";
 import { ErrorBoundary } from "../components/error-boundary";
 import { Toast } from "../components/toast";
+import { PushRegistration } from "../components/push-registration";
 
 // Portl is dark-mode-only by design (see DESIGN_SYSTEM.md) — no light theme exists.
 export default function RootLayout() {
@@ -18,6 +19,7 @@ export default function RootLayout() {
             <StatusBar style="light" />
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#131314" } }} />
             <Toast />
+            <PushRegistration />
           </View>
         </SafeAreaProvider>
       </AppProviders>

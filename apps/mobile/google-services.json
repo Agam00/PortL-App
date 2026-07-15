@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1075522744779",
+    "project_id": "portl-f2e6f",
+    "storage_bucket": "portl-f2e6f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1075522744779:android:9bb0f92b42e40dcea7864e",
+        "android_client_info": {
+          "package_name": "com.agam142.portl"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA2Y6LsrSHy2FY07MEP4fg2OffFWKcbUY4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

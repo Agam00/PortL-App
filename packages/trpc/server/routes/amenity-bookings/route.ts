@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { zodUndefinedModel } from "../../schema";
-import { amenityBookingService } from "../../services";
+import { amenityBookingService, notificationService } from "../../services";
 import {
   availableSlotsInputSchema,
   listSlotsOutputSchema,
@@ -43,9 +43,16 @@ export const amenityBookingsRouter = router({
     .meta({ openapi: { method: "POST", path: getPath("/"), tags: TAGS } })
     .input(createBookingInputSchema)
     .output(bookingOutputSchema)
-    .mutation(async ({ ctx, input }) =>
-      amenityBookingService.create(requireSocietyId(ctx.user.societyId), requireFlatId(ctx.user.flatId), ctx.user.sub, input),
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const booking = await amenityBookingService.create(
+        requireSocietyId(ctx.user.societyId),
+        requireFlatId(ctx.user.flatId),
+        ctx.user.sub,
+        input,
+      );
+      await notificationService.notifyBookingConfirmed(ctx.user.sub, booking);
+      return booking;
+    }),
 
   myBookings: residentProcedure
     .meta({ openapi: { method: "GET", path: getPath("/mine"), tags: TAGS } })

@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { zodUndefinedModel } from "../../schema";
-import { visitorService } from "../../services";
+import { visitorService, notificationService } from "../../services";
 import {
   createVisitorInputSchema,
   decideVisitorInputSchema,
@@ -37,7 +37,9 @@ export const visitorsRouter = router({
     .input(createVisitorInputSchema)
     .output(visitorOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      return visitorService.create(requireSocietyId(ctx.user.societyId), ctx.user.sub, input);
+      const visitor = await visitorService.create(requireSocietyId(ctx.user.societyId), ctx.user.sub, input);
+      await notificationService.notifyVisitorRequest(visitor.flatId, visitor);
+      return visitor;
     }),
 
   listPendingForResident: residentProcedure
@@ -53,7 +55,9 @@ export const visitorsRouter = router({
     .input(decideVisitorInputSchema)
     .output(visitorOutputSchema)
     .mutation(async ({ ctx, input }) => {
-      return visitorService.decide(ctx.user.sub, requireFlatId(ctx.user.flatId), input);
+      const visitor = await visitorService.decide(ctx.user.sub, requireFlatId(ctx.user.flatId), input);
+      await notificationService.notifyVisitorDecision(visitor.requestedByGuardId, visitor);
+      return visitor;
     }),
 
   listForGuard: guardProcedure

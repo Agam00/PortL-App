@@ -13,6 +13,7 @@ import AdminService from "@repo/services/admin";
 import NotificationService from "@repo/services/notification";
 import AmenityBookingService from "@repo/services/amenity-booking";
 import DueService from "@repo/services/due";
+import PushTokenService from "@repo/services/push-token";
 
 export const userService = new UserService();
 export const authService = new AuthService();
@@ -29,3 +30,4 @@ export const adminService = new AdminService();
 export const notificationService = new NotificationService();
 export const amenityBookingService = new AmenityBookingService();
 export const dueService = new DueService();
+export const pushTokenService = new PushTokenService();

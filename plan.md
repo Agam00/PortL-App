@@ -305,21 +305,54 @@ Re-verified after fixes: `pnpm check-types` clean across services/trpc/mobile, f
 
 **Verification (curl, fresh instance):** resident sees the full seeded directory (plumber/electrician/other) with `isVerifiedByAdmin` correctly reflected; guard can also read it (by design); resident still correctly gets `403` attempting `staffDirectory.create` (admin-only, unchanged). `pnpm check-types` and `expo export --platform web` both clean.
 
-**Not yet done:** on-device visual pass — hand off to the user next, same as every prior phase.
+**User confirmed working on-device** (2026-07-15).
+
+**Phase 9 re-verified fresh (independent pass — full restart, reseed, root `pnpm check-types`, curl sweep):** killed the live API, restarted clean, reseeded the DB. Root typecheck: all 6 in-scope packages clean (same pre-existing out-of-scope `apps/web` failure, unchanged). Fresh curl sweep: resident sees the full seeded directory with `isVerifiedByAdmin` correct, guard can also read it (by design), resident still correctly `403` on `create`, and admin `create` still works (no regression from adding the resident-facing endpoint). **Phase 9 is fully done.**
 
 ---
 
 ## Phase 10 — Push Notifications & Real-Time Polish
 **Day 10 (afternoon) – Day 11. Goal: the app feels alive without needing WebSockets.**
 
-- [ ] Set up an EAS project (`eas init`) — **required** because Expo Go on Android no longer supports remote push notifications; you need a development build (`expo-dev-client`) or a real EAS build to test this phase
-- [ ] `expo-notifications`: request permission, obtain Expo push token, register via `pushTokens.register` on login/app-foreground
-- [ ] Add `expo-server-sdk` to `apps/api`; build a `NotificationService.sendPush(userId, {title, body, data})` that fans out to all of a user's registered tokens
-- [ ] Wire push sends into: new visitor request → resident's flat occupants; visitor decision → requesting guard; new notice/poll → all residents (or scoped); complaint status change → complaint owner; amenity booking confirmation
-- [ ] Tapping a push notification deep-links into the relevant screen (visitor request → approvals screen, complaint update → that complaint's thread)
-- [ ] Keep the react-query `refetchInterval` fallback on the guard queue and resident approvals list — belt-and-suspenders so a missed/delayed push never breaks the demo
-- [ ] In-app notification bell/inbox screen backed by the `notifications` table (mark read, list)
-- [ ] Commit: `feat(notifications): push delivery + in-app inbox + deep links`
+- [x] Set up an EAS project (`eas init`) — **required** because Expo Go on Android no longer supports remote push notifications; you need a development build (`expo-dev-client`) or a real EAS build to test this phase
+- [x] `expo-notifications`: request permission, obtain Expo push token, register via `pushTokens.register` on login/app-foreground
+- [x] Add `expo-server-sdk`; build a `NotificationService.sendPush` that fans out to all of a user's registered tokens
+- [x] Wire push sends into: new visitor request → resident's flat occupants; visitor decision → requesting guard; new notice/poll → all residents (or scoped); complaint status change → complaint owner; complaint comment added; amenity booking confirmation
+- [x] Tapping a push notification deep-links into the relevant screen
+- [x] Keep the react-query `refetchInterval` fallback on the guard queue and resident approvals list — belt-and-suspenders so a missed/delayed push never breaks the demo (already true since Phase 4, unchanged/re-confirmed)
+- [x] In-app notification bell/inbox screen backed by the `notifications` table (mark read, list)
+- [x] Commit: `feat(notifications): push delivery + in-app inbox + deep links`
+
+> Deviation: `expo-server-sdk` was added to `packages/services` rather than `apps/api` as the plan literally worded it. `apps/api` has zero business logic in this codebase (it's a thin Express+tRPC mount — `index.ts`/`server.ts`/`env.ts` only); every other service reaches its own tables directly through `@repo/database`, so `NotificationService.sendPush` (in `packages/services/notification`) follows that same established pattern instead of introducing a one-off exception.
+
+**EAS setup:** logged in as `agam142`, ran `eas init --force` (created `@agam142/portl`, linked `projectId` into `app.json`), added `android.package: "com.agam142.portl"` (required for a build, wasn't set), installed `expo-dev-client` + `expo-notifications`, added the `expo-notifications` config plugin, wrote `eas.json` with `development`/`preview`/`production` build profiles. Kicked off `eas build --platform android --profile development` — cloud-built an internal-distribution dev-client APK (auto-generated an Android keystore since no local `keytool`).
+
+**Backend:** new `packages/services/push-token` (register, dedup by `(userId, expoPushToken)` — the table's own unique constraint from Phase 1 backs this). `NotificationService.notify()` (from Phase 7) now does double duty — inserts the in-app row **and** fans out a real push via `expo-server-sdk`, filtering to valid Expo push tokens and chunking through `expo.sendPushNotificationsAsync`; a push-send failure is swallowed (best-effort — the in-app row is already the source of truth, so a push hiccup shouldn't surface as a mutation error to the user who triggered it). Two new event triggers wired directly into the relevant routes (`visitors.create` → `notifyVisitorRequest`, `visitors.decide` → `notifyVisitorDecision`, `amenityBookings.create` → `notifyBookingConfirmed`) alongside the four notice/poll/complaint triggers already wired in Phase 7. New routers: `pushTokens.register`, `notifications.list`/`markRead`/`markAllRead` (the `notifications` router was an empty Phase-2 stub until now).
+
+**Mobile:** `lib/push-notifications.ts` (permission + token registration, no-ops gracefully if denied or if running somewhere without a `projectId`), `components/push-registration.tsx` (invisible, mounted once in the root `_layout.tsx` — registers the token when a user becomes available, and listens for notification taps via `addNotificationResponseReceivedListener`), `lib/notification-navigation.ts` (maps a notification's `type` + the viewer's role to a route — e.g. `complaint_comment` deep-links residents to Helpdesk but admins to Requests). `ScreenHeader` (shared across all three roles) gained a bell icon with an unread-count badge, polling every 15s, hidden while already on the inbox screen. One shared `components/notification-inbox-screen.tsx` behind three thin per-role route wrappers (`href: null`), matching the established `RoleProfileScreen`-style pattern from Phase 3.
+
+**Backend verification (curl, fresh instance + reseed):** push token registration succeeds and is idempotent on a repeat call with the same token; guard registers a visitor → resident's inbox shows `visitor_request` with the right `visitorId` in `data`; resident approves → guard's inbox shows `visitor_decision`; booking a facility → booker's inbox shows `booking_confirmed`; `markRead`/`markAllRead` both correctly flip `readAt`; unauthenticated `pushTokens.register` correctly fails `401`. `pnpm check-types` clean across all 6 in-scope packages, `expo export --platform web` clean.
+
+**Bug found and fixed — first build attempt failed:** the first `eas build` failed at the Gradle stage. Root cause: `react-native-reanimated@4.5.1` was silently resolved as a peer dependency of `expo-router` (present in `node_modules`, never in `package.json`), and 4.5.1 requires React Native 0.83–0.86 — this project is correctly on RN 0.81.5 for Expo SDK 54. This mismatch existed since Phase 3 (whenever `expo-router` v6 first pulled it in) but never surfaced, because every prior test used Expo Go (its own prebuilt native binary, independent of this project's package versions) or `expo export --platform web` (pure JS bundling, no native compilation) — this was the first time the project's actual native Android code was ever compiled. Fixed with `npx expo install react-native-reanimated react-native-worklets`, which pinned SDK-54-correct versions (`reanimated@~4.1.7`, `worklets@0.5.1`) as explicit direct dependencies instead of an unpinned transitive peer resolution. Re-verified `pnpm check-types` and `expo export --platform web` clean before retrying the build.
+
+**On-device push test and inbox/bell visual pass:** done — see the on-device push verification writeup below (all 6 event types confirmed on real hardware after the Firebase/FCM credentials were wired up).
+
+**Android push blocker found during on-device verification, then resolved:** `getExpoPushTokenAsync()` was throwing `Default FirebaseApp is not initialized` — silently, because `lib/push-notifications.ts`'s catch block swallowed the error with no logging. Fixed the swallow permanently (now `console.error`s — a genuine bug on its own, kept post-fix) to surface it, which confirmed the real cause: an Expo push token for a real (non-Expo-Go) Android build requires the app's own Firebase project (FCM credentials), which hadn't been set up.
+
+Resolved: user created a Firebase project (`portl-f2e6f`), registered an Android app under `com.agam142.portl`, downloaded `google-services.json` (copied into `apps/mobile/`, referenced via `android.googleServicesFile` in `app.json` — committed, since it's client-side config restricted by package name/API-key scoping, not a secret) and a Firebase Admin SDK service-account key (uploaded directly to EAS credentials via `eas credentials` → Android → **Push Notifications (FCM V1)**; never placed in the repo — `apps/mobile/.gitignore` got a `*firebase-adminsdk*.json`/`*service-account*.json` safety-net pattern since the repo must be public for submission). One false start: first attempt uploaded the JSON into the **legacy** FCM slot by mistake (wrong menu item, cosmetically similar name) — corrected by deleting that entry and re-uploading into the FCM V1 slot. User then ran a fresh `eas build --platform android --profile development` themselves and installed the resulting APK.
+
+**On-device push verification — all 6 event types confirmed live via curl-triggered real device pushes (2026-07-15):** push token registers correctly on login (confirmed in `push_tokens` table). Guard creates a visitor for A-101 → resident's phone got a real push, tapped it → deep-linked straight to Home with the pending approval visible (full loop, not just delivery). Admin publishes a notice → push received. Admin opens a poll → push received. Resident books a Clubhouse slot → booking-confirmation push received. Resident raises a complaint, admin advances its status → push received. Switched the same physical device to the guard login, resident approved a pending visitor → guard's phone got the decision push. 6/6 real OS-level pushes confirmed, plus deep-link-on-tap confirmed for the first one.
+
+**Fresh re-verification after wiring the credentials (independent pass):** reseeded the DB (`pnpm db:seed`), root `pnpm check-types` clean across all 6 in-scope packages (same pre-existing out-of-scope `apps/web` `react-resizable-panels` failure, unchanged), `expo export --platform web` clean. Fresh curl sweep against reseeded data: login works for all 3 roles; `pushTokens.register` returns `200` and is idempotent (registering the identical token twice produces exactly one DB row, confirmed via direct query); unauthenticated `pushTokens.register` correctly fails `401`; `notifications.list` returns cleanly. **Phase 10 is fully done**, including Android push end-to-end. iOS push is tracked separately as Phase 10B below (not started).
+
+### Phase 10B — iOS Push & Build Setup
+**Do this only after Android push (above) is fully verified on-device — don't split focus mid-setup.** User confirmed they already hold both an Apple Developer Program account and Google Play Console access, so iOS is now a planned deliverable rather than the Cut List's fallback ("ship Android only").
+
+- [ ] Add `ios.bundleIdentifier` to `app.json` (mirrors `android.package`, not yet set)
+- [ ] iOS push credentials: `eas credentials` → iOS → Push Notifications → let EAS auto-generate/manage the APNs key against the Apple Developer account
+- [ ] `eas build --platform ios --profile development` → install the resulting dev-client build on a physical iPhone (the iOS Simulator can run the app but cannot receive real push — device required for push verification)
+- [ ] Repeat Phase 10's full on-device push checklist on iOS: permission prompt, token registers in `push_tokens`, all 5 event types (visitor request/decision, notice/poll, complaint status/comment, booking confirmation) deliver a real notification, tapping one deep-links correctly
+- [ ] Once verified, promote Phase 13's iOS build step from "if time allows" to a firm deliverable, and drop iOS off the Cut List
 
 ---
 
@@ -369,7 +402,7 @@ Re-verified after fixes: `pnpm check-types` clean across services/trpc/mobile, f
 - [ ] Deploy `apps/api` + Postgres somewhere reachable (Railway/Render/Fly.io — pick whichever is fastest to stand up) so the APK/demo doesn't depend on your laptop being on
 - [ ] Point `apps/mobile`'s production env at the deployed API URL
 - [ ] Build with EAS: `eas build --platform android --profile preview` → produce an installable APK
-- [ ] (If time allows) `eas build --platform ios` and/or publish an Expo Go-loadable dev build link as a fallback
+- [ ] `eas build --platform ios --profile preview` → produce an installable iOS build (Apple Developer + Play Console accounts confirmed available — see Phase 10B; no longer just "if time allows")
 - [ ] Write the final `README.md` (root or `apps/mobile/README.md`, whichever the judges will find first) covering:
   - [ ] Project overview + problem statement (borrow from the brief, in your own words)
   - [ ] Architecture diagram/summary (Expo app ↔ tRPC/Express API ↔ Postgres/Drizzle)
@@ -405,6 +438,6 @@ Re-verified after fixes: `pnpm check-types` clean across services/trpc/mobile, f
 3. Push notifications → rely on polling fallback only, be upfront about it in the README
 4. Polls → cut multi-select, ship single-choice only
 5. Staff directory verification badge / admin CRUD polish → ship as read-only seeded data
-6. iOS build → ship Android APK only, note iOS as "buildable via Expo, not packaged for this submission"
+6. ~~iOS build → ship Android APK only~~ — no longer a cut candidate; user holds both an Apple Developer account and Play Console access, see Phase 10B
 
 Never cut: visitor approval flow (4A/4B), auth/RBAC, admin CRUD for towers/flats/residents, README + demo video + screenshots + credentials.

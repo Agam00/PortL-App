@@ -12,3 +12,7 @@ export const notificationOutputSchema = z.object({
 export type NotificationOutput = z.infer<typeof notificationOutputSchema>;
 
 export const listNotificationsOutputSchema = z.array(notificationOutputSchema);
+
+export const notificationIdInputSchema = z.object({
+  notificationId: z.string().uuid(),
+});

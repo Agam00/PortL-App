@@ -1,6 +1,9 @@
-import { db, eq, and, isNull, sql } from "@repo/database";
-import { notificationsTable, usersTable, flatsTable, complaintsTable } from "@repo/database/schema";
+import { Expo } from "expo-server-sdk";
+import { db, eq, and, inArray, isNull, sql } from "@repo/database";
+import { notificationsTable, usersTable, flatsTable, complaintsTable, pushTokensTable } from "@repo/database/schema";
 import type { NotificationOutput } from "./model";
+
+const expo = new Expo();
 
 function serialize(row: typeof notificationsTable.$inferSelect): NotificationOutput {
   return {
@@ -12,6 +15,34 @@ function serialize(row: typeof notificationsTable.$inferSelect): NotificationOut
 }
 
 class NotificationService {
+  private async sendPush(userIds: string[], input: { title: string; body?: string; data?: Record<string, unknown> }) {
+    if (userIds.length === 0) return;
+
+    const tokenRows = await db
+      .select({ expoPushToken: pushTokensTable.expoPushToken })
+      .from(pushTokensTable)
+      .where(inArray(pushTokensTable.userId, userIds));
+
+    const messages = tokenRows
+      .filter((row) => Expo.isExpoPushToken(row.expoPushToken))
+      .map((row) => ({
+        to: row.expoPushToken,
+        title: input.title,
+        body: input.body,
+        data: input.data ?? {},
+      }));
+    if (messages.length === 0) return;
+
+    const chunks = expo.chunkPushNotifications(messages);
+    for (const chunk of chunks) {
+      try {
+        await expo.sendPushNotificationsAsync(chunk);
+      } catch {
+        // Best-effort delivery — the in-app notification row is already the source of truth.
+      }
+    }
+  }
+
   async notify(userIds: string[], input: { type: string; title: string; body?: string; data?: Record<string, unknown> }) {
     const uniqueIds = Array.from(new Set(userIds));
     if (uniqueIds.length === 0) return;
@@ -25,6 +56,8 @@ class NotificationService {
         data: input.data,
       })),
     );
+
+    await this.sendPush(uniqueIds, input);
   }
 
   async listForUser(userId: string): Promise<NotificationOutput[]> {
@@ -42,6 +75,13 @@ class NotificationService {
       .update(notificationsTable)
       .set({ readAt: new Date() })
       .where(and(eq(notificationsTable.id, notificationId), eq(notificationsTable.userId, userId)));
+  }
+
+  async markAllRead(userId: string): Promise<void> {
+    await db
+      .update(notificationsTable)
+      .set({ readAt: new Date() })
+      .where(and(eq(notificationsTable.userId, userId), isNull(notificationsTable.readAt)));
   }
 
   /** Returns a set of noticeIds that are unread (or never notified) for this resident. */
@@ -152,6 +192,40 @@ class NotificationService {
       type: "complaint_comment",
       title: `New reply on: ${complaint.title}`,
       data: { complaintId },
+    });
+  }
+
+  async notifyVisitorRequest(flatId: string, visitor: { id: string; name: string }) {
+    const rows = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(and(eq(usersTable.flatId, flatId), eq(usersTable.role, "resident")));
+
+    await this.notify(rows.map((r) => r.id), {
+      type: "visitor_request",
+      title: "New visitor request",
+      body: `${visitor.name} is waiting at the gate`,
+      data: { visitorId: visitor.id },
+    });
+  }
+
+  async notifyVisitorDecision(guardId: string | null, visitor: { id: string; name: string; status: string }) {
+    if (!guardId) return;
+
+    await this.notify([guardId], {
+      type: "visitor_decision",
+      title: `Visitor ${visitor.status}`,
+      body: `${visitor.name} was ${visitor.status} by the resident`,
+      data: { visitorId: visitor.id },
+    });
+  }
+
+  async notifyBookingConfirmed(userId: string, booking: { id: string; amenityName: string; date: string; slotStart: string }) {
+    await this.notify([userId], {
+      type: "booking_confirmed",
+      title: "Booking confirmed",
+      body: `${booking.amenityName} on ${booking.date} at ${booking.slotStart.slice(0, 5)}`,
+      data: { bookingId: booking.id },
     });
   }
 }
