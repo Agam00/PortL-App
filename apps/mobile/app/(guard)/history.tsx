@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, ScrollView, FlatList, RefreshControl, ActivityIndicator } from "react-native";
+import { View, ScrollView, FlatList, RefreshControl } from "react-native";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
@@ -7,6 +7,7 @@ import { Input } from "../../components/ui/input";
 import { EmptyState } from "../../components/ui/empty-state";
 import { Chip } from "../../components/ui/chip";
 import { HistoryRow } from "../../components/history-row";
+import { ListLoading } from "../../components/ui/list-loading";
 
 const FILTERS: { label: string; status?: VisitorOutput["status"] }[] = [
   { label: "All" },
@@ -51,7 +52,7 @@ export default function GuardHistory() {
         }
         ListEmptyComponent={
           query.isLoading ? (
-            <ActivityIndicator className="py-8" color="#5e6ad2" />
+            <ListLoading />
           ) : query.isError ? (
             <View className="rounded-lg border border-border-subtle bg-surface-elevated">
               <EmptyState title="Couldn't load activity" description="Pull down to refresh and try again." icon="error-outline" />

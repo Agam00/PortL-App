@@ -1,4 +1,8 @@
-import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert, LayoutAnimation, Platform, UIManager } from "react-native";
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -10,6 +14,7 @@ import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { EmptyState } from "../../components/ui/empty-state";
 import { VisitorRequestCard } from "../../components/visitor-request-card";
+import { ListLoading } from "../../components/ui/list-loading";
 
 const QUICK_ACTIONS: {
   label: string;
@@ -37,6 +42,7 @@ export default function ResidentHome() {
   const decideMutation = trpc.visitors.decide.useMutation({
     onSuccess: () => {
       hapticSuccess();
+      LayoutAnimation.configureNext(LayoutAnimation.create(220, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
       utils.visitors.listPendingForResident.invalidate();
     },
     onError: (error) => {
@@ -47,6 +53,20 @@ export default function ResidentHome() {
   });
 
   const pending = pendingQuery.data ?? [];
+
+  function confirmReject(visitorId: string, name: string) {
+    Alert.alert("Reject visitor?", `${name} will be turned away at the gate. This can't be undone.`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Reject",
+        style: "destructive",
+        onPress: () => {
+          setDecidingId(visitorId);
+          decideMutation.mutate({ visitorId, decision: "rejected" });
+        },
+      },
+    ]);
+  }
 
   return (
     <View className="flex-1 bg-background">
@@ -74,7 +94,7 @@ export default function ResidentHome() {
           </View>
 
           {pendingQuery.isLoading ? (
-            <ActivityIndicator className="py-8" color="#5e6ad2" />
+            <ListLoading />
           ) : pendingQuery.isError ? (
             <View className="rounded-lg border border-border-subtle bg-surface-elevated">
               <EmptyState
@@ -102,10 +122,7 @@ export default function ResidentHome() {
                     setDecidingId(visitor.id);
                     decideMutation.mutate({ visitorId: visitor.id, decision: "approved" });
                   }}
-                  onReject={() => {
-                    setDecidingId(visitor.id);
-                    decideMutation.mutate({ visitorId: visitor.id, decision: "rejected" });
-                  }}
+                  onReject={() => confirmReject(visitor.id, visitor.name)}
                 />
               ))}
             </View>

@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert } from "react-native";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -10,6 +9,10 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
+import { FormPanel } from "../../components/ui/form-panel";
+import { ListRowCard } from "../../components/ui/list-row-card";
+import { IconButton } from "../../components/ui/icon-button";
+import { ListLoading } from "../../components/ui/list-loading";
 
 export default function AdminStaff() {
   const showToast = useUiStore((s) => s.showToast);
@@ -108,7 +111,7 @@ export default function AdminStaff() {
         </Button>
 
         {showForm && (
-          <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
+          <FormPanel>
             <Text className="text-body-md font-semibold text-on-surface">New Entry</Text>
             <Input
               label="Full Name"
@@ -144,13 +147,13 @@ export default function AdminStaff() {
             <Button onPress={handleSubmit} loading={createMutation.isPending}>
               Submit Entry
             </Button>
-          </View>
+          </FormPanel>
         )}
 
         <Input placeholder="Search staff by name or category..." value={search} onChangeText={setSearch} />
 
         {staffQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : staffQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load staff directory" description="Pull down to refresh and try again." icon="error-outline" />
@@ -162,7 +165,7 @@ export default function AdminStaff() {
         ) : (
           <View className="gap-2">
             {staff.map((entry) => (
-              <View key={entry.id} className="flex-row items-center gap-3 rounded-xl border border-border-subtle bg-surface p-4">
+              <ListRowCard key={entry.id} className="flex-row items-center gap-3">
                 <Avatar name={entry.name} />
                 <View className="min-w-0 flex-1">
                   <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
@@ -182,16 +185,13 @@ export default function AdminStaff() {
                     {entry.isVerifiedByAdmin ? "Verified" : "Unverified"}
                   </Text>
                 </Pressable>
-                <Pressable
+                <IconButton
+                  icon="delete-outline"
+                  color="#F87171"
                   onPress={() => confirmDelete(entry.id, entry.name)}
-                  hitSlop={8}
-                  className="p-1"
                   accessibilityLabel={`Delete ${entry.name}`}
-                  accessibilityRole="button"
-                >
-                  <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
-                </Pressable>
-              </View>
+                />
+              </ListRowCard>
             ))}
           </View>
         )}

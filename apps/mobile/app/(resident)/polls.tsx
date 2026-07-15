@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
@@ -9,6 +9,7 @@ import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
 import { GroupLabel } from "../../components/ui/group-label";
+import { ListLoading } from "../../components/ui/list-loading";
 
 function closesInLabel(closesAt: string | null) {
   if (!closesAt) return null;
@@ -92,7 +93,7 @@ export default function ResidentPolls() {
         <Text className="text-body-sm text-text-muted">Participate in active society decisions.</Text>
 
         {pollsQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : pollsQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load polls" description="Pull down to refresh and try again." icon="error-outline" />

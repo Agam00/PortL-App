@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -10,6 +9,10 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
 import { EmptyState } from "../../components/ui/empty-state";
+import { FormPanel } from "../../components/ui/form-panel";
+import { ListRowCard } from "../../components/ui/list-row-card";
+import { IconButton } from "../../components/ui/icon-button";
+import { ListLoading } from "../../components/ui/list-loading";
 
 const SCOPES: { value: "all" | "tower" | "flat"; label: string }[] = [
   { value: "all", label: "All Residents" },
@@ -113,7 +116,7 @@ export default function AdminNotices() {
         </Button>
 
         {showForm && (
-          <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
+          <FormPanel>
             <Text className="text-body-md font-semibold text-on-surface">Compose Notice</Text>
             <Input
               label="Title"
@@ -194,13 +197,13 @@ export default function AdminNotices() {
             <Button onPress={handlePublish} loading={createMutation.isPending}>
               Publish
             </Button>
-          </View>
+          </FormPanel>
         )}
 
         <Text className="text-headline-md font-semibold text-on-surface">Active Notices</Text>
 
         {noticesQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : noticesQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load notices" description="Pull down to refresh and try again." icon="error-outline" />
@@ -212,7 +215,7 @@ export default function AdminNotices() {
         ) : (
           <View className="gap-2">
             {notices.map((notice) => (
-              <View key={notice.id} className="gap-2 rounded-xl border border-border-subtle bg-surface p-4">
+              <ListRowCard key={notice.id} className="gap-2">
                 <View className="flex-row items-start justify-between gap-2">
                   <View className="min-w-0 flex-1">
                     <Text className="text-body-md font-medium text-on-surface">{notice.title}</Text>
@@ -224,20 +227,17 @@ export default function AdminNotices() {
                           : `Flat: ${notice.targetFlatNumber ?? "—"}`}
                     </Text>
                   </View>
-                  <Pressable
+                  <IconButton
+                    icon="delete-outline"
+                    color="#F87171"
                     onPress={() => confirmDelete(notice.id, notice.title)}
-                    hitSlop={8}
-                    className="p-1"
                     accessibilityLabel={`Delete ${notice.title}`}
-                    accessibilityRole="button"
-                  >
-                    <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
-                  </Pressable>
+                  />
                 </View>
                 <Text className="text-body-sm text-on-surface-variant" numberOfLines={3}>
                   {notice.body}
                 </Text>
-              </View>
+              </ListRowCard>
             ))}
           </View>
         )}

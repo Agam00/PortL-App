@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable, Linking, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Linking } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
@@ -7,6 +7,7 @@ import { Input } from "../../components/ui/input";
 import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
 import { GroupLabel } from "../../components/ui/group-label";
+import { ListLoading } from "../../components/ui/list-loading";
 
 export default function ResidentStaffDirectory() {
   const [search, setSearch] = useState("");
@@ -35,7 +36,7 @@ export default function ResidentStaffDirectory() {
         <Input placeholder="Search by name or category..." value={search} onChangeText={setSearch} />
 
         {staffQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : staffQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load directory" description="Pull down to refresh and try again." icon="error-outline" />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -10,6 +10,9 @@ import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
 import { DateField } from "../../components/ui/date-field";
 import { EmptyState } from "../../components/ui/empty-state";
+import { FormPanel } from "../../components/ui/form-panel";
+import { ListRowCard } from "../../components/ui/list-row-card";
+import { ListLoading } from "../../components/ui/list-loading";
 
 function periodLabel(period: string) {
   const [year, month] = period.split("-").map(Number);
@@ -105,7 +108,7 @@ export default function AdminDues() {
         </Button>
 
         {showForm && (
-          <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
+          <FormPanel>
             <Text className="text-body-md font-semibold text-on-surface">New Due</Text>
             <View className="gap-2">
               <Text className="text-label-caps uppercase text-text-muted">Flat</Text>
@@ -140,7 +143,7 @@ export default function AdminDues() {
             <Button onPress={handleSubmit} loading={createMutation.isPending}>
               Generate Due
             </Button>
-          </View>
+          </FormPanel>
         )}
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
@@ -150,7 +153,7 @@ export default function AdminDues() {
         </ScrollView>
 
         {duesQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : duesQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load dues" description="Pull down to refresh and try again." icon="error-outline" />
@@ -162,7 +165,7 @@ export default function AdminDues() {
         ) : (
           <View className="gap-2">
             {dues.map((due) => (
-              <View key={due.id} className="flex-row items-center justify-between gap-3 rounded-xl border border-border-subtle bg-surface p-4">
+              <ListRowCard key={due.id} className="flex-row items-center justify-between gap-3">
                 <View className="min-w-0 flex-1">
                   <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
                     {due.flatNumber} · {periodLabel(due.period)}
@@ -182,7 +185,7 @@ export default function AdminDues() {
                     {due.status === "paid" ? "Paid" : due.isOverdue ? "Overdue" : "Pending"}
                   </Text>
                 </View>
-              </View>
+              </ListRowCard>
             ))}
           </View>
         )}

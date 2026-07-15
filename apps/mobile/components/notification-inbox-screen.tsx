@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../lib/trpc";
@@ -6,6 +6,7 @@ import { getNotificationRoute } from "../lib/notification-navigation";
 import { ScreenHeader } from "./ui/screen-header";
 import { EmptyState } from "./ui/empty-state";
 import { Button } from "./ui/button";
+import { ListLoading } from "./ui/list-loading";
 
 const TYPE_ICON: Record<string, React.ComponentProps<typeof MaterialIcons>["name"]> = {
   visitor_request: "person",
@@ -64,7 +65,7 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
         )}
 
         {notificationsQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : notificationsQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load notifications" description="Pull down to refresh and try again." icon="error-outline" />

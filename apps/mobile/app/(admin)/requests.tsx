@@ -10,6 +10,7 @@ import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
 import { EmptyState } from "../../components/ui/empty-state";
 import { Button } from "../../components/ui/button";
+import { ListLoading } from "../../components/ui/list-loading";
 
 function timeAgo(iso: string | null) {
   if (!iso) return "";
@@ -114,7 +115,7 @@ export default function AdminRequests() {
         </ScrollView>
 
         {complaintsQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : complaintsQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load complaints" description="Pull down to refresh and try again." icon="error-outline" />

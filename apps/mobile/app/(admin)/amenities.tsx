@@ -10,6 +10,10 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { TimeField } from "../../components/ui/time-field";
 import { EmptyState } from "../../components/ui/empty-state";
+import { FormPanel } from "../../components/ui/form-panel";
+import { ListRowCard } from "../../components/ui/list-row-card";
+import { IconButton } from "../../components/ui/icon-button";
+import { ListLoading } from "../../components/ui/list-loading";
 
 function timeToDate(time: string): Date {
   const [h, m] = time.split(":").map(Number);
@@ -167,7 +171,7 @@ export default function AdminAmenities() {
         </Button>
 
         {showForm && (
-          <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
+          <FormPanel>
             <Text className="text-body-md font-semibold text-on-surface">{editingId ? "Edit Facility" : "New Facility"}</Text>
             <Input
               label="Facility Name"
@@ -189,11 +193,11 @@ export default function AdminAmenities() {
             <Button onPress={handleSubmit} loading={createMutation.isPending || updateMutation.isPending}>
               {editingId ? "Save Changes" : "Add Facility"}
             </Button>
-          </View>
+          </FormPanel>
         )}
 
         {amenitiesQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : amenitiesQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load facilities" description="Pull down to refresh and try again." icon="error-outline" />
@@ -205,7 +209,7 @@ export default function AdminAmenities() {
         ) : (
           <View className="gap-2">
             {amenities.map((amenity) => (
-              <View key={amenity.id} className="gap-3 rounded-xl border border-border-subtle bg-surface p-4">
+              <ListRowCard key={amenity.id} className="gap-3">
                 <View className="flex-row items-center gap-3">
                   <View className="h-11 w-11 items-center justify-center rounded-lg border border-border-subtle bg-surface-elevated">
                     <MaterialIcons name="pool" size={20} color="#c6c5d5" />
@@ -219,24 +223,13 @@ export default function AdminAmenities() {
                       <Text className="text-meta-text text-text-muted">{amenity.isActive ? "Active" : "Inactive"}</Text>
                     </View>
                   </View>
-                  <Pressable
-                    onPress={() => startEdit(amenity)}
-                    hitSlop={8}
-                    className="p-1"
-                    accessibilityLabel={`Edit ${amenity.name}`}
-                    accessibilityRole="button"
-                  >
-                    <MaterialIcons name="edit" size={18} color="#8A8F98" />
-                  </Pressable>
-                  <Pressable
+                  <IconButton icon="edit" onPress={() => startEdit(amenity)} accessibilityLabel={`Edit ${amenity.name}`} />
+                  <IconButton
+                    icon="delete-outline"
+                    color="#F87171"
                     onPress={() => confirmDelete(amenity.id, amenity.name)}
-                    hitSlop={8}
-                    className="p-1"
                     accessibilityLabel={`Delete ${amenity.name}`}
-                    accessibilityRole="button"
-                  >
-                    <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
-                  </Pressable>
+                  />
                 </View>
                 <View className="h-px bg-border-subtle" />
                 <View className="flex-row justify-between">
@@ -289,7 +282,7 @@ export default function AdminAmenities() {
                     )}
                   </View>
                 )}
-              </View>
+              </ListRowCard>
             ))}
           </View>
         )}

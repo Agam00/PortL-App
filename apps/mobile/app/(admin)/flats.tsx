@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -11,6 +10,10 @@ import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
 import { EmptyState } from "../../components/ui/empty-state";
 import { GroupLabel } from "../../components/ui/group-label";
+import { FormPanel } from "../../components/ui/form-panel";
+import { ListRowCard } from "../../components/ui/list-row-card";
+import { IconButton } from "../../components/ui/icon-button";
+import { ListLoading } from "../../components/ui/list-loading";
 
 export default function AdminFlats() {
   const showToast = useUiStore((s) => s.showToast);
@@ -152,7 +155,7 @@ export default function AdminFlats() {
         </Button>
 
         {showForm && (
-          <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
+          <FormPanel>
             <Text className="text-body-md font-semibold text-on-surface">{editingId ? "Edit Flat" : "New Flat"}</Text>
 
             {!editingId && (
@@ -190,11 +193,11 @@ export default function AdminFlats() {
             <Button onPress={handleSubmit} loading={createMutation.isPending || updateMutation.isPending}>
               {editingId ? "Save Changes" : "Add Flat"}
             </Button>
-          </View>
+          </FormPanel>
         )}
 
         {flatsQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : flatsQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load flats" description="Pull down to refresh and try again." icon="error-outline" />
@@ -208,10 +211,7 @@ export default function AdminFlats() {
             <View key={towerName} className="gap-2">
               <GroupLabel label={`${towerName} · ${towerFlats.length} units`} />
               {towerFlats.map((flat) => (
-                <View
-                  key={flat.id}
-                  className="flex-row items-center gap-3 rounded-xl border border-border-subtle bg-surface p-4"
-                >
+                <ListRowCard key={flat.id} className="flex-row items-center gap-3">
                   <View className="h-11 w-11 items-center justify-center rounded-lg border border-border-subtle bg-surface-elevated">
                     <Text className="text-body-sm font-semibold text-on-surface">{flat.flatNumber.split("-").pop()}</Text>
                   </View>
@@ -227,25 +227,14 @@ export default function AdminFlats() {
                       </Text>
                     </View>
                   </View>
-                  <Pressable
-                    onPress={() => startEdit(flat)}
-                    hitSlop={8}
-                    className="p-1"
-                    accessibilityLabel={`Edit ${flat.flatNumber}`}
-                    accessibilityRole="button"
-                  >
-                    <MaterialIcons name="edit" size={18} color="#8A8F98" />
-                  </Pressable>
-                  <Pressable
+                  <IconButton icon="edit" onPress={() => startEdit(flat)} accessibilityLabel={`Edit ${flat.flatNumber}`} />
+                  <IconButton
+                    icon="delete-outline"
+                    color="#F87171"
                     onPress={() => confirmDelete(flat.id, flat.flatNumber)}
-                    hitSlop={8}
-                    className="p-1"
                     accessibilityLabel={`Delete ${flat.flatNumber}`}
-                    accessibilityRole="button"
-                  >
-                    <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
-                  </Pressable>
-                </View>
+                  />
+                </ListRowCard>
               ))}
             </View>
           ))

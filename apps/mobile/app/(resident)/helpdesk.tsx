@@ -12,6 +12,7 @@ import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
 import { StatusDot } from "../../components/ui/status-dot";
 import { EmptyState } from "../../components/ui/empty-state";
+import { ListLoading } from "../../components/ui/list-loading";
 
 const CATEGORIES = ["Plumbing", "Electrical", "Security", "Cleaning", "Other"];
 
@@ -113,7 +114,7 @@ export default function ResidentHelpdesk() {
   const tickets = ticketsQuery.data ?? [];
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-background">
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 bg-background">
       <ScreenHeader title="Helpdesk Tickets" role="resident" />
       <ScrollView
         contentContainerClassName="gap-4 p-4 pb-8"
@@ -186,7 +187,7 @@ export default function ResidentHelpdesk() {
         )}
 
         {ticketsQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : ticketsQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load tickets" description="Pull down to refresh and try again." icon="error-outline" />

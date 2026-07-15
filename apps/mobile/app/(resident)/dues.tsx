@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, RefreshControl, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
@@ -7,6 +7,7 @@ import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
+import { ListLoading } from "../../components/ui/list-loading";
 
 function periodLabel(period: string) {
   const [year, month] = period.split("-").map(Number);
@@ -64,7 +65,7 @@ export default function ResidentDues() {
         </View>
 
         {duesQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : duesQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load dues" description="Pull down to refresh and try again." icon="error-outline" />
@@ -96,7 +97,7 @@ export default function ResidentDues() {
                     </Text>
                     {due.status === "paid" ? (
                       <View className="flex-row items-center gap-1.5">
-                        <MaterialIcons name="check-circle" size={16} color="#3dd68c" />
+                        <MaterialIcons name="check-circle" size={16} color="#4ADE80" />
                         <Text className="text-body-sm text-text-muted">Paid</Text>
                       </View>
                     ) : (

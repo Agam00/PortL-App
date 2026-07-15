@@ -1,9 +1,10 @@
-import { Pressable, Text, ActivityIndicator } from "react-native";
+import { Text, ActivityIndicator } from "react-native";
 import type { PressableProps } from "react-native";
+import { PressableScale } from "./pressable-scale";
 
 type Variant = "primary" | "secondary" | "outline" | "danger";
 
-interface ButtonProps extends Omit<PressableProps, "children"> {
+interface ButtonProps extends Omit<PressableProps, "children" | "style"> {
   children: string;
   variant?: Variant;
   loading?: boolean;
@@ -37,9 +38,10 @@ export function Button({
   const isDisabled = disabled || loading;
 
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       disabled={isDisabled}
+      scaleTo={0.97}
       className={`flex-row items-center justify-center rounded-md px-3 py-2.5 ${styles.container} ${isDisabled ? "opacity-50" : ""} ${className ?? ""}`}
       {...props}
     >
@@ -51,6 +53,6 @@ export function Button({
         />
       )}
       <Text className={`text-body-md font-medium ${styles.text}`}>{children}</Text>
-    </Pressable>
+    </PressableScale>
   );
 }

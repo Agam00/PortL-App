@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
@@ -9,6 +9,10 @@ import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { EmptyState } from "../../components/ui/empty-state";
+import { FormPanel } from "../../components/ui/form-panel";
+import { ListRowCard } from "../../components/ui/list-row-card";
+import { IconButton } from "../../components/ui/icon-button";
+import { ListLoading } from "../../components/ui/list-loading";
 
 export default function AdminTowers() {
   const showToast = useUiStore((s) => s.showToast);
@@ -114,7 +118,7 @@ export default function AdminTowers() {
         </Button>
 
         {showForm && (
-          <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
+          <FormPanel>
             <Text className="text-body-md font-semibold text-on-surface">
               {editingId ? "Edit Tower" : "New Tower"}
             </Text>
@@ -132,11 +136,11 @@ export default function AdminTowers() {
             <Button onPress={handleSubmit} loading={createMutation.isPending || updateMutation.isPending}>
               {editingId ? "Save Changes" : "Add Tower"}
             </Button>
-          </View>
+          </FormPanel>
         )}
 
         {towersQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : towersQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load towers" description="Pull down to refresh and try again." icon="error-outline" />
@@ -148,10 +152,7 @@ export default function AdminTowers() {
         ) : (
           <View className="gap-2">
             {towers.map((tower) => (
-              <View
-                key={tower.id}
-                className="flex-row items-center gap-3 rounded-xl border border-border-subtle bg-surface p-4"
-              >
+              <ListRowCard key={tower.id} className="flex-row items-center gap-3">
                 <View className="h-11 w-11 items-center justify-center rounded-lg border border-border-subtle bg-surface-elevated">
                   <MaterialIcons name="business" size={20} color="#c6c5d5" />
                 </View>
@@ -164,25 +165,14 @@ export default function AdminTowers() {
                     {tower.flatCount} {tower.flatCount === 1 ? "flat" : "flats"}
                   </Text>
                 </View>
-                <Pressable
-                  onPress={() => startEdit(tower)}
-                  hitSlop={8}
-                  className="p-1"
-                  accessibilityLabel={`Edit ${tower.name}`}
-                  accessibilityRole="button"
-                >
-                  <MaterialIcons name="edit" size={18} color="#8A8F98" />
-                </Pressable>
-                <Pressable
+                <IconButton icon="edit" onPress={() => startEdit(tower)} accessibilityLabel={`Edit ${tower.name}`} />
+                <IconButton
+                  icon="delete-outline"
+                  color="#F87171"
                   onPress={() => confirmDelete(tower.id, tower.name)}
-                  hitSlop={8}
-                  className="p-1"
                   accessibilityLabel={`Delete ${tower.name}`}
-                  accessibilityRole="button"
-                >
-                  <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
-                </Pressable>
-              </View>
+                />
+              </ListRowCard>
             ))}
           </View>
         )}

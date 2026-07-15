@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Input } from "../../components/ui/input";
 import { EmptyState } from "../../components/ui/empty-state";
+import { ListLoading } from "../../components/ui/list-loading";
 
 function formatPublishedAt(iso: string | null) {
   if (!iso) return "";
@@ -58,7 +59,7 @@ export default function ResidentNotices() {
         </Pressable>
 
         {noticesQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : notices.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No notices yet" description="Society announcements will show up here." icon="campaign" />

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert } from "react-native";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -9,6 +9,9 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
+import { FormPanel } from "../../components/ui/form-panel";
+import { ListRowCard } from "../../components/ui/list-row-card";
+import { ListLoading } from "../../components/ui/list-loading";
 
 export default function AdminResidents() {
   const showToast = useUiStore((s) => s.showToast);
@@ -153,7 +156,7 @@ export default function AdminResidents() {
         </Button>
 
         {showForm && (
-          <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
+          <FormPanel>
             <Text className="text-body-md font-semibold text-on-surface">Invite Resident</Text>
             <Input
               label="Full Name"
@@ -216,11 +219,11 @@ export default function AdminResidents() {
             <Button onPress={handleInvite} loading={inviteMutation.isPending}>
               Send Invitation
             </Button>
-          </View>
+          </FormPanel>
         )}
 
         {residentsQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : residentsQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load residents" description="Pull down to refresh and try again." icon="error-outline" />
@@ -232,7 +235,7 @@ export default function AdminResidents() {
         ) : (
           <View className="gap-2">
             {residents.map((resident) => (
-              <View key={resident.id} className="gap-3 rounded-xl border border-border-subtle bg-surface p-4">
+              <ListRowCard key={resident.id} className="gap-3">
                 <View className="flex-row items-center gap-3">
                   <Avatar name={resident.fullName} />
                   <View className="min-w-0 flex-1">
@@ -299,7 +302,7 @@ export default function AdminResidents() {
                     </Button>
                   </View>
                 )}
-              </View>
+              </ListRowCard>
             ))}
           </View>
         )}

@@ -9,6 +9,7 @@ import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
 import { GroupLabel } from "../../components/ui/group-label";
+import { ListLoading } from "../../components/ui/list-loading";
 
 function nextDays(count: number) {
   return Array.from({ length: count }, (_, i) => {
@@ -119,7 +120,7 @@ export default function ResidentAmenities() {
         <Text className="text-headline-md font-semibold text-on-surface">Available Facilities</Text>
 
         {amenitiesQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : amenitiesQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load facilities" description="Pull down to refresh and try again." icon="error-outline" />
@@ -257,7 +258,7 @@ export default function ResidentAmenities() {
                       accessibilityLabel={`Cancel booking for ${booking.amenityName}`}
                       accessibilityRole="button"
                     >
-                      <MaterialIcons name="close" size={18} color="#e5484d" />
+                      <MaterialIcons name="close" size={18} color="#F87171" />
                     </Pressable>
                   </View>
                 ))}

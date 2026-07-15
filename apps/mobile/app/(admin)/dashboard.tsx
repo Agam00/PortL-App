@@ -1,18 +1,11 @@
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { StatusDot } from "../../components/ui/status-dot";
 import { EmptyState } from "../../components/ui/empty-state";
-
-const STATUS_TONE: Record<string, "green" | "amber" | "red" | "neutral"> = {
-  pending: "amber",
-  approved: "green",
-  checked_in: "green",
-  checked_out: "neutral",
-  rejected: "red",
-  expired: "neutral",
-};
+import { VISITOR_STATUS_TONE, VISITOR_STATUS_LABEL, VISITOR_TYPE_LABEL } from "../../lib/visitor-status";
+import { ListLoading } from "../../components/ui/list-loading";
 
 export default function AdminDashboard() {
   const metricsQuery = trpc.admin.metrics.useQuery();
@@ -80,7 +73,7 @@ export default function AdminDashboard() {
           <Text className="text-headline-md font-semibold text-on-surface">Live Activity</Text>
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             {feedQuery.isLoading ? (
-              <ActivityIndicator className="py-8" color="#5e6ad2" />
+              <ListLoading />
             ) : feedQuery.isError ? (
               <EmptyState title="Couldn't load activity" description="Pull down to refresh and try again." icon="error-outline" />
             ) : feed.length === 0 ? (
@@ -96,9 +89,9 @@ export default function AdminDashboard() {
                       {visitor.name}
                       {visitor.flatNumber ? ` · ${visitor.flatNumber}` : ""}
                     </Text>
-                    <Text className="text-meta-text text-text-muted">{visitor.type}</Text>
+                    <Text className="text-meta-text text-text-muted">{VISITOR_TYPE_LABEL[visitor.type]}</Text>
                   </View>
-                  <StatusDot label={visitor.status.replace("_", " ")} tone={STATUS_TONE[visitor.status] ?? "neutral"} />
+                  <StatusDot label={VISITOR_STATUS_LABEL[visitor.status]} tone={VISITOR_STATUS_TONE[visitor.status]} />
                 </View>
               ))
             )}

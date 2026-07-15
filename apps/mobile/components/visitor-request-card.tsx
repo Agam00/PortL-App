@@ -3,6 +3,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { Button } from "./ui/button";
 import { StatusDot } from "./ui/status-dot";
+import { VISITOR_TYPE_LABEL, VISITOR_STATUS_LABEL, VISITOR_STATUS_TONE } from "../lib/visitor-status";
 
 const TYPE_ICON: Record<VisitorOutput["type"], React.ComponentProps<typeof MaterialIcons>["name"]> = {
   delivery: "local-shipping",
@@ -10,14 +11,6 @@ const TYPE_ICON: Record<VisitorOutput["type"], React.ComponentProps<typeof Mater
   cab: "local-taxi",
   service: "build",
   other: "badge",
-};
-
-const TYPE_LABEL: Record<VisitorOutput["type"], string> = {
-  delivery: "Delivery",
-  guest: "Guest",
-  cab: "Cab",
-  service: "Service",
-  other: "Other",
 };
 
 function timeAgo(iso: string) {
@@ -51,10 +44,10 @@ export function VisitorRequestCard({
             <Text className="text-headline-md font-semibold leading-tight text-on-surface">
               {visitor.name}
             </Text>
-            <Text className="text-body-sm text-text-muted">{TYPE_LABEL[visitor.type]}</Text>
+            <Text className="text-body-sm text-text-muted">{VISITOR_TYPE_LABEL[visitor.type]}</Text>
           </View>
         </View>
-        <StatusDot label="Waiting" tone="amber" />
+        <StatusDot label={VISITOR_STATUS_LABEL.pending} tone={VISITOR_STATUS_TONE.pending} />
       </View>
 
       <Text className="text-body-sm text-text-muted">{timeAgo(visitor.createdAt)}</Text>

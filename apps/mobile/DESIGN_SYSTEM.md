@@ -54,6 +54,7 @@ Never exceed 22px for a heading — density over size is the whole point.
 |---|---|---|
 | `md` | 6px | Buttons, inputs, small pills |
 | `lg` | 8px | Cards, list rows, modals |
+| `xl` | 12px | List-row/card outer containers (the row itself, not its contents) — a distinct, slightly softer radius than `lg` used consistently across every list screen in the app; documented here after a code audit found it in wide, consistent use without ever having been named |
 | `full` | 9999px | Avatars, status dots |
 
 ### Spacing

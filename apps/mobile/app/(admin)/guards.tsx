@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -9,6 +9,9 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
+import { FormPanel } from "../../components/ui/form-panel";
+import { ListRowCard } from "../../components/ui/list-row-card";
+import { ListLoading } from "../../components/ui/list-loading";
 
 export default function AdminGuards() {
   const showToast = useUiStore((s) => s.showToast);
@@ -110,7 +113,7 @@ export default function AdminGuards() {
         </Button>
 
         {showForm && (
-          <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
+          <FormPanel>
             <Text className="text-body-md font-semibold text-on-surface">Invite Guard</Text>
             <Input
               label="Full Name"
@@ -148,11 +151,11 @@ export default function AdminGuards() {
             <Button onPress={handleInvite} loading={inviteMutation.isPending}>
               Send Invite
             </Button>
-          </View>
+          </FormPanel>
         )}
 
         {guardsQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : guardsQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load guards" description="Pull down to refresh and try again." icon="error-outline" />
@@ -164,7 +167,7 @@ export default function AdminGuards() {
         ) : (
           <View className="gap-2">
             {guards.map((guard) => (
-              <View key={guard.id} className="flex-row items-center gap-3 rounded-xl border border-border-subtle bg-surface p-4">
+              <ListRowCard key={guard.id} className="flex-row items-center gap-3">
                 <Avatar name={guard.fullName} />
                 <View className="min-w-0 flex-1">
                   <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
@@ -184,7 +187,7 @@ export default function AdminGuards() {
                     Activate
                   </Button>
                 )}
-              </View>
+              </ListRowCard>
             ))}
           </View>
         )}

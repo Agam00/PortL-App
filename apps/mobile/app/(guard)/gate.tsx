@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, LayoutAnimation, Platform, UIManager } from "react-native";
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
 import { useRouter } from "expo-router";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
@@ -10,6 +14,7 @@ import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
 import { GroupLabel } from "../../components/ui/group-label";
 import { GuardQueueRow } from "../../components/guard-queue-row";
+import { ListLoading } from "../../components/ui/list-loading";
 
 export default function GuardGate() {
   const router = useRouter();
@@ -24,6 +29,7 @@ export default function GuardGate() {
   const markEntryMutation = trpc.visitors.markEntry.useMutation({
     onSuccess: () => {
       hapticSuccess();
+      LayoutAnimation.configureNext(LayoutAnimation.create(220, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
       utils.visitors.listForGuard.invalidate();
     },
     onError: (error) => {
@@ -36,6 +42,7 @@ export default function GuardGate() {
   const markExitMutation = trpc.visitors.markExit.useMutation({
     onSuccess: () => {
       hapticSuccess();
+      LayoutAnimation.configureNext(LayoutAnimation.create(220, LayoutAnimation.Types.easeInEaseOut, LayoutAnimation.Properties.opacity));
       utils.visitors.listForGuard.invalidate();
     },
     onError: (error) => {
@@ -102,7 +109,7 @@ export default function GuardGate() {
         </Button>
 
         {queueQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : queueQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState

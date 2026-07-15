@@ -9,6 +9,10 @@ import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { EmptyState } from "../../components/ui/empty-state";
+import { FormPanel } from "../../components/ui/form-panel";
+import { ListRowCard } from "../../components/ui/list-row-card";
+import { IconButton } from "../../components/ui/icon-button";
+import { ListLoading } from "../../components/ui/list-loading";
 
 export default function AdminPolls() {
   const showToast = useUiStore((s) => s.showToast);
@@ -101,7 +105,7 @@ export default function AdminPolls() {
         </Button>
 
         {showForm && (
-          <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
+          <FormPanel>
             <Text className="text-body-md font-semibold text-on-surface">Create New Poll</Text>
             <Input
               label="Poll Question"
@@ -149,11 +153,11 @@ export default function AdminPolls() {
             <Button onPress={handleCreate} loading={createMutation.isPending}>
               Create Poll
             </Button>
-          </View>
+          </FormPanel>
         )}
 
         {pollsQuery.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : pollsQuery.isError ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="Couldn't load polls" description="Pull down to refresh and try again." icon="error-outline" />
@@ -167,20 +171,18 @@ export default function AdminPolls() {
             {polls.map((poll) => {
               const maxVotes = Math.max(1, ...poll.options.map((o) => o.voteCount));
               return (
-                <View key={poll.id} className="gap-3 rounded-xl border border-border-subtle bg-surface p-4">
+                <ListRowCard key={poll.id} className="gap-3">
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-1.5">
                       <View className={`h-1.5 w-1.5 rounded-full ${poll.isClosed ? "bg-text-muted" : "bg-status-green"}`} />
                       <Text className="text-label-caps uppercase text-text-muted">{poll.isClosed ? "Closed" : "Active"}</Text>
                     </View>
-                    <Pressable
+                    <IconButton
+                      icon="delete-outline"
+                      color="#F87171"
                       onPress={() => confirmDelete(poll.id, poll.question)}
-                      hitSlop={8}
                       accessibilityLabel={`Delete poll: ${poll.question}`}
-                      accessibilityRole="button"
-                    >
-                      <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
-                    </Pressable>
+                    />
                   </View>
                   <Text className="text-body-md font-medium text-on-surface">{poll.question}</Text>
                   <View className="gap-2">
@@ -205,7 +207,7 @@ export default function AdminPolls() {
                       </Pressable>
                     )}
                   </View>
-                </View>
+                </ListRowCard>
               );
             })}
           </View>

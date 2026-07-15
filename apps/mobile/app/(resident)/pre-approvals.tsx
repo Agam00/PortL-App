@@ -1,10 +1,11 @@
-import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { EmptyState } from "../../components/ui/empty-state";
 import { GroupLabel } from "../../components/ui/group-label";
 import { StatusDot } from "../../components/ui/status-dot";
+import { ListLoading } from "../../components/ui/list-loading";
 
 function formatWindow(visitor: VisitorOutput) {
   const from = visitor.validFrom ? new Date(visitor.validFrom) : null;
@@ -43,7 +44,7 @@ export default function MyPreApprovals() {
         refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
       >
         {query.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
+          <ListLoading />
         ) : all.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No pre-approvals yet" description="Pre-approve a guest and it'll show up here." icon="qr-code" />
