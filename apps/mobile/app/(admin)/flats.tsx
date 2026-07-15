@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -20,6 +21,8 @@ export default function AdminFlats() {
   const [flatNumber, setFlatNumber] = useState("");
   const [floor, setFloor] = useState("");
   const [type, setType] = useState("");
+  const [flatNumberError, setFlatNumberError] = useState<string | null>(null);
+  const [towerError, setTowerError] = useState<string | null>(null);
 
   const towersQuery = trpc.towers.list.useQuery();
   const flatsQuery = trpc.flats.list.useQuery({});
@@ -31,6 +34,8 @@ export default function AdminFlats() {
     setFlatNumber("");
     setFloor("");
     setType("");
+    setFlatNumberError(null);
+    setTowerError(null);
   }
 
   const invalidate = () => {
@@ -40,28 +45,40 @@ export default function AdminFlats() {
 
   const createMutation = trpc.flats.create.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Flat added", "success");
       resetForm();
       invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const updateMutation = trpc.flats.update.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Flat updated", "success");
       resetForm();
       invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const removeMutation = trpc.flats.remove.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Flat removed", "success");
       invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function startEdit(flat: { id: string; towerId: string; flatNumber: string; floor: number | null; type: string | null }) {
@@ -71,6 +88,8 @@ export default function AdminFlats() {
     setFloor(flat.floor?.toString() ?? "");
     setType(flat.type ?? "");
     setShowForm(true);
+    setFlatNumberError(null);
+    setTowerError(null);
   }
 
   function confirmDelete(flatId: string, label: string) {
@@ -81,16 +100,20 @@ export default function AdminFlats() {
   }
 
   function handleSubmit() {
-    if (!flatNumber.trim()) return;
+    const flatNumberMissing = !flatNumber.trim();
+    setFlatNumberError(flatNumberMissing ? "Flat number is required" : null);
+    if (!editingId && !towerId) {
+      setTowerError("Select a tower first");
+    } else {
+      setTowerError(null);
+    }
+    if (flatNumberMissing || (!editingId && !towerId)) return;
+
     const floorNum = floor.trim() ? Number.parseInt(floor, 10) : undefined;
     if (editingId) {
       updateMutation.mutate({ flatId: editingId, flatNumber: flatNumber.trim(), floor: floorNum, type: type.trim() || undefined });
     } else {
-      if (!towerId) {
-        showToast("Select a tower first", "error");
-        return;
-      }
-      createMutation.mutate({ towerId, flatNumber: flatNumber.trim(), floor: floorNum, type: type.trim() || undefined });
+      createMutation.mutate({ towerId: towerId as string, flatNumber: flatNumber.trim(), floor: floorNum, type: type.trim() || undefined });
     }
   }
 
@@ -106,7 +129,19 @@ export default function AdminFlats() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Flats Management" role="admin" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={flatsQuery.isRefetching || towersQuery.isRefetching}
+            onRefresh={() => {
+              flatsQuery.refetch();
+              towersQuery.refetch();
+            }}
+          />
+        }
+      >
         <Text className="text-body-sm text-text-muted">Manage units, occupancy, and assignments across all towers.</Text>
 
         <Button
@@ -125,13 +160,31 @@ export default function AdminFlats() {
                 <Text className="text-label-caps uppercase text-text-muted">Tower</Text>
                 <View className="flex-row flex-wrap gap-2">
                   {towers.map((tower) => (
-                    <Chip key={tower.id} label={tower.name} selected={towerId === tower.id} onPress={() => setTowerId(tower.id)} />
+                    <Chip
+                      key={tower.id}
+                      label={tower.name}
+                      selected={towerId === tower.id}
+                      onPress={() => {
+                        setTowerId(tower.id);
+                        setTowerError(null);
+                      }}
+                    />
                   ))}
                 </View>
+                {towerError && <Text className="text-body-sm text-status-red">{towerError}</Text>}
               </View>
             )}
 
-            <Input label="Flat Number" placeholder="e.g. A-103" value={flatNumber} onChangeText={setFlatNumber} />
+            <Input
+              label="Flat Number"
+              placeholder="e.g. A-103"
+              value={flatNumber}
+              onChangeText={(v) => {
+                setFlatNumber(v);
+                if (flatNumberError) setFlatNumberError(null);
+              }}
+              error={flatNumberError ?? undefined}
+            />
             <Input label="Floor (optional)" placeholder="e.g. 1" keyboardType="number-pad" value={floor} onChangeText={setFloor} />
             <Input label="Type (optional)" placeholder="e.g. 2BHK" value={type} onChangeText={setType} />
             <Button onPress={handleSubmit} loading={createMutation.isPending || updateMutation.isPending}>
@@ -142,6 +195,10 @@ export default function AdminFlats() {
 
         {flatsQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : flatsQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load flats" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : flats.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No flats yet" description="Add a flat to a tower to get started." icon="door-front" />
@@ -170,10 +227,22 @@ export default function AdminFlats() {
                       </Text>
                     </View>
                   </View>
-                  <Pressable onPress={() => startEdit(flat)} hitSlop={8} className="p-1">
+                  <Pressable
+                    onPress={() => startEdit(flat)}
+                    hitSlop={8}
+                    className="p-1"
+                    accessibilityLabel={`Edit ${flat.flatNumber}`}
+                    accessibilityRole="button"
+                  >
                     <MaterialIcons name="edit" size={18} color="#8A8F98" />
                   </Pressable>
-                  <Pressable onPress={() => confirmDelete(flat.id, flat.flatNumber)} hitSlop={8} className="p-1">
+                  <Pressable
+                    onPress={() => confirmDelete(flat.id, flat.flatNumber)}
+                    hitSlop={8}
+                    className="p-1"
+                    accessibilityLabel={`Delete ${flat.flatNumber}`}
+                    accessibilityRole="button"
+                  >
                     <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
                   </Pressable>
                 </View>

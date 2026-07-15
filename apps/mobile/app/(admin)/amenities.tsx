@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -33,6 +34,7 @@ export default function AdminAmenities() {
   const [closeTime, setCloseTime] = useState(timeToDate("22:00"));
   const [slotMinutes, setSlotMinutes] = useState("60");
   const [bookingsAmenityId, setBookingsAmenityId] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const amenitiesQuery = trpc.amenities.list.useQuery();
   const bookingsQuery = trpc.amenityBookings.listForAdmin.useQuery(
@@ -49,37 +51,56 @@ export default function AdminAmenities() {
     setOpenTime(timeToDate("06:00"));
     setCloseTime(timeToDate("22:00"));
     setSlotMinutes("60");
+    setNameError(null);
   }
 
   const createMutation = trpc.amenities.create.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Facility added", "success");
       resetForm();
       utils.amenities.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const updateMutation = trpc.amenities.update.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Facility updated", "success");
       resetForm();
       utils.amenities.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const removeMutation = trpc.amenities.remove.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Facility removed", "success");
       utils.amenities.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const toggleActiveMutation = trpc.amenities.update.useMutation({
-    onSuccess: () => utils.amenities.list.invalidate(),
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onSuccess: () => {
+      hapticSuccess();
+      utils.amenities.list.invalidate();
+    },
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function startEdit(amenity: {
@@ -99,6 +120,7 @@ export default function AdminAmenities() {
     setCloseTime(timeToDate(amenity.closeTime));
     setSlotMinutes(amenity.slotMinutes.toString());
     setShowForm(true);
+    setNameError(null);
   }
 
   function confirmDelete(amenityId: string, label: string) {
@@ -109,7 +131,10 @@ export default function AdminAmenities() {
   }
 
   function handleSubmit() {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setNameError("Facility name is required");
+      return;
+    }
     const input = {
       name: name.trim(),
       description: description.trim() || undefined,
@@ -130,7 +155,11 @@ export default function AdminAmenities() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Facilities Management" role="admin" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={amenitiesQuery.isRefetching} onRefresh={() => amenitiesQuery.refetch()} />}
+      >
         <Text className="text-body-sm text-text-muted">Manage society amenities and access rules.</Text>
 
         <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
@@ -140,7 +169,16 @@ export default function AdminAmenities() {
         {showForm && (
           <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
             <Text className="text-body-md font-semibold text-on-surface">{editingId ? "Edit Facility" : "New Facility"}</Text>
-            <Input label="Facility Name" placeholder="e.g. Swimming Pool" value={name} onChangeText={setName} />
+            <Input
+              label="Facility Name"
+              placeholder="e.g. Swimming Pool"
+              value={name}
+              onChangeText={(v) => {
+                setName(v);
+                if (nameError) setNameError(null);
+              }}
+              error={nameError ?? undefined}
+            />
             <Input label="Description (optional)" placeholder="Short description" value={description} onChangeText={setDescription} />
             <Input label="Capacity" placeholder="e.g. 20" keyboardType="number-pad" value={capacity} onChangeText={setCapacity} />
             <View className="flex-row gap-3">
@@ -156,6 +194,10 @@ export default function AdminAmenities() {
 
         {amenitiesQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : amenitiesQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load facilities" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : amenities.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No facilities yet" description="Add a facility to get started." icon="pool" />
@@ -177,10 +219,22 @@ export default function AdminAmenities() {
                       <Text className="text-meta-text text-text-muted">{amenity.isActive ? "Active" : "Inactive"}</Text>
                     </View>
                   </View>
-                  <Pressable onPress={() => startEdit(amenity)} hitSlop={8} className="p-1">
+                  <Pressable
+                    onPress={() => startEdit(amenity)}
+                    hitSlop={8}
+                    className="p-1"
+                    accessibilityLabel={`Edit ${amenity.name}`}
+                    accessibilityRole="button"
+                  >
                     <MaterialIcons name="edit" size={18} color="#8A8F98" />
                   </Pressable>
-                  <Pressable onPress={() => confirmDelete(amenity.id, amenity.name)} hitSlop={8} className="p-1">
+                  <Pressable
+                    onPress={() => confirmDelete(amenity.id, amenity.name)}
+                    hitSlop={8}
+                    className="p-1"
+                    accessibilityLabel={`Delete ${amenity.name}`}
+                    accessibilityRole="button"
+                  >
                     <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
                   </Pressable>
                 </View>

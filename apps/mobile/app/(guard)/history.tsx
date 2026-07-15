@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
+import { View, ScrollView, FlatList, RefreshControl, ActivityIndicator } from "react-native";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
@@ -32,32 +32,37 @@ export default function GuardHistory() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Entry & Exit Log" role="guard" />
-      <ScrollView
+      <FlatList
+        data={visitors}
+        keyExtractor={(visitor) => visitor.id}
+        renderItem={({ item }) => <HistoryRow visitor={item} showFlat />}
+        ItemSeparatorComponent={() => <View className="h-2" />}
         contentContainerClassName="gap-4 p-4 pb-8"
         refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
-      >
-        <Input placeholder="Search by name or flat number" value={search} onChangeText={setSearch} />
-
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-          {FILTERS.map((f) => (
-            <Chip key={f.label} label={f.label} selected={filter.label === f.label} onPress={() => setFilter(f)} />
-          ))}
-        </ScrollView>
-
-        {query.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
-        ) : visitors.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
-            <EmptyState title="No matching activity" description="Nothing found for this search or filter." icon="history" />
+        ListHeaderComponent={
+          <View className="gap-4 mb-4">
+            <Input placeholder="Search by name or flat number" value={search} onChangeText={setSearch} />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+              {FILTERS.map((f) => (
+                <Chip key={f.label} label={f.label} selected={filter.label === f.label} onPress={() => setFilter(f)} />
+              ))}
+            </ScrollView>
           </View>
-        ) : (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
-            {visitors.map((visitor) => (
-              <HistoryRow key={visitor.id} visitor={visitor} showFlat />
-            ))}
-          </View>
-        )}
-      </ScrollView>
+        }
+        ListEmptyComponent={
+          query.isLoading ? (
+            <ActivityIndicator className="py-8" color="#5e6ad2" />
+          ) : query.isError ? (
+            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+              <EmptyState title="Couldn't load activity" description="Pull down to refresh and try again." icon="error-outline" />
+            </View>
+          ) : (
+            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+              <EmptyState title="No matching activity" description="Nothing found for this search or filter." icon="history" />
+            </View>
+          )
+        }
+      />
     </View>
   );
 }

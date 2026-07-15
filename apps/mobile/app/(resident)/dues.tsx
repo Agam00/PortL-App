@@ -1,8 +1,9 @@
-import { View, Text, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Alert, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
@@ -25,10 +26,14 @@ export default function ResidentDues() {
   const duesQuery = trpc.dues.mine.useQuery();
   const payMutation = trpc.dues.payMock.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Marked as paid (demo)", "success");
       utils.dues.mine.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function confirmPay(dueId: string, amount: string) {
@@ -46,7 +51,10 @@ export default function ResidentDues() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Maintenance Dues" role="resident" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        refreshControl={<RefreshControl refreshing={duesQuery.isRefetching} onRefresh={() => duesQuery.refetch()} />}
+      >
         <View className="flex-row items-start justify-between">
           <Text className="flex-1 text-body-sm text-text-muted">Manage your society monthly statements.</Text>
           <View className="items-end">
@@ -57,6 +65,10 @@ export default function ResidentDues() {
 
         {duesQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : duesQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load dues" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : dues.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No dues yet" description="Maintenance statements will show up here." icon="payments" />

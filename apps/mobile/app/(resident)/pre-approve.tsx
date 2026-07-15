@@ -8,6 +8,7 @@ import { preApproveVisitorInputSchema } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { VISITOR_TYPES } from "../../lib/visitor-types";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Input } from "../../components/ui/input";
@@ -44,15 +45,20 @@ export default function PreApproveGuest() {
 
   const preApproveMutation = trpc.visitors.preApprove.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Guest pre-approved", "success");
       utils.visitors.listPreApprovedForResident.invalidate();
       router.back();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function onSubmit(values: FormValues) {
     if (endTime <= startTime) {
+      hapticError();
       showToast("End time must be after start time.", "error");
       return;
     }

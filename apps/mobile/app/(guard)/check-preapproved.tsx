@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Input } from "../../components/ui/input";
 import { EmptyState } from "../../components/ui/empty-state";
@@ -29,11 +30,15 @@ export default function CheckPreApproved() {
 
   const markEntryMutation = trpc.visitors.markEntry.useMutation({
     onSuccess: (visitor) => {
+      hapticSuccess();
       showToast(`${visitor.name} checked in — no call needed`, "success");
       utils.visitors.listForGuard.invalidate();
       router.push("/(guard)/gate");
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
     onSettled: () => setActingOnId(null),
   });
 

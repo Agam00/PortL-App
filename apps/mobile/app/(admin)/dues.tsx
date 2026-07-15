@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -31,6 +32,8 @@ export default function AdminDues() {
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState(new Date());
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "paid">("all");
+  const [flatError, setFlatError] = useState<string | null>(null);
+  const [amountError, setAmountError] = useState<string | null>(null);
 
   const flatsQuery = trpc.flats.list.useQuery({});
   const duesQuery = trpc.dues.list.useQuery();
@@ -40,22 +43,30 @@ export default function AdminDues() {
     setFlatId(null);
     setAmount("");
     setDueDate(new Date());
+    setFlatError(null);
+    setAmountError(null);
   }
 
   const createMutation = trpc.dues.create.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Due generated", "success");
       resetForm();
       utils.dues.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function handleSubmit() {
-    if (!flatId || !amount.trim()) {
-      showToast("Fill all fields and select a flat", "error");
-      return;
-    }
+    const flatMissing = !flatId;
+    const amountMissing = !amount.trim();
+    setFlatError(flatMissing ? "Select a flat" : null);
+    setAmountError(amountMissing ? "Amount is required" : null);
+    if (flatMissing || amountMissing) return;
+
     createMutation.mutate({
       flatId,
       period: toPeriodString(dueDate),
@@ -74,7 +85,19 @@ export default function AdminDues() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Dues Management" role="admin" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={duesQuery.isRefetching || flatsQuery.isRefetching}
+            onRefresh={() => {
+              duesQuery.refetch();
+              flatsQuery.refetch();
+            }}
+          />
+        }
+      >
         <Text className="text-body-sm text-text-muted">Generate maintenance dues and track payment status across the society.</Text>
 
         <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
@@ -88,11 +111,30 @@ export default function AdminDues() {
               <Text className="text-label-caps uppercase text-text-muted">Flat</Text>
               <View className="flex-row flex-wrap gap-2">
                 {flats.map((flat) => (
-                  <Chip key={flat.id} label={`${flat.flatNumber}`} selected={flatId === flat.id} onPress={() => setFlatId(flat.id)} />
+                  <Chip
+                    key={flat.id}
+                    label={`${flat.flatNumber}`}
+                    selected={flatId === flat.id}
+                    onPress={() => {
+                      setFlatId(flat.id);
+                      setFlatError(null);
+                    }}
+                  />
                 ))}
               </View>
+              {flatError && <Text className="text-body-sm text-status-red">{flatError}</Text>}
             </View>
-            <Input label="Amount" placeholder="e.g. 2500" keyboardType="decimal-pad" value={amount} onChangeText={setAmount} />
+            <Input
+              label="Amount"
+              placeholder="e.g. 2500"
+              keyboardType="decimal-pad"
+              value={amount}
+              onChangeText={(v) => {
+                setAmount(v);
+                if (amountError) setAmountError(null);
+              }}
+              error={amountError ?? undefined}
+            />
             <DateField label="Due Date" value={dueDate} onChange={setDueDate} />
             <Text className="text-meta-text text-text-muted">Billing period: {periodLabel(toPeriodString(dueDate))}</Text>
             <Button onPress={handleSubmit} loading={createMutation.isPending}>
@@ -109,6 +151,10 @@ export default function AdminDues() {
 
         {duesQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : duesQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load dues" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : dues.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No dues found" description="Generate a due above to get started." icon="payments" />

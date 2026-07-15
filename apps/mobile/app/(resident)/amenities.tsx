@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
@@ -60,20 +61,28 @@ export default function ResidentAmenities() {
 
   const bookMutation = trpc.amenityBookings.create.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Booking confirmed", "success");
       setBookingAmenityId(null);
       setSelectedSlot(null);
       utils.amenityBookings.myBookings.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const cancelMutation = trpc.amenityBookings.cancel.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Booking cancelled", "success");
       utils.amenityBookings.myBookings.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function confirmCancel(bookingId: string) {
@@ -95,11 +104,26 @@ export default function ResidentAmenities() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Amenities" role="resident" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        refreshControl={
+          <RefreshControl
+            refreshing={amenitiesQuery.isRefetching || myBookingsQuery.isRefetching}
+            onRefresh={() => {
+              amenitiesQuery.refetch();
+              myBookingsQuery.refetch();
+            }}
+          />
+        }
+      >
         <Text className="text-headline-md font-semibold text-on-surface">Available Facilities</Text>
 
         {amenitiesQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : amenitiesQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load facilities" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : amenities.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No facilities yet" description="Society facilities will show up here." icon="pool" />
@@ -227,7 +251,12 @@ export default function ResidentAmenities() {
                         {booking.date} · {booking.slotStart.slice(0, 5)}–{booking.slotEnd.slice(0, 5)}
                       </Text>
                     </View>
-                    <Pressable onPress={() => confirmCancel(booking.id)} hitSlop={8}>
+                    <Pressable
+                      onPress={() => confirmCancel(booking.id)}
+                      hitSlop={8}
+                      accessibilityLabel={`Cancel booking for ${booking.amenityName}`}
+                      accessibilityRole="button"
+                    >
                       <MaterialIcons name="close" size={18} color="#e5484d" />
                     </Pressable>
                   </View>

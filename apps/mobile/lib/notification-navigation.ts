@@ -13,7 +13,12 @@ export function getNotificationRoute(type: string, role: Role): string {
       return "/(resident)/polls";
     case "complaint_status":
     case "complaint_comment":
-      return role === "resident" ? "/(resident)/helpdesk" : "/(admin)/requests";
+      if (role === "resident") return "/(resident)/helpdesk";
+      if (role === "admin") return "/(admin)/requests";
+      // Guards can be assigned a complaint (Phase 6) and get this notification, but there's
+      // no guard-facing complaint screen — fall back to their gate home instead of a route
+      // their own role-guard would immediately bounce them out of.
+      return "/(guard)/gate";
     case "booking_confirmed":
       return "/(resident)/amenities";
     default:

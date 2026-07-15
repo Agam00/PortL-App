@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
@@ -21,14 +22,26 @@ export default function GuardGate() {
   });
 
   const markEntryMutation = trpc.visitors.markEntry.useMutation({
-    onSuccess: () => utils.visitors.listForGuard.invalidate(),
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onSuccess: () => {
+      hapticSuccess();
+      utils.visitors.listForGuard.invalidate();
+    },
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
     onSettled: () => setActingOnId(null),
   });
 
   const markExitMutation = trpc.visitors.markExit.useMutation({
-    onSuccess: () => utils.visitors.listForGuard.invalidate(),
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onSuccess: () => {
+      hapticSuccess();
+      utils.visitors.listForGuard.invalidate();
+    },
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
     onSettled: () => setActingOnId(null),
   });
 
@@ -90,6 +103,14 @@ export default function GuardGate() {
 
         {queueQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : queueQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState
+              title="Couldn't load the queue"
+              description="Pull down to refresh and try again."
+              icon="error-outline"
+            />
+          </View>
         ) : queue.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState

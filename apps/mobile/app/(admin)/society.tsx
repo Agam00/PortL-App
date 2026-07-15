@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
@@ -71,7 +71,35 @@ export default function AdminSociety() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Management Hub" role="admin" />
-      <ScrollView contentContainerClassName="gap-6 p-4 pb-8">
+      <ScrollView
+        contentContainerClassName="gap-6 p-4 pb-8"
+        refreshControl={
+          <RefreshControl
+            refreshing={
+              towersQuery.isRefetching ||
+              flatsQuery.isRefetching ||
+              amenitiesQuery.isRefetching ||
+              residentsQuery.isRefetching ||
+              guardsQuery.isRefetching ||
+              staffQuery.isRefetching ||
+              noticesQuery.isRefetching ||
+              pollsQuery.isRefetching ||
+              duesQuery.isRefetching
+            }
+            onRefresh={() => {
+              towersQuery.refetch();
+              flatsQuery.refetch();
+              amenitiesQuery.refetch();
+              residentsQuery.refetch();
+              guardsQuery.refetch();
+              staffQuery.refetch();
+              noticesQuery.refetch();
+              pollsQuery.refetch();
+              duesQuery.refetch();
+            }}
+          />
+        }
+      >
         <Text className="text-body-sm text-text-muted">Oversee society operations, infrastructure, and communications.</Text>
 
         {sections.map((section) => (

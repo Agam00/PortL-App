@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Alert, ActivityIndicator } from "react-native";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -17,6 +18,9 @@ export default function AdminGuards() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [search, setSearch] = useState("");
+  const [fullNameError, setFullNameError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const guardsQuery = trpc.admin.listGuards.useQuery();
   const guards = (guardsQuery.data ?? []).filter(
@@ -28,31 +32,46 @@ export default function AdminGuards() {
     setFullName("");
     setEmail("");
     setPhone("");
+    setFullNameError(null);
+    setEmailError(null);
+    setPhoneError(null);
   }
 
   const inviteMutation = trpc.admin.inviteGuard.useMutation({
     onSuccess: (result) => {
+      hapticSuccess();
       showToast(`Invited — temp password: ${result.tempPassword}`, "success");
       resetForm();
       utils.admin.listGuards.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const deactivateMutation = trpc.admin.deactivateUser.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Guard deactivated", "success");
       utils.admin.listGuards.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const activateMutation = trpc.admin.activateUser.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Guard activated", "success");
       utils.admin.listGuards.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function confirmDeactivate(userId: string, name: string) {
@@ -63,17 +82,25 @@ export default function AdminGuards() {
   }
 
   function handleInvite() {
-    if (!fullName.trim() || !email.trim() || !phone.trim()) {
-      showToast("Fill all fields", "error");
-      return;
-    }
+    const fullNameMissing = !fullName.trim();
+    const emailMissing = !email.trim();
+    const phoneMissing = !phone.trim();
+    setFullNameError(fullNameMissing ? "Full name is required" : null);
+    setEmailError(emailMissing ? "Email is required" : null);
+    setPhoneError(phoneMissing ? "Phone is required" : null);
+    if (fullNameMissing || emailMissing || phoneMissing) return;
+
     inviteMutation.mutate({ fullName: fullName.trim(), email: email.trim(), phone: phone.trim() });
   }
 
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Guards Management" role="admin" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={guardsQuery.isRefetching} onRefresh={() => guardsQuery.refetch()} />}
+      >
         <Text className="text-body-sm text-text-muted">Manage security personnel access and active rosters.</Text>
 
         <Input placeholder="Search by name or phone" value={search} onChangeText={setSearch} />
@@ -85,9 +112,39 @@ export default function AdminGuards() {
         {showForm && (
           <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
             <Text className="text-body-md font-semibold text-on-surface">Invite Guard</Text>
-            <Input label="Full Name" placeholder="e.g. Ramesh Kumar" value={fullName} onChangeText={setFullName} />
-            <Input label="Email" placeholder="guard@example.com" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
-            <Input label="Phone" placeholder="+91XXXXXXXXXX" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+            <Input
+              label="Full Name"
+              placeholder="e.g. Ramesh Kumar"
+              value={fullName}
+              onChangeText={(v) => {
+                setFullName(v);
+                if (fullNameError) setFullNameError(null);
+              }}
+              error={fullNameError ?? undefined}
+            />
+            <Input
+              label="Email"
+              placeholder="guard@example.com"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={(v) => {
+                setEmail(v);
+                if (emailError) setEmailError(null);
+              }}
+              error={emailError ?? undefined}
+            />
+            <Input
+              label="Phone"
+              placeholder="+91XXXXXXXXXX"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={(v) => {
+                setPhone(v);
+                if (phoneError) setPhoneError(null);
+              }}
+              error={phoneError ?? undefined}
+            />
             <Button onPress={handleInvite} loading={inviteMutation.isPending}>
               Send Invite
             </Button>
@@ -96,6 +153,10 @@ export default function AdminGuards() {
 
         {guardsQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : guardsQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load guards" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : guards.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No guards found" description="Invite a guard to get started." icon="shield" />

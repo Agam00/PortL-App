@@ -8,6 +8,7 @@ import { trpc } from "../../lib/trpc";
 import { useAuthStore } from "../../stores/auth-store";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 
@@ -32,11 +33,15 @@ export default function SetPasswordScreen() {
 
   const setPasswordMutation = trpc.auth.setPassword.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       if (user) updateUser({ ...user, mustResetPassword: false });
       showToast("Password updated", "success");
       router.replace("/");
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   return (

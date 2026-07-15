@@ -8,6 +8,7 @@ import type { z } from "zod";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { captureVisitorPhoto } from "../../lib/capture-visitor-photo";
 import { VISITOR_TYPES } from "../../lib/visitor-types";
 import { ScreenHeader } from "../../components/ui/screen-header";
@@ -43,13 +44,17 @@ export default function GuardRegisterVisitor() {
 
   const createMutation = trpc.visitors.create.useMutation({
     onSuccess: (visitor) => {
+      hapticSuccess();
       showToast(`Request sent for flat ${visitor.flatNumber ?? ""}`, "success");
       reset({ flatId: "", name: "", phone: "", type: "delivery", photoBase64: undefined });
       setSelectedFlat(null);
       setPhoto(null);
       utils.visitors.listForGuard.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   async function handleCapturePhoto() {

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -21,6 +21,10 @@ export default function AdminResidents() {
   const [search, setSearch] = useState("");
   const [reassigningId, setReassigningId] = useState<string | null>(null);
   const [reassignFlatId, setReassignFlatId] = useState("");
+  const [fullNameError, setFullNameError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [flatError, setFlatError] = useState<string | null>(null);
 
   const residentsQuery = trpc.admin.listResidents.useQuery();
   const flatsQuery = trpc.flats.list.useQuery({});
@@ -39,43 +43,63 @@ export default function AdminResidents() {
     setEmail("");
     setPhone("");
     setFlatId("");
+    setFullNameError(null);
+    setEmailError(null);
+    setPhoneError(null);
+    setFlatError(null);
   }
 
   const inviteMutation = trpc.admin.inviteResident.useMutation({
     onSuccess: (result) => {
+      hapticSuccess();
       showToast(`Invited — temp password: ${result.tempPassword}`, "success");
       resetForm();
       utils.admin.listResidents.invalidate();
       utils.flats.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const deactivateMutation = trpc.admin.deactivateUser.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Resident deactivated", "success");
       utils.admin.listResidents.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const activateMutation = trpc.admin.activateUser.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Resident activated", "success");
       utils.admin.listResidents.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const reassignMutation = trpc.admin.reassignResidentFlat.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Flat reassigned", "success");
       setReassigningId(null);
       setReassignFlatId("");
       utils.admin.listResidents.invalidate();
       utils.flats.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function confirmDeactivate(userId: string, name: string) {
@@ -86,10 +110,16 @@ export default function AdminResidents() {
   }
 
   function handleInvite() {
-    if (!fullName.trim() || !email.trim() || !phone.trim() || !flatId) {
-      showToast("Fill all fields and select a flat", "error");
-      return;
-    }
+    const fullNameMissing = !fullName.trim();
+    const emailMissing = !email.trim();
+    const phoneMissing = !phone.trim();
+    const flatMissing = !flatId;
+    setFullNameError(fullNameMissing ? "Full name is required" : null);
+    setEmailError(emailMissing ? "Email is required" : null);
+    setPhoneError(phoneMissing ? "Phone is required" : null);
+    setFlatError(flatMissing ? "Select a flat" : null);
+    if (fullNameMissing || emailMissing || phoneMissing || flatMissing) return;
+
     inviteMutation.mutate({ fullName: fullName.trim(), email: email.trim(), phone: phone.trim(), flatId });
   }
 
@@ -98,7 +128,19 @@ export default function AdminResidents() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Residents Management" role="admin" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={residentsQuery.isRefetching || flatsQuery.isRefetching}
+            onRefresh={() => {
+              residentsQuery.refetch();
+              flatsQuery.refetch();
+            }}
+          />
+        }
+      >
         <Text className="text-body-sm text-text-muted">Directory and access control for society members.</Text>
 
         <Input placeholder="Search residents..." value={search} onChangeText={setSearch} />
@@ -113,9 +155,39 @@ export default function AdminResidents() {
         {showForm && (
           <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
             <Text className="text-body-md font-semibold text-on-surface">Invite Resident</Text>
-            <Input label="Full Name" placeholder="e.g. Jane Doe" value={fullName} onChangeText={setFullName} />
-            <Input label="Email" placeholder="jane@example.com" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
-            <Input label="Phone" placeholder="+91XXXXXXXXXX" keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
+            <Input
+              label="Full Name"
+              placeholder="e.g. Jane Doe"
+              value={fullName}
+              onChangeText={(v) => {
+                setFullName(v);
+                if (fullNameError) setFullNameError(null);
+              }}
+              error={fullNameError ?? undefined}
+            />
+            <Input
+              label="Email"
+              placeholder="jane@example.com"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              value={email}
+              onChangeText={(v) => {
+                setEmail(v);
+                if (emailError) setEmailError(null);
+              }}
+              error={emailError ?? undefined}
+            />
+            <Input
+              label="Phone"
+              placeholder="+91XXXXXXXXXX"
+              keyboardType="phone-pad"
+              value={phone}
+              onChangeText={(v) => {
+                setPhone(v);
+                if (phoneError) setPhoneError(null);
+              }}
+              error={phoneError ?? undefined}
+            />
             <View className="gap-2">
               <Text className="text-label-caps uppercase text-text-muted">Flat</Text>
               {flats.length === 0 ? (
@@ -125,7 +197,10 @@ export default function AdminResidents() {
                   {flats.map((flat) => (
                     <Pressable
                       key={flat.id}
-                      onPress={() => setFlatId(flat.id)}
+                      onPress={() => {
+                        setFlatId(flat.id);
+                        setFlatError(null);
+                      }}
                       className={`rounded-md border px-3 py-1.5 ${flatId === flat.id ? "border-primary-container bg-white/5" : "border-border-subtle"}`}
                     >
                       <Text className={`text-body-sm ${flatId === flat.id ? "text-primary-container" : "text-on-surface-variant"}`}>
@@ -136,6 +211,7 @@ export default function AdminResidents() {
                   ))}
                 </View>
               )}
+              {flatError && <Text className="text-body-sm text-status-red">{flatError}</Text>}
             </View>
             <Button onPress={handleInvite} loading={inviteMutation.isPending}>
               Send Invitation
@@ -145,6 +221,10 @@ export default function AdminResidents() {
 
         {residentsQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : residentsQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load residents" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : residents.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No residents found" description="Invite a resident to get started." icon="group" />

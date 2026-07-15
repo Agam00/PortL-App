@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -25,6 +26,9 @@ export default function AdminNotices() {
   const [scope, setScope] = useState<"all" | "tower" | "flat">("all");
   const [targetTowerId, setTargetTowerId] = useState<string | null>(null);
   const [targetFlatId, setTargetFlatId] = useState<string | null>(null);
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [bodyError, setBodyError] = useState<string | null>(null);
+  const [audienceError, setAudienceError] = useState<string | null>(null);
 
   const noticesQuery = trpc.notices.list.useQuery();
   const towersQuery = trpc.towers.list.useQuery(undefined, { enabled: scope === "tower" });
@@ -37,23 +41,34 @@ export default function AdminNotices() {
     setScope("all");
     setTargetTowerId(null);
     setTargetFlatId(null);
+    setTitleError(null);
+    setBodyError(null);
+    setAudienceError(null);
   }
 
   const createMutation = trpc.notices.create.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Notice published", "success");
       resetForm();
       utils.notices.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const removeMutation = trpc.notices.remove.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Notice removed", "success");
       utils.notices.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function confirmDelete(noticeId: string, label: string) {
@@ -64,18 +79,14 @@ export default function AdminNotices() {
   }
 
   function handlePublish() {
-    if (!title.trim() || !body.trim()) {
-      showToast("Title and message are required", "error");
-      return;
-    }
-    if (scope === "tower" && !targetTowerId) {
-      showToast("Select a tower", "error");
-      return;
-    }
-    if (scope === "flat" && !targetFlatId) {
-      showToast("Select a flat", "error");
-      return;
-    }
+    const titleMissing = !title.trim();
+    const bodyMissing = !body.trim();
+    const audienceMissing = (scope === "tower" && !targetTowerId) || (scope === "flat" && !targetFlatId);
+    setTitleError(titleMissing ? "Title is required" : null);
+    setBodyError(bodyMissing ? "Message is required" : null);
+    setAudienceError(audienceMissing ? (scope === "tower" ? "Select a tower" : "Select a flat") : null);
+    if (titleMissing || bodyMissing || audienceMissing) return;
+
     createMutation.mutate({
       title: title.trim(),
       body: body.trim(),
@@ -92,7 +103,11 @@ export default function AdminNotices() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Notices Management" role="admin" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={noticesQuery.isRefetching} onRefresh={() => noticesQuery.refetch()} />}
+      >
         <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
           {showForm ? "Cancel" : "+ Compose Notice"}
         </Button>
@@ -100,37 +115,80 @@ export default function AdminNotices() {
         {showForm && (
           <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
             <Text className="text-body-md font-semibold text-on-surface">Compose Notice</Text>
-            <Input label="Title" placeholder="e.g. Scheduled Water Maintenance" value={title} onChangeText={setTitle} />
+            <Input
+              label="Title"
+              placeholder="e.g. Scheduled Water Maintenance"
+              value={title}
+              onChangeText={(v) => {
+                setTitle(v);
+                if (titleError) setTitleError(null);
+              }}
+              error={titleError ?? undefined}
+            />
             <Input
               label="Message"
               placeholder="Enter notice details here..."
               value={body}
-              onChangeText={setBody}
+              onChangeText={(v) => {
+                setBody(v);
+                if (bodyError) setBodyError(null);
+              }}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
               className="min-h-[96px]"
+              error={bodyError ?? undefined}
             />
             <View className="gap-2">
               <Text className="text-label-caps uppercase text-text-muted">Audience</Text>
               <View className="flex-row flex-wrap gap-2">
                 {SCOPES.map((s) => (
-                  <Chip key={s.value} label={s.label} selected={scope === s.value} onPress={() => setScope(s.value)} />
+                  <Chip
+                    key={s.value}
+                    label={s.label}
+                    selected={scope === s.value}
+                    onPress={() => {
+                      setScope(s.value);
+                      setAudienceError(null);
+                    }}
+                  />
                 ))}
               </View>
             </View>
             {scope === "tower" && (
-              <View className="flex-row flex-wrap gap-2">
-                {towers.map((tower) => (
-                  <Chip key={tower.id} label={tower.name} selected={targetTowerId === tower.id} onPress={() => setTargetTowerId(tower.id)} />
-                ))}
+              <View className="gap-2">
+                <View className="flex-row flex-wrap gap-2">
+                  {towers.map((tower) => (
+                    <Chip
+                      key={tower.id}
+                      label={tower.name}
+                      selected={targetTowerId === tower.id}
+                      onPress={() => {
+                        setTargetTowerId(tower.id);
+                        setAudienceError(null);
+                      }}
+                    />
+                  ))}
+                </View>
+                {audienceError && <Text className="text-body-sm text-status-red">{audienceError}</Text>}
               </View>
             )}
             {scope === "flat" && (
-              <View className="flex-row flex-wrap gap-2">
-                {flats.map((flat) => (
-                  <Chip key={flat.id} label={flat.flatNumber} selected={targetFlatId === flat.id} onPress={() => setTargetFlatId(flat.id)} />
-                ))}
+              <View className="gap-2">
+                <View className="flex-row flex-wrap gap-2">
+                  {flats.map((flat) => (
+                    <Chip
+                      key={flat.id}
+                      label={flat.flatNumber}
+                      selected={targetFlatId === flat.id}
+                      onPress={() => {
+                        setTargetFlatId(flat.id);
+                        setAudienceError(null);
+                      }}
+                    />
+                  ))}
+                </View>
+                {audienceError && <Text className="text-body-sm text-status-red">{audienceError}</Text>}
               </View>
             )}
             <Button onPress={handlePublish} loading={createMutation.isPending}>
@@ -143,6 +201,10 @@ export default function AdminNotices() {
 
         {noticesQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : noticesQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load notices" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : notices.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No notices yet" description="Publish your first notice above." icon="campaign" />
@@ -162,7 +224,13 @@ export default function AdminNotices() {
                           : `Flat: ${notice.targetFlatNumber ?? "—"}`}
                     </Text>
                   </View>
-                  <Pressable onPress={() => confirmDelete(notice.id, notice.title)} hitSlop={8} className="p-1">
+                  <Pressable
+                    onPress={() => confirmDelete(notice.id, notice.title)}
+                    hitSlop={8}
+                    className="p-1"
+                    accessibilityLabel={`Delete ${notice.title}`}
+                    accessibilityRole="button"
+                  >
                     <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
                   </Pressable>
                 </View>

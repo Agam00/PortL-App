@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
+import { View, ScrollView, FlatList, RefreshControl, ActivityIndicator } from "react-native";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
@@ -25,34 +25,38 @@ export default function ResidentVisitorHistory() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Visitor History" role="resident" />
-      <ScrollView
+      <FlatList
+        data={visitors}
+        keyExtractor={(visitor) => visitor.id}
+        renderItem={({ item }) => <HistoryRow visitor={item} />}
+        ItemSeparatorComponent={() => <View className="h-2" />}
         contentContainerClassName="gap-4 p-4 pb-8"
         refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
-      >
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-          {FILTERS.map((f) => (
-            <Chip key={f.label} label={f.label} selected={filter.label === f.label} onPress={() => setFilter(f)} />
-          ))}
-        </ScrollView>
-
-        {query.isLoading ? (
-          <ActivityIndicator className="py-8" color="#5e6ad2" />
-        ) : visitors.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
-            <EmptyState
-              title="No visitors found"
-              description="Nothing matches this filter yet."
-              icon="history"
-            />
-          </View>
-        ) : (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
-            {visitors.map((visitor) => (
-              <HistoryRow key={visitor.id} visitor={visitor} />
+        ListHeaderComponent={
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2 mb-4">
+            {FILTERS.map((f) => (
+              <Chip key={f.label} label={f.label} selected={filter.label === f.label} onPress={() => setFilter(f)} />
             ))}
-          </View>
-        )}
-      </ScrollView>
+          </ScrollView>
+        }
+        ListEmptyComponent={
+          query.isLoading ? (
+            <ActivityIndicator className="py-8" color="#5e6ad2" />
+          ) : query.isError ? (
+            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+              <EmptyState title="Couldn't load history" description="Pull down to refresh and try again." icon="error-outline" />
+            </View>
+          ) : (
+            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+              <EmptyState
+                title="No visitors found"
+                description="Nothing matches this filter yet."
+                icon="history"
+              />
+            </View>
+          )
+        }
+      />
     </View>
   );
 }

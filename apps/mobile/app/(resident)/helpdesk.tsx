@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Image, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { captureVisitorPhoto } from "../../lib/capture-visitor-photo";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
@@ -43,6 +44,8 @@ export default function ResidentHelpdesk() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [commentBody, setCommentBody] = useState("");
+  const [titleError, setTitleError] = useState<string | null>(null);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
 
   const ticketsQuery = trpc.complaints.mine.useQuery();
   const commentsQuery = trpc.complaints.listComments.useQuery(
@@ -56,23 +59,33 @@ export default function ResidentHelpdesk() {
     setTitle("");
     setDescription("");
     setPhoto(null);
+    setTitleError(null);
+    setDescriptionError(null);
   }
 
   const createMutation = trpc.complaints.create.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Ticket raised", "success");
       resetForm();
       utils.complaints.mine.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const addCommentMutation = trpc.complaints.addComment.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       setCommentBody("");
       utils.complaints.listComments.invalidate({ complaintId: selectedId ?? "" });
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   async function handleCapturePhoto() {
@@ -88,10 +101,12 @@ export default function ResidentHelpdesk() {
   }
 
   function handleSubmit() {
-    if (!title.trim() || !description.trim()) {
-      showToast("Title and description are required", "error");
-      return;
-    }
+    const titleMissing = !title.trim();
+    const descriptionMissing = !description.trim();
+    setTitleError(titleMissing ? "Title is required" : null);
+    setDescriptionError(descriptionMissing ? "Description is required" : null);
+    if (titleMissing || descriptionMissing) return;
+
     createMutation.mutate({ category, title: title.trim(), description: description.trim(), photoBase64: photo ?? undefined });
   }
 
@@ -100,12 +115,18 @@ export default function ResidentHelpdesk() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} className="flex-1 bg-background">
       <ScreenHeader title="Helpdesk Tickets" role="resident" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={ticketsQuery.isRefetching} onRefresh={() => ticketsQuery.refetch()} />}
+      >
         <View className="flex-row items-center justify-between">
           <Text className="flex-1 text-body-sm text-text-muted">Manage and track your maintenance requests and society complaints.</Text>
           <Pressable
             onPress={() => (showForm ? resetForm() : setShowForm(true))}
             className="h-9 w-9 items-center justify-center rounded-md border border-border-subtle active:bg-white/5"
+            accessibilityLabel={showForm ? "Close ticket form" : "Raise a new ticket"}
+            accessibilityRole="button"
           >
             <MaterialIcons name={showForm ? "close" : "add"} size={20} color="#c6c5d5" />
           </Pressable>
@@ -119,16 +140,29 @@ export default function ResidentHelpdesk() {
                 <Chip key={c} label={c} selected={category === c} onPress={() => setCategory(c)} />
               ))}
             </View>
-            <Input label="Title" placeholder="e.g. Water leak in bathroom" value={title} onChangeText={setTitle} />
+            <Input
+              label="Title"
+              placeholder="e.g. Water leak in bathroom"
+              value={title}
+              onChangeText={(v) => {
+                setTitle(v);
+                if (titleError) setTitleError(null);
+              }}
+              error={titleError ?? undefined}
+            />
             <Input
               label="Description"
               placeholder="Describe the issue..."
               value={description}
-              onChangeText={setDescription}
+              onChangeText={(v) => {
+                setDescription(v);
+                if (descriptionError) setDescriptionError(null);
+              }}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
               className="min-h-[96px]"
+              error={descriptionError ?? undefined}
             />
             <View className="gap-2">
               <Text className="text-label-caps uppercase text-text-muted">Photo (Optional)</Text>
@@ -153,6 +187,10 @@ export default function ResidentHelpdesk() {
 
         {ticketsQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : ticketsQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load tickets" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : tickets.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No tickets yet" description="Raise a ticket above to get help from society staff." icon="support-agent" />
@@ -232,6 +270,8 @@ export default function ResidentHelpdesk() {
                         disabled={!commentBody.trim() || addCommentMutation.isPending}
                         onPress={() => addCommentMutation.mutate({ complaintId: ticket.id, body: commentBody.trim() })}
                         className="h-11 w-11 items-center justify-center rounded-lg bg-primary-container active:bg-inverse-primary"
+                        accessibilityLabel="Send comment"
+                        accessibilityRole="button"
                       >
                         <MaterialIcons name="send" size={18} color="#fff" />
                       </Pressable>

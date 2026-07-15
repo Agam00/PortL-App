@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Linking, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Linking, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
@@ -26,12 +26,20 @@ export default function ResidentStaffDirectory() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Society Directory" role="resident" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={staffQuery.isRefetching} onRefresh={() => staffQuery.refetch()} />}
+      >
         <Text className="text-body-sm text-text-muted">Browse staff and service providers by category.</Text>
         <Input placeholder="Search by name or category..." value={search} onChangeText={setSearch} />
 
         {staffQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : staffQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load directory" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : staff.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No entries found" description="Nothing matches that search." icon="badge" />
@@ -56,6 +64,8 @@ export default function ResidentStaffDirectory() {
                     onPress={() => Linking.openURL(`tel:${entry.phone}`)}
                     hitSlop={10}
                     className="h-11 w-11 items-center justify-center rounded-full border border-border-subtle active:bg-white/5"
+                    accessibilityLabel={`Call ${entry.name}`}
+                    accessibilityRole="button"
                   >
                     <MaterialIcons name="call" size={20} color="#c6c5d5" />
                   </Pressable>

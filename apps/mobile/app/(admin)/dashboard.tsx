@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
@@ -36,7 +36,18 @@ export default function AdminDashboard() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Dashboard" role="admin" />
-      <ScrollView contentContainerClassName="gap-6 p-4 pb-8">
+      <ScrollView
+        contentContainerClassName="gap-6 p-4 pb-8"
+        refreshControl={
+          <RefreshControl
+            refreshing={metricsQuery.isRefetching || feedQuery.isRefetching}
+            onRefresh={() => {
+              metricsQuery.refetch();
+              feedQuery.refetch();
+            }}
+          />
+        }
+      >
         <View className="gap-3">
           {[STATS.slice(0, 2), STATS.slice(2, 4)].map((row, rowIndex) => (
             <View key={rowIndex} className="flex-row gap-3">
@@ -70,6 +81,8 @@ export default function AdminDashboard() {
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             {feedQuery.isLoading ? (
               <ActivityIndicator className="py-8" color="#5e6ad2" />
+            ) : feedQuery.isError ? (
+              <EmptyState title="Couldn't load activity" description="Pull down to refresh and try again." icon="error-outline" />
             ) : feed.length === 0 ? (
               <EmptyState title="No gate activity yet" description="Visitor activity across the society will appear here." icon="local-shipping" />
             ) : (

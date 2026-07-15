@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../lib/trpc";
@@ -51,7 +51,12 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Notifications" role={role} />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        refreshControl={
+          <RefreshControl refreshing={notificationsQuery.isRefetching} onRefresh={() => notificationsQuery.refetch()} />
+        }
+      >
         {hasUnread && (
           <Button variant="outline" onPress={() => markAllReadMutation.mutate(undefined)} loading={markAllReadMutation.isPending}>
             Mark all as read
@@ -60,6 +65,10 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
 
         {notificationsQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : notificationsQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load notifications" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : notifications.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No notifications yet" description="Updates and alerts will show up here." icon="notifications-none" />

@@ -9,6 +9,7 @@ import { trpc } from "../../lib/trpc";
 import { useAuthStore } from "../../stores/auth-store";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticError } from "../../lib/haptics";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 
@@ -38,6 +39,7 @@ export default function LoginScreen() {
       router.replace("/");
     },
     onError: (error) => {
+      hapticError();
       showToast(getErrorMessage(error), "error");
     },
   });

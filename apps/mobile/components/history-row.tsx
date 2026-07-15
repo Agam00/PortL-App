@@ -38,7 +38,7 @@ function formatWhen(visitor: VisitorOutput) {
 
 export function HistoryRow({ visitor, showFlat }: { visitor: VisitorOutput; showFlat?: boolean }) {
   return (
-    <View className="flex-row items-center justify-between gap-3 border-b border-border-subtle px-4 py-3 last:border-b-0">
+    <View className="flex-row items-center justify-between gap-3 rounded-xl border border-border-subtle bg-surface p-4">
       <View className="min-w-0 flex-1">
         <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
           {visitor.name}

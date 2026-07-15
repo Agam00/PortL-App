@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -16,6 +17,7 @@ export default function AdminTowers() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
 
   const towersQuery = trpc.towers.list.useQuery();
 
@@ -24,32 +26,45 @@ export default function AdminTowers() {
     setEditingId(null);
     setName("");
     setCode("");
+    setNameError(null);
   }
 
   const createMutation = trpc.towers.create.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Tower added", "success");
       resetForm();
       utils.towers.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const updateMutation = trpc.towers.update.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Tower updated", "success");
       resetForm();
       utils.towers.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const removeMutation = trpc.towers.remove.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Tower removed", "success");
       utils.towers.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function startEdit(tower: { id: string; name: string; code: string | null }) {
@@ -57,6 +72,7 @@ export default function AdminTowers() {
     setName(tower.name);
     setCode(tower.code ?? "");
     setShowForm(true);
+    setNameError(null);
   }
 
   function confirmDelete(towerId: string, towerName: string) {
@@ -67,7 +83,10 @@ export default function AdminTowers() {
   }
 
   function handleSubmit() {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setNameError("Tower name is required");
+      return;
+    }
     if (editingId) {
       updateMutation.mutate({ towerId: editingId, name: name.trim(), code: code.trim() || undefined });
     } else {
@@ -80,7 +99,11 @@ export default function AdminTowers() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Towers Management" role="admin" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={towersQuery.isRefetching} onRefresh={() => towersQuery.refetch()} />}
+      >
         <Text className="text-body-sm text-text-muted">Configure and monitor residential blocks.</Text>
 
         <Button
@@ -95,7 +118,16 @@ export default function AdminTowers() {
             <Text className="text-body-md font-semibold text-on-surface">
               {editingId ? "Edit Tower" : "New Tower"}
             </Text>
-            <Input label="Tower Name" placeholder="e.g. Tower A" value={name} onChangeText={setName} />
+            <Input
+              label="Tower Name"
+              placeholder="e.g. Tower A"
+              value={name}
+              onChangeText={(v) => {
+                setName(v);
+                if (nameError) setNameError(null);
+              }}
+              error={nameError ?? undefined}
+            />
             <Input label="Code (optional)" placeholder="e.g. A" value={code} onChangeText={setCode} autoCapitalize="characters" />
             <Button onPress={handleSubmit} loading={createMutation.isPending || updateMutation.isPending}>
               {editingId ? "Save Changes" : "Add Tower"}
@@ -105,6 +137,10 @@ export default function AdminTowers() {
 
         {towersQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : towersQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load towers" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : towers.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No towers yet" description="Add your first tower to get started." icon="business" />
@@ -128,10 +164,22 @@ export default function AdminTowers() {
                     {tower.flatCount} {tower.flatCount === 1 ? "flat" : "flats"}
                   </Text>
                 </View>
-                <Pressable onPress={() => startEdit(tower)} hitSlop={8} className="p-1">
+                <Pressable
+                  onPress={() => startEdit(tower)}
+                  hitSlop={8}
+                  className="p-1"
+                  accessibilityLabel={`Edit ${tower.name}`}
+                  accessibilityRole="button"
+                >
                   <MaterialIcons name="edit" size={18} color="#8A8F98" />
                 </Pressable>
-                <Pressable onPress={() => confirmDelete(tower.id, tower.name)} hitSlop={8} className="p-1">
+                <Pressable
+                  onPress={() => confirmDelete(tower.id, tower.name)}
+                  hitSlop={8}
+                  className="p-1"
+                  accessibilityLabel={`Delete ${tower.name}`}
+                  accessibilityRole="button"
+                >
                   <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
                 </Pressable>
               </View>

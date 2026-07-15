@@ -5,6 +5,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../../stores/auth-store";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { EmptyState } from "../../components/ui/empty-state";
@@ -35,9 +36,13 @@ export default function ResidentHome() {
 
   const decideMutation = trpc.visitors.decide.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       utils.visitors.listPendingForResident.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
     onSettled: () => setDecidingId(null),
   });
 
@@ -70,6 +75,14 @@ export default function ResidentHome() {
 
           {pendingQuery.isLoading ? (
             <ActivityIndicator className="py-8" color="#5e6ad2" />
+          ) : pendingQuery.isError ? (
+            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+              <EmptyState
+                title="Couldn't load pending requests"
+                description="Pull down to refresh and try again."
+                icon="error-outline"
+              />
+            </View>
           ) : pending.length === 0 ? (
             <View className="rounded-lg border border-border-subtle bg-surface-elevated">
               <EmptyState

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -15,6 +16,8 @@ export default function AdminPolls() {
   const [showForm, setShowForm] = useState(false);
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", ""]);
+  const [questionError, setQuestionError] = useState<string | null>(null);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
 
   const pollsQuery = trpc.polls.list.useQuery();
 
@@ -22,31 +25,45 @@ export default function AdminPolls() {
     setShowForm(false);
     setQuestion("");
     setOptions(["", ""]);
+    setQuestionError(null);
+    setOptionsError(null);
   }
 
   const createMutation = trpc.polls.create.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Poll created", "success");
       resetForm();
       utils.polls.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const closeMutation = trpc.polls.close.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Poll closed", "success");
       utils.polls.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const removeMutation = trpc.polls.remove.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Poll removed", "success");
       utils.polls.list.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function confirmDelete(pollId: string, label: string) {
@@ -58,10 +75,12 @@ export default function AdminPolls() {
 
   function handleCreate() {
     const cleanOptions = options.map((o) => o.trim()).filter(Boolean);
-    if (!question.trim() || cleanOptions.length < 2) {
-      showToast("Add a question and at least 2 options", "error");
-      return;
-    }
+    const questionMissing = !question.trim();
+    const optionsInsufficient = cleanOptions.length < 2;
+    setQuestionError(questionMissing ? "Poll question is required" : null);
+    setOptionsError(optionsInsufficient ? "Add at least 2 non-empty options" : null);
+    if (questionMissing || optionsInsufficient) return;
+
     createMutation.mutate({ question: question.trim(), options: cleanOptions });
   }
 
@@ -70,7 +89,11 @@ export default function AdminPolls() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Manage Polls" role="admin" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={pollsQuery.isRefetching} onRefresh={() => pollsQuery.refetch()} />}
+      >
         <Text className="text-body-sm text-text-muted">Active and past community votes.</Text>
 
         <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
@@ -80,7 +103,16 @@ export default function AdminPolls() {
         {showForm && (
           <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
             <Text className="text-body-md font-semibold text-on-surface">Create New Poll</Text>
-            <Input label="Poll Question" placeholder="e.g. What should we plant in the garden?" value={question} onChangeText={setQuestion} />
+            <Input
+              label="Poll Question"
+              placeholder="e.g. What should we plant in the garden?"
+              value={question}
+              onChangeText={(v) => {
+                setQuestion(v);
+                if (questionError) setQuestionError(null);
+              }}
+              error={questionError ?? undefined}
+            />
             <View className="gap-2">
               <Text className="text-label-caps uppercase text-text-muted">Options</Text>
               {options.map((option, index) => (
@@ -89,15 +121,24 @@ export default function AdminPolls() {
                     className="flex-1"
                     placeholder={`Option ${index + 1}`}
                     value={option}
-                    onChangeText={(text) => setOptions((prev) => prev.map((o, i) => (i === index ? text : o)))}
+                    onChangeText={(text) => {
+                      setOptions((prev) => prev.map((o, i) => (i === index ? text : o)));
+                      if (optionsError) setOptionsError(null);
+                    }}
                   />
                   {options.length > 2 && (
-                    <Pressable onPress={() => setOptions((prev) => prev.filter((_, i) => i !== index))} hitSlop={8}>
+                    <Pressable
+                      onPress={() => setOptions((prev) => prev.filter((_, i) => i !== index))}
+                      hitSlop={8}
+                      accessibilityLabel={`Remove option ${index + 1}`}
+                      accessibilityRole="button"
+                    >
                       <MaterialIcons name="close" size={18} color="#8A8F98" />
                     </Pressable>
                   )}
                 </View>
               ))}
+              {optionsError && <Text className="text-body-sm text-status-red">{optionsError}</Text>}
               {options.length < 10 && (
                 <Pressable onPress={() => setOptions((prev) => [...prev, ""])} className="flex-row items-center gap-1.5 p-1">
                   <MaterialIcons name="add" size={16} color="#5e6ad2" />
@@ -113,6 +154,10 @@ export default function AdminPolls() {
 
         {pollsQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : pollsQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load polls" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : polls.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No polls yet" description="Create a poll above." icon="poll" />
@@ -128,7 +173,12 @@ export default function AdminPolls() {
                       <View className={`h-1.5 w-1.5 rounded-full ${poll.isClosed ? "bg-text-muted" : "bg-status-green"}`} />
                       <Text className="text-label-caps uppercase text-text-muted">{poll.isClosed ? "Closed" : "Active"}</Text>
                     </View>
-                    <Pressable onPress={() => confirmDelete(poll.id, poll.question)} hitSlop={8}>
+                    <Pressable
+                      onPress={() => confirmDelete(poll.id, poll.question)}
+                      hitSlop={8}
+                      accessibilityLabel={`Delete poll: ${poll.question}`}
+                      accessibilityRole="button"
+                    >
                       <MaterialIcons name="delete-outline" size={18} color="#e5484d" />
                     </Pressable>
                   </View>

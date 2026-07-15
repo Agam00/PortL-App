@@ -27,7 +27,13 @@ export function ScreenHeader({ title, role }: { title: string; role: string }) {
       <Text className="flex-1 text-headline-lg font-semibold text-on-surface">{title}</Text>
       <View className="flex-row items-center gap-3">
         {notificationsRoute && !onInboxScreen && (
-          <Pressable onPress={() => router.push(notificationsRoute as never)} hitSlop={8} className="relative">
+          <Pressable
+            onPress={() => router.push(notificationsRoute as never)}
+            hitSlop={8}
+            className="relative"
+            accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
+            accessibilityRole="button"
+          >
             <MaterialIcons name="notifications-none" size={22} color="#c6c5d5" />
             {unreadCount > 0 && (
               <View className="absolute -right-1 -top-1 h-4 min-w-4 items-center justify-center rounded-full bg-status-red px-1">

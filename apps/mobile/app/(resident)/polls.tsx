@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
@@ -28,10 +29,14 @@ export default function ResidentPolls() {
 
   const voteMutation = trpc.polls.vote.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       showToast("Vote submitted", "success");
       utils.polls.listForResident.invalidate();
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   function toggleOption(pollId: string, optionId: string, multiSelect: boolean) {
@@ -80,11 +85,18 @@ export default function ResidentPolls() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Community Polls" role="resident" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        refreshControl={<RefreshControl refreshing={pollsQuery.isRefetching} onRefresh={() => pollsQuery.refetch()} />}
+      >
         <Text className="text-body-sm text-text-muted">Participate in active society decisions.</Text>
 
         {pollsQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : pollsQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load polls" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : polls.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No polls yet" description="Community polls will show up here." icon="poll" />

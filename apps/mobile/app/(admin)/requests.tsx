@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
@@ -62,16 +63,26 @@ export default function AdminRequests() {
   );
 
   const updateMutation = trpc.complaints.update.useMutation({
-    onSuccess: () => utils.complaints.list.invalidate(),
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onSuccess: () => {
+      hapticSuccess();
+      utils.complaints.list.invalidate();
+    },
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const addCommentMutation = trpc.complaints.addComment.useMutation({
     onSuccess: () => {
+      hapticSuccess();
       setCommentBody("");
       utils.complaints.listComments.invalidate({ complaintId: expandedId ?? "" });
     },
-    onError: (error) => showToast(getErrorMessage(error), "error"),
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
   });
 
   const guards = guardsQuery.data ?? [];
@@ -79,7 +90,19 @@ export default function AdminRequests() {
   return (
     <View className="flex-1 bg-background">
       <ScreenHeader title="Complaints Oversight" role="admin" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerClassName="gap-4 p-4 pb-8"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={complaintsQuery.isRefetching || guardsQuery.isRefetching}
+            onRefresh={() => {
+              complaintsQuery.refetch();
+              guardsQuery.refetch();
+            }}
+          />
+        }
+      >
         <Text className="text-body-sm text-text-muted">Manage and resolve resident issues.</Text>
 
         <Input placeholder="Search complaints..." value={search} onChangeText={setSearch} />
@@ -92,6 +115,10 @@ export default function AdminRequests() {
 
         {complaintsQuery.isLoading ? (
           <ActivityIndicator className="py-8" color="#5e6ad2" />
+        ) : complaintsQuery.isError ? (
+          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <EmptyState title="Couldn't load complaints" description="Pull down to refresh and try again." icon="error-outline" />
+          </View>
         ) : complaints.length === 0 ? (
           <View className="rounded-lg border border-border-subtle bg-surface-elevated">
             <EmptyState title="No matching complaints" description="Nothing found for this search or filter." icon="report-problem" />
@@ -183,6 +210,8 @@ export default function AdminRequests() {
                           disabled={!commentBody.trim() || addCommentMutation.isPending}
                           onPress={() => addCommentMutation.mutate({ complaintId: complaint.id, body: commentBody.trim() })}
                           className="h-11 w-11 items-center justify-center rounded-lg bg-primary-container active:bg-inverse-primary"
+                          accessibilityLabel="Send comment"
+                          accessibilityRole="button"
                         >
                           <MaterialIcons name="send" size={18} color="#fff" />
                         </Pressable>
