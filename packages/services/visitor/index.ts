@@ -223,6 +223,37 @@ class VisitorService {
     return serialize(visitor, null);
   }
 
+  async cancelPreApproval(flatId: string, visitorId: string): Promise<VisitorOutput> {
+    const [visitor] = await db
+      .select()
+      .from(visitorsTable)
+      .where(eq(visitorsTable.id, visitorId))
+      .limit(1);
+
+    if (!visitor) throw new TRPCError({ code: "NOT_FOUND", message: "Pre-approval not found" });
+    if (visitor.flatId !== flatId) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "This pre-approval is not for your flat" });
+    }
+    if (visitor.source !== "resident_preapproved") {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "Only pre-approvals can be cancelled" });
+    }
+    if (visitor.status !== "approved") {
+      throw new TRPCError({
+        code: "CONFLICT",
+        message: `Cannot cancel a pre-approval that is already "${visitor.status}"`,
+      });
+    }
+
+    const [updated] = await db
+      .update(visitorsTable)
+      .set({ status: "cancelled" })
+      .where(eq(visitorsTable.id, visitorId))
+      .returning();
+
+    if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    return serialize(updated, null);
+  }
+
   async listPreApprovedForResident(flatId: string): Promise<VisitorOutput[]> {
     const rows = await db
       .select()

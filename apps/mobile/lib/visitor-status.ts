@@ -7,6 +7,7 @@ export const VISITOR_STATUS_TONE: Record<VisitorOutput["status"], "green" | "amb
   rejected: "red",
   expired: "neutral",
   checked_out: "neutral",
+  cancelled: "neutral",
 };
 
 export const VISITOR_STATUS_LABEL: Record<VisitorOutput["status"], string> = {
@@ -16,6 +17,7 @@ export const VISITOR_STATUS_LABEL: Record<VisitorOutput["status"], string> = {
   rejected: "Rejected",
   expired: "Expired",
   checked_out: "Checked out",
+  cancelled: "Cancelled",
 };
 
 export const VISITOR_TYPE_LABEL: Record<VisitorOutput["type"], string> = {

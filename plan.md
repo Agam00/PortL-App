@@ -452,10 +452,27 @@ Motivation: the hackathon rubric weights UI heavily, and the user wanted a warme
   - [ ] Admin management of towers/flats/residents/amenities/notices/polls/complaints/staff
   - [ ] Guard: register visitor, search residents, raise approval, verify approval, mark entry, mark exit, view history
   - [ ] Role-based access (resident cannot reach admin/guard screens and vice versa — test by trying, not just by UI hiding tabs)
-- [ ] Test on both a physical Android device and iOS (simulator is fine if no iPhone) — Expo's cross-platform promise needs to actually hold up
-- [ ] Fix P0/P1 bugs found; log anything P2/cosmetic to a "known issues" list for the README instead of chasing it under time pressure
-- [ ] Draft the demo script/storyboard: which 3–4 flows to show, in what order, on which role, to tell the "gate conversation moves into the app" story in under 3 minutes
-- [ ] Commit: `test: manual QA pass, bug fixes`
+- [x] Test on both a physical Android device and iOS (simulator is fine if no iPhone) — Expo's cross-platform promise needs to actually hold up
+  > Skipped: iOS, deliberately. This is a Windows dev machine — no local simulator, and an EAS iOS build still needs a physical iPhone or a Mac to actually run. Explicit user call (2026-07-16) to skip rather than chase it under time pressure; same posture as Phase 10B's iOS-push deferral. Noted as a known limitation for the README, not a gap to hide.
+- [x] Fix P0/P1 bugs found; log anything P2/cosmetic to a "known issues" list for the README instead of chasing it under time pressure
+  > Full QA pass (2026-07-16) across resident/guard/admin plus cross-role access checks. 3 real bugs found and fixed: (1) no way for a resident to cancel a pre-approved visitor — added a `cancelled` visitor status, a `visitors.cancelPreApproval` mutation, and a Cancel action on upcoming pre-approvals; (2) helpdesk ticket reply `Input` rendered at near-zero width (its `className="flex-1"` only reached the inner `TextInput`, not the wrapper `View`, so the row never gave it grow space) — fixed by wrapping the call site in a `flex-1` View instead; (3) investigated a guard report of "getting a resident's notification" — confirmed this is correct, intended behavior (the guard who requested a visitor is notified when the resident decides on it, which is the whole point of the gate flow), not a leak; every notification type was re-checked and is correctly role-scoped. No P2/cosmetic issues surfaced. Also enriched `seed.ts` so the primary demo account (`resident1@portl.dev`, flat A-101) has real data on every screen from first login — a pending visitor, a cancellable pre-approval, a due, an amenity booking, and a helpdesk ticket with an existing admin reply — since manual QA kept stalling on empty states that needed setup first.
+- [x] Draft the demo script/storyboard: which 3–4 flows to show, in what order, on which role, to tell the "gate conversation moves into the app" story in under 3 minutes — see below
+- [ ] Commit: `test: manual QA pass, bug fixes` — pending explicit go-ahead (never commit without being asked, per standing user instruction)
+
+### Demo script (2026-07-16 draft)
+**Story:** the gate conversation that used to happen in person now happens on your phone. ~2:30 total.
+
+1. **Title card** (5s) — "Portl — the gate conversation, now in your pocket."
+2. **Guard registers a walk-in** (20s) — Guard app, Gate screen: tap "New Visitor," fill name/type (e.g. "Swiggy Delivery"), submit. Queue shows it as pending.
+3. **Resident approves from their phone** (20s) — Cut to Resident Home: pending-approval card animates in, tap Approve, haptic + toast confirms.
+4. **Guard sees it resolve instantly, marks entry** (15s) — Cut back to Gate: the same card is now "Approved," guard taps Mark Entry. No radio, no walkie-talkie, no "let me call up."
+5. **Contrast: a pre-approved guest skips the wait entirely** (20s) — Resident pre-approves a guest ahead of time (Services → Pre-approvals → New Invite). Cut to Guard searching that name at the gate and checking them straight in — zero back-and-forth.
+6. **Beyond the gate montage** (30s, fast cuts, voiceover) — Admin dashboard, a notice going out, a poll being voted on, a helpdesk ticket getting a reply, an amenity booking confirming. "One app, every role, the whole society."
+7. **Close card** (5s) — Portl wordmark + one-line tagline.
+
+**Why this order:** beats 2–4 are the headline feature end-to-end (the actual judged narrative hook per the kickoff brief); beat 5 shows the app's payoff over the old system (no back-and-forth for known visitors); beat 6 proves breadth without slowing the pace. Swap in real seeded names/data — `resident1@portl.dev` now has fixtures for every beat here without needing setup mid-recording.
+
+---
 
 ---
 

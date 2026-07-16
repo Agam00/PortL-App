@@ -23,6 +23,7 @@ export const visitorStatusEnum = pgEnum("visitor_status", [
   "expired",
   "checked_in",
   "checked_out",
+  "cancelled",
 ]);
 
 export const visitorsTable = pgTable("visitors", {

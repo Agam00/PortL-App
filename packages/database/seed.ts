@@ -247,6 +247,24 @@ async function main() {
     decidedAt: new Date(),
   });
 
+  // Extra fixture on resident(0) (the demo login) so every screen has real data on
+  // first login, without needing to hop roles or create data first: a pre-approval
+  // ready to test Cancel on, plus the pending Swiggy delivery above ready to
+  // approve/reject.
+  await db.insert(visitorsTable).values({
+    societyId: society.id,
+    flatId: resident(0).flatId!,
+    name: "Amazon Delivery",
+    phone: "+919999900004",
+    type: "delivery",
+    source: "resident_preapproved",
+    status: "approved",
+    decidedByUserId: resident(0).id,
+    validFrom: new Date(),
+    validUntil: new Date(Date.now() + 1000 * 60 * 60 * 24),
+    decidedAt: new Date(),
+  });
+
   console.log("Seeding notices...");
   await db.insert(noticesTable).values([
     {
@@ -331,6 +349,30 @@ async function main() {
     resolvedAt: new Date(),
   });
 
+  // Ticket on resident(0) (the demo login) with an existing reply thread, so testing
+  // "add a comment" doesn't require raising a fresh ticket first.
+  const residentOneComplaint = one(
+    await db
+      .insert(complaintsTable)
+      .values({
+        societyId: society.id,
+        raisedByUserId: resident(0).id,
+        category: "Security",
+        title: "Gate camera light flickering at night",
+        description: "The CCTV camera near the main gate seems to be flickering after 10 PM.",
+        status: "in_progress",
+        priority: "medium",
+        assignedToUserId: admin.id,
+      })
+      .returning(),
+  );
+
+  await db.insert(complaintCommentsTable).values({
+    complaintId: residentOneComplaint.id,
+    authorId: admin.id,
+    body: "Thanks for flagging — we've asked the electrician to take a look this week.",
+  });
+
   console.log("Seeding amenities + booking...");
   const clubhouse = one(
     await db
@@ -367,6 +409,17 @@ async function main() {
     status: "confirmed",
   });
 
+  // Booking on resident(0) (the demo login) so "My Bookings" isn't empty on first login.
+  await db.insert(amenityBookingsTable).values({
+    amenityId: clubhouse.id,
+    flatId: resident(0).flatId!,
+    bookedByUserId: resident(0).id,
+    date: new Date(Date.now() + 1000 * 60 * 60 * 24 * 2).toISOString().slice(0, 10),
+    slotStart: "19:00",
+    slotEnd: "20:00",
+    status: "confirmed",
+  });
+
   console.log("Seeding dues...");
   await db.insert(duesTable).values({
     flatId: resident(6).flatId!,
@@ -374,6 +427,15 @@ async function main() {
     amount: "2500.00",
     status: "pending",
     dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 10).toISOString().slice(0, 10),
+  });
+
+  // Due on resident(0) (the demo login) so the Dues screen isn't empty on first login.
+  await db.insert(duesTable).values({
+    flatId: resident(0).flatId!,
+    period: new Date().toISOString().slice(0, 7),
+    amount: "3200.00",
+    status: "pending",
+    dueDate: new Date(Date.now() + 1000 * 60 * 60 * 24 * 15).toISOString().slice(0, 10),
   });
 
   console.log("Seeding staff directory...");

@@ -9,6 +9,7 @@ export const visitorStatusSchema = z.enum([
   "expired",
   "checked_in",
   "checked_out",
+  "cancelled",
 ]);
 
 export const createVisitorInputSchema = z.object({

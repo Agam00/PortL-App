@@ -1,0 +1,1 @@
+ALTER TYPE "public"."visitor_status" ADD VALUE 'cancelled';

@@ -97,6 +97,14 @@ export const visitorsRouter = router({
       );
     }),
 
+  cancelPreApproval: residentProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/pre-approved/cancel"), tags: TAGS } })
+    .input(visitorIdInputSchema)
+    .output(visitorOutputSchema)
+    .mutation(async ({ ctx, input }) => {
+      return visitorService.cancelPreApproval(requireFlatId(ctx.user.flatId), input.visitorId);
+    }),
+
   listPreApprovedForResident: residentProcedure
     .meta({ openapi: { method: "GET", path: getPath("/pre-approved"), tags: TAGS } })
     .input(zodUndefinedModel)

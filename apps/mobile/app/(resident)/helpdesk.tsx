@@ -283,12 +283,13 @@ export default function ResidentHelpdesk() {
                     )}
 
                     <View className="flex-row items-center gap-2">
-                      <Input
-                        className="flex-1"
-                        placeholder="Add a comment..."
-                        value={commentBody}
-                        onChangeText={setCommentBody}
-                      />
+                      <View className="flex-1">
+                        <Input
+                          placeholder="Add a comment..."
+                          value={commentBody}
+                          onChangeText={setCommentBody}
+                        />
+                      </View>
                       <Pressable
                         disabled={!commentBody.trim() || addCommentMutation.isPending}
                         onPress={() => addCommentMutation.mutate({ complaintId: ticket.id, body: commentBody.trim() })}

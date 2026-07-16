@@ -1,8 +1,11 @@
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
+import { useUiStore } from "../../stores/ui-store";
+import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { EmptyState } from "../../components/ui/empty-state";
 import { StatusDot } from "../../components/ui/status-dot";
@@ -18,7 +21,19 @@ function formatWindow(visitor: VisitorOutput) {
   return `${from.toLocaleDateString()} · ${from.toLocaleTimeString([], opts)} - ${until.toLocaleTimeString([], opts)}`;
 }
 
-function PreApprovalRow({ visitor, tone, label }: { visitor: VisitorOutput; tone: "green" | "amber" | "neutral" | "red"; label: string }) {
+function PreApprovalRow({
+  visitor,
+  tone,
+  label,
+  onCancel,
+  cancelling,
+}: {
+  visitor: VisitorOutput;
+  tone: "green" | "amber" | "neutral" | "red";
+  label: string;
+  onCancel?: () => void;
+  cancelling?: boolean;
+}) {
   return (
     <View className="gap-2 rounded-card bg-surface p-4" style={shadowCard}>
       <View className="flex-row items-center justify-between">
@@ -29,19 +44,56 @@ function PreApprovalRow({ visitor, tone, label }: { visitor: VisitorOutput; tone
         <MaterialIcons name="calendar-today" size={14} color="#797585" />
         <Text className="text-body-sm text-text-muted">{formatWindow(visitor)}</Text>
       </View>
+      {onCancel && (
+        <PressableScale
+          scaleTo={0.97}
+          onPress={onCancel}
+          disabled={cancelling}
+          className="mt-1 flex-row items-center gap-1.5 self-start"
+          accessibilityLabel={`Cancel pre-approval for ${visitor.name}`}
+          accessibilityRole="button"
+        >
+          <MaterialIcons name="cancel" size={16} color="#FF5F5F" />
+          <Text className="text-body-sm font-bold text-status-red-strong">
+            {cancelling ? "Cancelling..." : "Cancel"}
+          </Text>
+        </PressableScale>
+      )}
     </View>
   );
 }
 
 export default function MyPreApprovals() {
   const router = useRouter();
+  const showToast = useUiStore((s) => s.showToast);
+  const utils = trpc.useUtils();
   const query = trpc.visitors.listPreApprovedForResident.useQuery();
   const all = query.data ?? [];
   const now = Date.now();
 
+  const cancelMutation = trpc.visitors.cancelPreApproval.useMutation({
+    onSuccess: () => {
+      hapticSuccess();
+      showToast("Pre-approval cancelled", "success");
+      utils.visitors.listPreApprovedForResident.invalidate();
+    },
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
+  });
+
+  function confirmCancel(visitor: VisitorOutput) {
+    Alert.alert("Cancel pre-approval?", `${visitor.name} will no longer be able to enter using this pre-approval.`, [
+      { text: "Keep it", style: "cancel" },
+      { text: "Cancel Pre-approval", style: "destructive", onPress: () => cancelMutation.mutate({ visitorId: visitor.id }) },
+    ]);
+  }
+
   const upcoming = all.filter((v) => v.status === "approved" && (!v.validUntil || new Date(v.validUntil).getTime() >= now));
   const expired = all.filter((v) => v.status === "approved" && v.validUntil && new Date(v.validUntil).getTime() < now);
   const used = all.filter((v) => v.status === "checked_in" || v.status === "checked_out");
+  const cancelled = all.filter((v) => v.status === "cancelled");
 
   return (
     <View className="flex-1 bg-background">
@@ -73,7 +125,14 @@ export default function MyPreApprovals() {
               <View className="gap-2">
                 <Text className="text-body-sm font-bold uppercase text-text-muted">Upcoming</Text>
                 {upcoming.map((v) => (
-                  <PreApprovalRow key={v.id} visitor={v} tone="amber" label="Pending" />
+                  <PreApprovalRow
+                    key={v.id}
+                    visitor={v}
+                    tone="amber"
+                    label="Pending"
+                    onCancel={() => confirmCancel(v)}
+                    cancelling={cancelMutation.isPending && cancelMutation.variables?.visitorId === v.id}
+                  />
                 ))}
               </View>
             )}
@@ -90,6 +149,14 @@ export default function MyPreApprovals() {
                 <Text className="text-body-sm font-bold uppercase text-text-muted">Expired</Text>
                 {expired.map((v) => (
                   <PreApprovalRow key={v.id} visitor={v} tone="red" label="Expired" />
+                ))}
+              </View>
+            )}
+            {cancelled.length > 0 && (
+              <View className="gap-2">
+                <Text className="text-body-sm font-bold uppercase text-text-muted">Cancelled</Text>
+                {cancelled.map((v) => (
+                  <PreApprovalRow key={v.id} visitor={v} tone="neutral" label="Cancelled" />
                 ))}
               </View>
             )}
