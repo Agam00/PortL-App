@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { View, Text, ScrollView, FlatList, Pressable, Linking, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, Pressable, Linking, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Input } from "../../components/ui/input";
 import { EmptyState } from "../../components/ui/empty-state";
+import { IconButton } from "../../components/ui/icon-button";
+import { shadowCard } from "../../lib/shadows";
 
 function maskPhone(phone: string) {
   if (phone.length <= 4) return phone;
@@ -62,13 +64,14 @@ export default function ResidentDirectory() {
               value={query}
               onChangeText={setQuery}
               autoCapitalize="none"
+              leftElement={<MaterialIcons name="search" size={20} color="#797585" />}
             />
-            {searchQuery.isFetching && <ActivityIndicator className="py-4" color="#5e6ad2" />}
+            {searchQuery.isFetching && <ActivityIndicator className="py-4" color="#6244CD" />}
           </View>
         }
         ListEmptyComponent={
           debounced.length === 0 ? (
-            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <View className="rounded-card bg-surface">
               <EmptyState
                 title="Search the directory"
                 description="Find a flat or resident to quickly verify who lives there."
@@ -76,24 +79,24 @@ export default function ResidentDirectory() {
               />
             </View>
           ) : searchQuery.isFetching ? null : searchQuery.isError ? (
-            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <View className="rounded-card bg-surface">
               <EmptyState title="Couldn't search the directory" description="Try again in a moment." icon="error-outline" />
             </View>
           ) : (
-            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <View className="rounded-card bg-surface">
               <EmptyState title="No residents found" description="Nothing matches that search." icon="search-off" />
             </View>
           )
         }
         renderItem={({ item: row }) =>
           row.kind === "resident" ? (
-            <View className="flex-row items-center justify-between gap-3 rounded-xl border border-border-subtle bg-surface p-4">
+            <View className="flex-row items-center justify-between gap-3 rounded-card bg-surface p-4" style={shadowCard}>
               <View className="min-w-0 flex-1 flex-row items-center gap-4">
-                <View className="h-12 w-12 items-center justify-center rounded-lg border border-border-subtle bg-surface-elevated">
-                  <Text className="text-body-sm font-semibold text-on-surface">{row.flat.flatNumber}</Text>
+                <View className="h-12 w-12 items-center justify-center rounded-full bg-surface-container">
+                  <Text className="text-body-sm font-bold text-primary-container">{row.flat.flatNumber}</Text>
                 </View>
                 <View className="min-w-0 flex-1">
-                  <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
+                  <Text className="text-body-md font-bold text-on-surface" numberOfLines={1}>
                     {row.resident.fullName}
                   </Text>
                   <Pressable
@@ -102,27 +105,26 @@ export default function ResidentDirectory() {
                     accessibilityLabel={revealedIds.has(row.resident.id) ? `Hide phone number for ${row.resident.fullName}` : `Reveal phone number for ${row.resident.fullName}`}
                     accessibilityRole="button"
                   >
-                    <Text className="text-meta-text text-text-muted">
+                    <Text className="text-body-sm text-text-muted">
                       {revealedIds.has(row.resident.id) ? row.resident.phone : maskPhone(row.resident.phone)} · tap to{" "}
                       {revealedIds.has(row.resident.id) ? "hide" : "reveal"}
                     </Text>
                   </Pressable>
                 </View>
               </View>
-              <Pressable
+              <IconButton
+                icon="call"
+                color="#6244CD"
+                size={20}
                 onPress={() => Linking.openURL(`tel:${row.resident.phone}`)}
-                hitSlop={10}
-                className="h-11 w-11 items-center justify-center rounded-full border border-border-subtle active:bg-white/5"
                 accessibilityLabel={`Call ${row.resident.fullName}`}
-                accessibilityRole="button"
-              >
-                <MaterialIcons name="call" size={20} color="#c6c5d5" />
-              </Pressable>
+                className="h-11 w-11 bg-surface-container"
+              />
             </View>
           ) : (
-            <View className="flex-row items-center gap-4 rounded-xl border border-border-subtle bg-surface p-4">
-              <View className="h-12 w-12 items-center justify-center rounded-lg border border-border-subtle bg-surface-elevated">
-                <Text className="text-body-sm font-semibold text-on-surface">{row.flat.flatNumber}</Text>
+            <View className="flex-row items-center gap-4 rounded-card bg-surface p-4" style={shadowCard}>
+              <View className="h-12 w-12 items-center justify-center rounded-full bg-surface-container">
+                <Text className="text-body-sm font-bold text-primary-container">{row.flat.flatNumber}</Text>
               </View>
               <Text className="text-body-sm text-text-muted">Vacant · {row.flat.towerName}</Text>
             </View>

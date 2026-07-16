@@ -1,10 +1,12 @@
 import { View } from "react-native";
 import type { ViewProps } from "react-native";
+import { shadowCard } from "../../lib/shadows";
 
-export function Card({ className, ...props }: ViewProps & { className?: string }) {
+export function Card({ className, style, ...props }: ViewProps & { className?: string }) {
   return (
     <View
-      className={`rounded-lg border border-border-subtle bg-surface-elevated p-4 ${className ?? ""}`}
+      className={`rounded-card bg-surface p-5 ${className ?? ""}`}
+      style={[shadowCard, style]}
       {...props}
     />
   );

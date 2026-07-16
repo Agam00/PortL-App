@@ -20,7 +20,7 @@ export function DateField({
       <Text className="text-label-caps uppercase tracking-wide text-text-muted">{label}</Text>
       <Pressable
         onPress={() => setShowPicker(true)}
-        className="rounded-lg border border-border-subtle bg-surface-elevated px-3 py-2.5"
+        className="rounded-md border-2 border-outline-variant bg-surface px-4 py-3"
       >
         <Text className="text-body-md text-on-surface">
           {value.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}

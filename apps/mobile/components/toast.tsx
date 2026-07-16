@@ -1,17 +1,18 @@
 import { useEffect } from "react";
 import { View, Text } from "react-native";
 import { useUiStore } from "../stores/ui-store";
+import { shadowElevated } from "../lib/shadows";
 
 const TONE_STYLES: Record<string, string> = {
-  error: "border-status-red/40 bg-surface-elevated",
-  success: "border-status-green/40 bg-surface-elevated",
-  info: "border-border-subtle bg-surface-elevated",
-};
-
-const TONE_DOT: Record<string, string> = {
   error: "bg-status-red",
   success: "bg-status-green",
   info: "bg-primary-container",
+};
+
+const TONE_ICON_BG: Record<string, string> = {
+  error: "bg-white/20",
+  success: "bg-white/20",
+  info: "bg-white/20",
 };
 
 export function Toast() {
@@ -27,15 +28,13 @@ export function Toast() {
   if (!toast) return null;
 
   return (
-    <View
-      pointerEvents="none"
-      className="absolute inset-x-4 top-14 z-50 items-center"
-    >
+    <View pointerEvents="none" className="absolute inset-x-4 top-14 z-50 items-center">
       <View
-        className={`flex-row items-center gap-2 rounded-lg border px-4 py-3 ${TONE_STYLES[toast.type] ?? TONE_STYLES.info}`}
+        className={`flex-row items-center gap-2 rounded-full px-5 py-3.5 ${TONE_STYLES[toast.type] ?? TONE_STYLES.info}`}
+        style={shadowElevated}
       >
-        <View className={`h-1.5 w-1.5 rounded-full ${TONE_DOT[toast.type] ?? TONE_DOT.info}`} />
-        <Text className="text-body-sm text-on-surface">{toast.message}</Text>
+        <View className={`h-2 w-2 rounded-full ${TONE_ICON_BG[toast.type] ?? TONE_ICON_BG.info}`} />
+        <Text className="text-body-sm font-bold text-white">{toast.message}</Text>
       </View>
     </View>
   );

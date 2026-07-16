@@ -2,16 +2,9 @@ import { View, Text } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { Button } from "./ui/button";
-import { StatusDot } from "./ui/status-dot";
-import { VISITOR_TYPE_LABEL, VISITOR_STATUS_LABEL, VISITOR_STATUS_TONE } from "../lib/visitor-status";
-
-const TYPE_ICON: Record<VisitorOutput["type"], React.ComponentProps<typeof MaterialIcons>["name"]> = {
-  delivery: "local-shipping",
-  guest: "person",
-  cab: "local-taxi",
-  service: "build",
-  other: "badge",
-};
+import { Avatar } from "./ui/avatar";
+import { VISITOR_TYPE_LABEL } from "../lib/visitor-status";
+import { shadowCard } from "../lib/shadows";
 
 function timeAgo(iso: string) {
   const diffMs = Date.now() - new Date(iso).getTime();
@@ -34,30 +27,33 @@ export function VisitorRequestCard({
   isDeciding: boolean;
 }) {
   return (
-    <View className="gap-3 rounded-lg border border-border-subtle bg-surface-elevated p-4">
-      <View className="flex-row items-start justify-between">
-        <View className="flex-row items-center gap-3">
-          <View className="h-10 w-10 items-center justify-center rounded-full border border-border-subtle bg-surface-container-high">
-            <MaterialIcons name={TYPE_ICON[visitor.type]} size={20} color="#c6c5d5" />
-          </View>
-          <View>
-            <Text className="text-headline-md font-semibold leading-tight text-on-surface">
+    <View className="gap-4 rounded-card bg-surface p-4" style={shadowCard}>
+      <View className="flex-row items-center gap-3">
+        <Avatar name={visitor.name} imageUrl={visitor.photoUrl} size={48} />
+        <View className="min-w-0 flex-1">
+          <View className="flex-row items-center gap-2">
+            <Text className="text-body-md font-bold text-on-surface" numberOfLines={1}>
               {visitor.name}
             </Text>
-            <Text className="text-body-sm text-text-muted">{VISITOR_TYPE_LABEL[visitor.type]}</Text>
+            <View className="rounded-full bg-secondary-container px-2.5 py-0.5">
+              <Text className="text-label-sm font-bold uppercase text-on-surface">
+                {VISITOR_TYPE_LABEL[visitor.type]}
+              </Text>
+            </View>
+          </View>
+          <View className="mt-0.5 flex-row items-center gap-1">
+            <MaterialIcons name="schedule" size={14} color="#797585" />
+            <Text className="text-body-sm text-text-muted">{timeAgo(visitor.createdAt)}</Text>
           </View>
         </View>
-        <StatusDot label={VISITOR_STATUS_LABEL.pending} tone={VISITOR_STATUS_TONE.pending} />
       </View>
 
-      <Text className="text-body-sm text-text-muted">{timeAgo(visitor.createdAt)}</Text>
-
-      <View className="mt-2 flex-row gap-3">
-        <Button className="flex-1" variant="primary" onPress={onApprove} loading={isDeciding} disabled={isDeciding}>
-          Approve
-        </Button>
-        <Button className="flex-1" variant="outline" onPress={onReject} loading={isDeciding} disabled={isDeciding}>
+      <View className="flex-row gap-3">
+        <Button className="flex-1" variant="secondary" onPress={onReject} loading={isDeciding} disabled={isDeciding}>
           Reject
+        </Button>
+        <Button className="flex-1" variant="success" onPress={onApprove} loading={isDeciding} disabled={isDeciding}>
+          Approve
         </Button>
       </View>
     </View>

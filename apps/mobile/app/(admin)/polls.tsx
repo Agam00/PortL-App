@@ -137,7 +137,7 @@ export default function AdminPolls() {
                       accessibilityLabel={`Remove option ${index + 1}`}
                       accessibilityRole="button"
                     >
-                      <MaterialIcons name="close" size={18} color="#8A8F98" />
+                      <MaterialIcons name="close" size={18} color="#797585" />
                     </Pressable>
                   )}
                 </View>
@@ -145,7 +145,7 @@ export default function AdminPolls() {
               {optionsError && <Text className="text-body-sm text-status-red">{optionsError}</Text>}
               {options.length < 10 && (
                 <Pressable onPress={() => setOptions((prev) => [...prev, ""])} className="flex-row items-center gap-1.5 p-1">
-                  <MaterialIcons name="add" size={16} color="#5e6ad2" />
+                  <MaterialIcons name="add" size={16} color="#6244CD" />
                   <Text className="text-body-sm text-primary-container">Add Option</Text>
                 </Pressable>
               )}
@@ -159,11 +159,11 @@ export default function AdminPolls() {
         {pollsQuery.isLoading ? (
           <ListLoading />
         ) : pollsQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load polls" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : polls.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No polls yet" description="Create a poll above." icon="poll" />
           </View>
         ) : (
@@ -179,7 +179,7 @@ export default function AdminPolls() {
                     </View>
                     <IconButton
                       icon="delete-outline"
-                      color="#F87171"
+                      color="#BA1A1A"
                       onPress={() => confirmDelete(poll.id, poll.question)}
                       accessibilityLabel={`Delete poll: ${poll.question}`}
                     />
@@ -187,7 +187,7 @@ export default function AdminPolls() {
                   <Text className="text-body-md font-medium text-on-surface">{poll.question}</Text>
                   <View className="gap-2">
                     {poll.options.map((option) => (
-                      <View key={option.id} className="overflow-hidden rounded-md border border-border-subtle">
+                      <View key={option.id} className="overflow-hidden rounded-md border border-outline-variant">
                         <View
                           className="absolute inset-y-0 left-0 bg-primary-container/25"
                           style={{ width: `${(option.voteCount / maxVotes) * 100}%` }}

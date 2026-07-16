@@ -13,6 +13,8 @@ import { Chip } from "../../components/ui/chip";
 import { StatusDot } from "../../components/ui/status-dot";
 import { EmptyState } from "../../components/ui/empty-state";
 import { ListLoading } from "../../components/ui/list-loading";
+import { PressableScale } from "../../components/ui/pressable-scale";
+import { shadowCard } from "../../lib/shadows";
 
 const CATEGORIES = ["Plumbing", "Electrical", "Security", "Cleaning", "Other"];
 
@@ -123,26 +125,31 @@ export default function ResidentHelpdesk() {
       >
         <View className="flex-row items-center justify-between">
           <Text className="flex-1 text-body-sm text-text-muted">Manage and track your maintenance requests and society complaints.</Text>
-          <Pressable
+          <PressableScale
             onPress={() => (showForm ? resetForm() : setShowForm(true))}
-            className="h-9 w-9 items-center justify-center rounded-md border border-border-subtle active:bg-white/5"
+            scaleTo={0.92}
+            className="h-10 w-10 items-center justify-center rounded-full bg-surface-container"
+            style={shadowCard}
             accessibilityLabel={showForm ? "Close ticket form" : "Raise a new ticket"}
             accessibilityRole="button"
           >
-            <MaterialIcons name={showForm ? "close" : "add"} size={20} color="#c6c5d5" />
-          </Pressable>
+            <MaterialIcons name={showForm ? "close" : "add"} size={22} color="#6244CD" />
+          </PressableScale>
         </View>
 
         {showForm && (
-          <View className="gap-3 rounded-lg border border-border-subtle bg-surface p-4">
-            <Text className="text-body-md font-semibold text-on-surface">Raise a Ticket</Text>
+          <View className="gap-4 rounded-card bg-surface p-5" style={shadowCard}>
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="support-agent" size={22} color="#6244CD" />
+              <Text className="text-headline-md font-extrabold text-on-surface">Raise a Ticket</Text>
+            </View>
             <View className="flex-row flex-wrap gap-2">
               {CATEGORIES.map((c) => (
                 <Chip key={c} label={c} selected={category === c} onPress={() => setCategory(c)} />
               ))}
             </View>
             <Input
-              label="Title"
+              label="Subject"
               placeholder="e.g. Water leak in bathroom"
               value={title}
               onChangeText={(v) => {
@@ -166,18 +173,28 @@ export default function ResidentHelpdesk() {
               error={descriptionError ?? undefined}
             />
             <View className="gap-2">
-              <Text className="text-label-caps uppercase text-text-muted">Photo (Optional)</Text>
               {photo ? (
                 <View className="flex-row items-center gap-3">
-                  <Image source={{ uri: photo }} className="h-16 w-16 rounded-lg border border-border-subtle" />
+                  <Image source={{ uri: photo }} className="h-16 w-16 rounded-md" />
                   <Button variant="outline" onPress={() => setPhoto(null)}>
                     Remove
                   </Button>
                 </View>
               ) : (
-                <Button variant="outline" loading={isCapturing} onPress={handleCapturePhoto}>
-                  Take Photo
-                </Button>
+                <Pressable
+                  onPress={handleCapturePhoto}
+                  disabled={isCapturing}
+                  className="items-center gap-2 rounded-md border-2 border-dashed border-outline-variant bg-surface-container py-6"
+                >
+                  {isCapturing ? (
+                    <ActivityIndicator color="#6244CD" />
+                  ) : (
+                    <>
+                      <MaterialIcons name="photo-camera" size={24} color="#797585" />
+                      <Text className="text-body-sm text-text-muted">Attach a photo (Optional)</Text>
+                    </>
+                  )}
+                </Pressable>
               )}
             </View>
             <Button onPress={handleSubmit} loading={createMutation.isPending}>
@@ -186,40 +203,45 @@ export default function ResidentHelpdesk() {
           </View>
         )}
 
+        <Text className="text-headline-md font-extrabold text-on-surface">My Tickets</Text>
+
         {ticketsQuery.isLoading ? (
           <ListLoading />
         ) : ticketsQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load tickets" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : tickets.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No tickets yet" description="Raise a ticket above to get help from society staff." icon="support-agent" />
           </View>
         ) : (
-          <View className="gap-2">
+          <View className="gap-3">
             {tickets.map((ticket) => (
               <Pressable
                 key={ticket.id}
                 onPress={() => setSelectedId(selectedId === ticket.id ? null : ticket.id)}
-                className={`gap-2 rounded-xl border p-4 ${selectedId === ticket.id ? "border-primary-container bg-white/5" : "border-border-subtle bg-surface"}`}
+                className="gap-2 rounded-card bg-surface p-4"
+                style={shadowCard}
               >
                 <View className="flex-row items-center justify-between">
+                  <View className="rounded-full bg-surface-container px-2.5 py-1">
+                    <Text className="text-label-sm font-bold uppercase text-text-muted">{ticket.category}</Text>
+                  </View>
                   <StatusDot label={ticket.status.replace("_", " ")} tone={STATUS_TONE[ticket.status] ?? "neutral"} />
-                  <Text className="text-meta-text text-text-muted">{timeAgo(ticket.createdAt)}</Text>
                 </View>
-                <Text className="text-body-md font-medium text-on-surface">{ticket.title}</Text>
+                <Text
+                  className={`text-body-md font-bold ${ticket.status === "resolved" || ticket.status === "closed" ? "text-text-muted line-through" : "text-on-surface"}`}
+                >
+                  {ticket.title}
+                </Text>
                 <Text className="text-body-sm text-text-muted" numberOfLines={2}>
                   {ticket.description}
                 </Text>
-                <View className="flex-row gap-2">
-                  <View className="rounded-md border border-border-subtle px-2 py-0.5">
-                    <Text className="text-meta-text uppercase text-text-muted">{ticket.category}</Text>
-                  </View>
-                </View>
+                <Text className="text-label-sm text-text-muted">{timeAgo(ticket.createdAt)}</Text>
 
                 {selectedId === ticket.id && (
-                  <View className="gap-3 border-t border-border-subtle pt-3">
+                  <View className="gap-3 border-t border-outline-variant pt-3">
                     <View className="gap-3">
                       <View className="flex-row items-center gap-3">
                         <View className="h-2.5 w-2.5 rounded-full bg-primary-container" />
@@ -241,18 +263,18 @@ export default function ResidentHelpdesk() {
 
                     <Text className="text-label-caps uppercase text-text-muted">Updates</Text>
                     {commentsQuery.isLoading ? (
-                      <ActivityIndicator color="#5e6ad2" />
+                      <ActivityIndicator color="#6244CD" />
                     ) : (commentsQuery.data ?? []).length === 0 ? (
                       <Text className="text-body-sm text-text-muted">No replies yet.</Text>
                     ) : (
                       <View className="gap-2">
                         {(commentsQuery.data ?? []).map((comment) => (
-                          <View key={comment.id} className="rounded-lg border border-border-subtle bg-surface-elevated p-3">
+                          <View key={comment.id} className="rounded-md bg-surface-container p-3">
                             <View className="flex-row items-center justify-between">
-                              <Text className="text-body-sm font-medium text-on-surface">
+                              <Text className="text-body-sm font-bold text-on-surface">
                                 {comment.authorName} {comment.authorRole !== "resident" ? `(${comment.authorRole})` : ""}
                               </Text>
-                              <Text className="text-meta-text text-text-muted">{timeAgo(comment.createdAt)}</Text>
+                              <Text className="text-label-sm text-text-muted">{timeAgo(comment.createdAt)}</Text>
                             </View>
                             <Text className="text-body-sm text-on-surface-variant">{comment.body}</Text>
                           </View>
@@ -270,7 +292,7 @@ export default function ResidentHelpdesk() {
                       <Pressable
                         disabled={!commentBody.trim() || addCommentMutation.isPending}
                         onPress={() => addCommentMutation.mutate({ complaintId: ticket.id, body: commentBody.trim() })}
-                        className="h-11 w-11 items-center justify-center rounded-lg bg-primary-container active:bg-inverse-primary"
+                        className="h-11 w-11 items-center justify-center rounded-full bg-primary-container"
                         accessibilityLabel="Send comment"
                         accessibilityRole="button"
                       >

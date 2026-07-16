@@ -22,16 +22,16 @@ The conversation that used to happen at the society gate now happens inside the 
 
 ## Brand Personality
 
-Calm, efficient, dependable. This is a working tool for people managing a real building day to day, not a lifestyle product — it should feel unhurried and precise even when the moment it's supporting (a visitor waiting at the gate) is not.
+**Revised 2026-07-16** (superseding the prior "calm, efficient, dependable" direction — an explicit, informed decision to switch the app's visual identity entirely for hackathon UI impact, not a drift). Warm, high-energy, approachable. This should feel like a consumer app people enjoy opening — a friendly neighborhood tool, not enterprise security software — even though the moment it's often supporting (a visitor waiting at the gate) is time-pressured. The emotional goal is safety, belonging, and neighborly warmth, not clinical efficiency.
 
 ## Anti-references
 
-None named explicitly. The existing token system — dark-mode-only, monochrome plus one violet accent, hairline borders, small status dots, small consistent radius — is the hard constraint to work within, not override.
+The prior direction (dark-mode-only, monochrome, hairline borders, small status dots) is now itself the anti-reference — don't drift back to it. Otherwise nothing named explicitly; the new "Friendly Community Console" token system (see `DESIGN_SYSTEM.md`) is the hard constraint to work within.
 
 ## Design Principles
 
-Density over decoration: headings stay small, spacing stays tight and consistent, nothing is oversized for effect. Depth comes from tonal layering and hairline borders, never shadows or glow. Status is communicated with a small dot plus plain text, never a loud colored badge. One accent color, used sparingly, for actions and state only — never decoration. Consistency across all three roles' screens matters more than per-screen novelty.
+Warmth over restraint: a saturated violet accent used generously (not sparingly), soft ambient shadows instead of flat hairline borders, big friendly rounded corners (20px cards, pill-shaped buttons/badges) instead of small consistent radii. Status communicated with bold, fully-saturated colored pills, not a small dot — visible and confident, not subtle. Consistency across all three roles' screens still matters more than per-screen novelty; the identity changed, that principle didn't.
 
 ## Accessibility & Inclusion
 
-No formal WCAG target set yet. A UX polish pass added screen-reader labels on icon-only buttons and reviewed tap target sizing app-wide; contrast should be verified against the existing dark palette rather than assumed.
+No formal WCAG target set yet. A UX polish pass added screen-reader labels on icon-only buttons and reviewed tap target sizing app-wide. Contrast needs re-verification against the new light palette (previous verification was against the dark palette, now retired) — the off-white background and white cards especially need checking against `on-surface-variant` gray text.

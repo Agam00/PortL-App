@@ -15,6 +15,7 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Chip } from "../../components/ui/chip";
 import { TimeField } from "../../components/ui/time-field";
+import { shadowCard } from "../../lib/shadows";
 
 const formSchema = preApproveVisitorInputSchema.omit({ validFrom: true, validUntil: true });
 type FormValues = z.infer<typeof formSchema>;
@@ -74,25 +75,25 @@ export default function PreApproveGuest() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       className="flex-1 bg-background"
     >
-      <ScreenHeader title="Pre-approve Guest" role="resident" />
+      <ScreenHeader title="Invite a Guest" role="resident" />
       <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
         <View className="flex-row items-center justify-between">
           <Text className="flex-1 text-body-sm text-text-muted">
-            Pre-approve an expected guest or cab — the guard can let them in without calling you.
+            Generate a temporary access pass — the guard can let them in without calling you.
           </Text>
           <Pressable onPress={() => router.push("/(resident)/pre-approvals")} className="ml-2 px-1 py-1">
-            <Text className="text-body-sm font-medium text-primary">My Pre-approvals</Text>
+            <Text className="text-body-sm font-bold text-primary-container">My Pre-approvals</Text>
           </Pressable>
         </View>
 
-        <View className="gap-4 rounded-lg border border-border-subtle bg-surface-elevated p-4">
+        <View className="gap-4 rounded-card bg-surface p-5" style={shadowCard}>
           <Controller
             control={control}
             name="name"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
                 label="Full Name"
-                placeholder="e.g. Jane Doe"
+                placeholder="E.g., Jane Doe"
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -132,8 +133,6 @@ export default function PreApproveGuest() {
             </View>
           </View>
 
-          <View className="h-px bg-border-subtle" />
-
           <View className="gap-2">
             <Text className="text-label-caps uppercase text-text-muted">Access Window</Text>
             <View className="flex-row gap-3">
@@ -143,7 +142,7 @@ export default function PreApproveGuest() {
           </View>
 
           <Button className="mt-2" onPress={handleSubmit(onSubmit)} loading={preApproveMutation.isPending}>
-            Generate Pre-approval
+            Generate Invite
           </Button>
         </View>
       </ScrollView>

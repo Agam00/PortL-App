@@ -155,11 +155,11 @@ export default function AdminDues() {
         {duesQuery.isLoading ? (
           <ListLoading />
         ) : duesQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load dues" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : dues.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No dues found" description="Generate a due above to get started." icon="payments" />
           </View>
         ) : (

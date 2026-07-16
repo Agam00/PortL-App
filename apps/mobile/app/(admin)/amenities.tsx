@@ -199,11 +199,11 @@ export default function AdminAmenities() {
         {amenitiesQuery.isLoading ? (
           <ListLoading />
         ) : amenitiesQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load facilities" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : amenities.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No facilities yet" description="Add a facility to get started." icon="pool" />
           </View>
         ) : (
@@ -211,8 +211,8 @@ export default function AdminAmenities() {
             {amenities.map((amenity) => (
               <ListRowCard key={amenity.id} className="gap-3">
                 <View className="flex-row items-center gap-3">
-                  <View className="h-11 w-11 items-center justify-center rounded-lg border border-border-subtle bg-surface-elevated">
-                    <MaterialIcons name="pool" size={20} color="#c6c5d5" />
+                  <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-container">
+                    <MaterialIcons name="pool" size={20} color="#48454F" />
                   </View>
                   <View className="min-w-0 flex-1">
                     <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
@@ -226,7 +226,7 @@ export default function AdminAmenities() {
                   <IconButton icon="edit" onPress={() => startEdit(amenity)} accessibilityLabel={`Edit ${amenity.name}`} />
                   <IconButton
                     icon="delete-outline"
-                    color="#F87171"
+                    color="#BA1A1A"
                     onPress={() => confirmDelete(amenity.id, amenity.name)}
                     accessibilityLabel={`Delete ${amenity.name}`}
                   />
@@ -255,19 +255,19 @@ export default function AdminAmenities() {
                   onPress={() => setBookingsAmenityId(bookingsAmenityId === amenity.id ? null : amenity.id)}
                   className="flex-row items-center gap-1.5 p-1"
                 >
-                  <MaterialIcons name={bookingsAmenityId === amenity.id ? "expand-less" : "expand-more"} size={18} color="#5e6ad2" />
+                  <MaterialIcons name={bookingsAmenityId === amenity.id ? "expand-less" : "expand-more"} size={18} color="#6244CD" />
                   <Text className="text-body-sm font-medium text-primary-container">View Bookings</Text>
                 </Pressable>
 
                 {bookingsAmenityId === amenity.id && (
-                  <View className="gap-2 border-t border-border-subtle pt-3">
+                  <View className="gap-2 border-t border-outline-variant pt-3">
                     {bookingsQuery.isLoading ? (
-                      <ActivityIndicator color="#5e6ad2" />
+                      <ActivityIndicator color="#6244CD" />
                     ) : (bookingsQuery.data ?? []).length === 0 ? (
                       <Text className="text-body-sm text-text-muted">No bookings yet.</Text>
                     ) : (
                       (bookingsQuery.data ?? []).map((booking) => (
-                        <View key={booking.id} className="flex-row items-center justify-between rounded-lg border border-border-subtle bg-surface-elevated p-3">
+                        <View key={booking.id} className="flex-row items-center justify-between rounded-md bg-surface-container p-3">
                           <View className="min-w-0 flex-1">
                             <Text className="text-body-sm font-medium text-on-surface" numberOfLines={1}>
                               {booking.flatNumber} · {booking.bookedByName}

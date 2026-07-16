@@ -1,8 +1,9 @@
 import { Text, ActivityIndicator } from "react-native";
 import type { PressableProps } from "react-native";
 import { PressableScale } from "./pressable-scale";
+import { shadowCard } from "../../lib/shadows";
 
-type Variant = "primary" | "secondary" | "outline" | "danger";
+type Variant = "primary" | "secondary" | "outline" | "danger" | "success";
 
 interface ButtonProps extends Omit<PressableProps, "children" | "style"> {
   children: string;
@@ -10,19 +11,27 @@ interface ButtonProps extends Omit<PressableProps, "children" | "style"> {
   loading?: boolean;
 }
 
+// NOTE: primary uses a solid bg-primary-container instead of the designed violet gradient.
+// expo-linear-gradient is a native module not yet linked into the installed dev-client APK
+// (would need a fresh EAS build first) — using it now would crash every screen with a
+// primary button. Swap to LinearGradient once a native rebuild happens; see DESIGN_SYSTEM.md.
 const VARIANT_STYLES: Record<Variant, { container: string; text: string }> = {
   primary: { container: "bg-primary-container active:bg-inverse-primary", text: "text-white" },
   secondary: {
-    container: "bg-surface-elevated border border-border-subtle active:bg-white/5",
+    container: "bg-surface-container border border-outline-variant active:bg-surface-container-high",
     text: "text-on-surface",
   },
   outline: {
-    container: "bg-transparent border border-border-subtle active:bg-white/5",
-    text: "text-on-surface",
+    container: "bg-transparent border-2 border-primary-container active:bg-surface-container",
+    text: "text-primary-container",
   },
   danger: {
-    container: "bg-transparent border border-status-red/40 active:bg-status-red/10",
-    text: "text-status-red",
+    container: "bg-transparent border-2 border-status-red active:bg-status-red/10",
+    text: "text-status-red-strong",
+  },
+  success: {
+    container: "bg-status-green active:bg-status-green/80",
+    text: "text-white",
   },
 };
 
@@ -42,17 +51,14 @@ export function Button({
       accessibilityRole="button"
       disabled={isDisabled}
       scaleTo={0.97}
-      className={`flex-row items-center justify-center rounded-md px-3 py-2.5 ${styles.container} ${isDisabled ? "opacity-50" : ""} ${className ?? ""}`}
+      style={isDisabled ? undefined : shadowCard}
+      className={`flex-row items-center justify-center rounded-full px-5 py-3.5 ${styles.container} ${isDisabled ? "opacity-50" : ""} ${className ?? ""}`}
       {...props}
     >
       {loading && (
-        <ActivityIndicator
-          size="small"
-          color={variant === "primary" ? "#fff" : "#bdc2ff"}
-          className="mr-2"
-        />
+        <ActivityIndicator size="small" color={variant === "primary" ? "#fff" : "#7B5FE8"} className="mr-2" />
       )}
-      <Text className={`text-body-md font-medium ${styles.text}`}>{children}</Text>
+      <Text className={`text-label-md font-bold ${styles.text}`}>{children}</Text>
     </PressableScale>
   );
 }

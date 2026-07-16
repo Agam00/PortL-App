@@ -54,11 +54,11 @@ export default function GuardHistory() {
           query.isLoading ? (
             <ListLoading />
           ) : query.isError ? (
-            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <View className="rounded-card bg-surface">
               <EmptyState title="Couldn't load activity" description="Pull down to refresh and try again." icon="error-outline" />
             </View>
           ) : (
-            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <View className="rounded-card bg-surface">
               <EmptyState title="No matching activity" description="Nothing found for this search or filter." icon="history" />
             </View>
           )

@@ -10,6 +10,8 @@ import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
 import { GroupLabel } from "../../components/ui/group-label";
 import { ListLoading } from "../../components/ui/list-loading";
+import { StatusDot } from "../../components/ui/status-dot";
+import { shadowCard } from "../../lib/shadows";
 
 function nextDays(count: number) {
   return Array.from({ length: count }, (_, i) => {
@@ -104,7 +106,7 @@ export default function ResidentAmenities() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Amenities" role="resident" />
+      <ScreenHeader title="Book an Amenity" role="resident" />
       <ScrollView
         contentContainerClassName="gap-4 p-4 pb-8"
         refreshControl={
@@ -117,122 +119,131 @@ export default function ResidentAmenities() {
           />
         }
       >
-        <Text className="text-headline-md font-semibold text-on-surface">Available Facilities</Text>
+        <Text className="text-headline-md font-extrabold text-on-surface">Available Facilities</Text>
 
         {amenitiesQuery.isLoading ? (
           <ListLoading />
         ) : amenitiesQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load facilities" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : amenities.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No facilities yet" description="Society facilities will show up here." icon="pool" />
           </View>
         ) : (
-          <View className="gap-2">
-            {amenities.map((amenity) => (
-              <View key={amenity.id} className="gap-3 rounded-xl border border-border-subtle bg-surface p-4">
-                <View className="flex-row items-center gap-3">
-                  <View className="h-11 w-11 items-center justify-center rounded-lg border border-border-subtle bg-surface-elevated">
-                    <MaterialIcons name={iconFor(amenity.name)} size={20} color="#c6c5d5" />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
-                      {amenity.name}
-                    </Text>
-                    <Text className="text-meta-text text-text-muted">Max capacity: {amenity.capacity}</Text>
-                  </View>
-                  {amenity.isActive ? (
-                    <Button variant="primary" onPress={() => startBooking(amenity.id)}>
-                      {bookingAmenityId === amenity.id ? "Close" : "Book"}
-                    </Button>
-                  ) : (
-                    <View className="rounded-md border border-status-red/40 px-3 py-1.5">
-                      <Text className="text-body-sm text-status-red">Unavailable</Text>
+          <View className="gap-3">
+            {amenities.map((amenity) => {
+              const selected = bookingAmenityId === amenity.id;
+              return (
+                <View
+                  key={amenity.id}
+                  className={`gap-3 rounded-card bg-surface p-4 ${selected ? "border-2 border-primary-container" : ""}`}
+                  style={shadowCard}
+                >
+                  <Pressable
+                    onPress={() => amenity.isActive && startBooking(amenity.id)}
+                    disabled={!amenity.isActive}
+                    className="flex-row items-center gap-3"
+                  >
+                    <View className={`h-12 w-12 items-center justify-center rounded-full ${selected ? "bg-primary-container" : "bg-surface-container"}`}>
+                      <MaterialIcons name={iconFor(amenity.name)} size={22} color={selected ? "#fff" : "#6244CD"} />
                     </View>
-                  )}
-                </View>
-
-                {bookingAmenityId === amenity.id && (
-                  <View className="gap-3 border-t border-border-subtle pt-3">
-                    <Text className="text-label-caps uppercase text-text-muted">Select Date</Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
-                      {days.map((day, index) => {
-                        const key = dateKey(day);
-                        const selected = key === selectedDate;
-                        return (
-                          <Pressable
-                            key={key}
-                            onPress={() => {
-                              setSelectedDate(key);
-                              setSelectedSlot(null);
-                            }}
-                            className={`items-center rounded-lg border px-3 py-2 ${selected ? "border-primary-container bg-white/5" : "border-border-subtle"}`}
-                          >
-                            <Text className={`text-body-sm ${selected ? "font-semibold text-primary-container" : "text-on-surface-variant"}`}>
-                              {dayLabel(day, index)}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </ScrollView>
-
-                    <Text className="text-label-caps uppercase text-text-muted">Select Time</Text>
-                    {slotsQuery.isLoading ? (
-                      <ActivityIndicator color="#5e6ad2" />
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-body-md font-bold text-on-surface" numberOfLines={1}>
+                        {amenity.name}
+                      </Text>
+                      <Text className="text-body-sm text-text-muted">Max capacity: {amenity.capacity}</Text>
+                    </View>
+                    {amenity.isActive ? (
+                      <MaterialIcons name={selected ? "expand-less" : "expand-more"} size={22} color="#797585" />
                     ) : (
-                      <View className="flex-row flex-wrap gap-2">
-                        {(slotsQuery.data ?? []).map((slot) => {
-                          const selected = selectedSlot === slot.slotStart;
+                      <View className="rounded-full bg-status-red/15 px-3 py-1.5">
+                        <Text className="text-label-sm font-bold text-status-red-strong">Unavailable</Text>
+                      </View>
+                    )}
+                  </Pressable>
+
+                  {selected && (
+                    <View className="gap-3 border-t border-outline-variant pt-3">
+                      <Text className="text-label-caps uppercase text-text-muted">Select Date</Text>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+                        {days.map((day, index) => {
+                          const key = dateKey(day);
+                          const isSelected = key === selectedDate;
                           return (
                             <Pressable
-                              key={slot.slotStart}
-                              disabled={!slot.isAvailable}
-                              onPress={() => setSelectedSlot(slot.slotStart)}
-                              className={`rounded-md border px-3 py-2 ${
-                                !slot.isAvailable
-                                  ? "border-border-subtle opacity-40"
-                                  : selected
-                                    ? "border-primary-container bg-primary-container"
-                                    : "border-border-subtle"
-                              }`}
+                              key={key}
+                              onPress={() => {
+                                setSelectedDate(key);
+                                setSelectedSlot(null);
+                              }}
+                              className={`items-center rounded-md px-3 py-2 ${isSelected ? "bg-primary-container" : "bg-surface-container"}`}
                             >
-                              <Text className={`text-body-sm ${selected ? "font-semibold text-white" : "text-on-surface-variant"}`}>
-                                {slot.slotStart}
+                              <Text className={`text-body-sm ${isSelected ? "font-bold text-white" : "text-on-surface-variant"}`}>
+                                {dayLabel(day, index)}
                               </Text>
                             </Pressable>
                           );
                         })}
-                      </View>
-                    )}
+                      </ScrollView>
 
-                    {selectedSlot && (
-                      <Text className="text-body-sm text-text-muted">
-                        Selected: {dayLabel(days.find((d) => dateKey(d) === selectedDate) ?? days[0], days.findIndex((d) => dateKey(d) === selectedDate))}, {selectedSlot}
-                      </Text>
-                    )}
+                      <Text className="text-label-caps uppercase text-text-muted">Available Times</Text>
+                      {slotsQuery.isLoading ? (
+                        <ActivityIndicator color="#6244CD" />
+                      ) : (
+                        <View className="flex-row flex-wrap gap-2">
+                          {(slotsQuery.data ?? []).map((slot) => {
+                            const isSelected = selectedSlot === slot.slotStart;
+                            return (
+                              <Pressable
+                                key={slot.slotStart}
+                                disabled={!slot.isAvailable}
+                                onPress={() => setSelectedSlot(slot.slotStart)}
+                                className={`rounded-md px-3 py-2 ${
+                                  !slot.isAvailable
+                                    ? "bg-surface-container opacity-40"
+                                    : isSelected
+                                      ? "bg-primary-container"
+                                      : "bg-surface-container"
+                                }`}
+                              >
+                                <Text className={`text-body-sm ${isSelected ? "font-bold text-white" : "text-on-surface-variant"}`}>
+                                  {slot.slotStart}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </View>
+                      )}
 
-                    <Button
-                      disabled={!selectedSlot}
-                      loading={bookMutation.isPending}
-                      onPress={() =>
-                        selectedSlot &&
-                        bookMutation.mutate({ amenityId: amenity.id, date: selectedDate, slotStart: selectedSlot })
-                      }
-                    >
-                      Confirm Booking
-                    </Button>
-                  </View>
-                )}
-              </View>
-            ))}
+                      {selectedSlot && (
+                        <Text className="text-body-sm text-text-muted">
+                          Selected: {dayLabel(days.find((d) => dateKey(d) === selectedDate) ?? days[0], days.findIndex((d) => dateKey(d) === selectedDate))}, {selectedSlot}
+                        </Text>
+                      )}
+
+                      <Button
+                        disabled={!selectedSlot}
+                        loading={bookMutation.isPending}
+                        onPress={() =>
+                          selectedSlot &&
+                          bookMutation.mutate({ amenityId: amenity.id, date: selectedDate, slotStart: selectedSlot })
+                        }
+                      >
+                        Confirm Booking
+                      </Button>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </View>
         )}
 
         <Pressable onPress={() => setShowBookings((v) => !v)} className="flex-row items-center gap-2 p-1">
-          <MaterialIcons name={showBookings ? "expand-less" : "expand-more"} size={20} color="#5e6ad2" />
-          <Text className="text-body-md font-medium text-primary-container">My Bookings ({bookings.length})</Text>
+          <MaterialIcons name={showBookings ? "expand-less" : "expand-more"} size={20} color="#6244CD" />
+          <Text className="text-body-md font-bold text-primary-container">My Bookings ({bookings.length})</Text>
         </Pressable>
 
         {showBookings && (
@@ -243,22 +254,26 @@ export default function ResidentAmenities() {
               <View className="gap-2">
                 <GroupLabel label="Upcoming" />
                 {bookings.map((booking) => (
-                  <View key={booking.id} className="flex-row items-center justify-between gap-3 rounded-lg border border-border-subtle bg-surface p-4">
+                  <View key={booking.id} className="flex-row items-center gap-3 rounded-card bg-surface p-4" style={shadowCard}>
+                    <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-container">
+                      <MaterialIcons name={iconFor(booking.amenityName)} size={18} color="#6244CD" />
+                    </View>
                     <View className="min-w-0 flex-1">
-                      <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
+                      <Text className="text-body-md font-bold text-on-surface" numberOfLines={1}>
                         {booking.amenityName}
                       </Text>
-                      <Text className="text-meta-text text-text-muted">
+                      <Text className="text-body-sm text-text-muted">
                         {booking.date} · {booking.slotStart.slice(0, 5)}–{booking.slotEnd.slice(0, 5)}
                       </Text>
                     </View>
+                    <StatusDot label="Upcoming" tone="amber" />
                     <Pressable
                       onPress={() => confirmCancel(booking.id)}
                       hitSlop={8}
                       accessibilityLabel={`Cancel booking for ${booking.amenityName}`}
                       accessibilityRole="button"
                     >
-                      <MaterialIcons name="close" size={18} color="#F87171" />
+                      <MaterialIcons name="close" size={18} color="#FF5F5F" />
                     </Pressable>
                   </View>
                 ))}

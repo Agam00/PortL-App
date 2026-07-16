@@ -1,9 +1,11 @@
-import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { ScreenHeader } from "../../components/ui/screen-header";
-import { GroupLabel } from "../../components/ui/group-label";
+import { PressableScale } from "../../components/ui/pressable-scale";
+import { Button } from "../../components/ui/button";
+import { shadowCard } from "../../lib/shadows";
 
 export default function AdminSociety() {
   const router = useRouter();
@@ -20,50 +22,58 @@ export default function AdminSociety() {
 
   const sections: {
     label: string;
-    items: { label: string; value: string; icon: React.ComponentProps<typeof MaterialIcons>["name"]; route: string }[];
+    icon: React.ComponentProps<typeof MaterialIcons>["name"];
+    tint: string;
+    iconColor: string;
+    items: { label: string; value: string; route: string }[];
   }[] = [
     {
       label: "Infrastructure",
+      icon: "apartment",
+      tint: "bg-surface-container",
+      iconColor: "#6244CD",
       items: [
-        { label: "Towers", value: `${towersQuery.data?.length ?? "—"}`, icon: "business", route: "/(admin)/towers" },
-        { label: "Flats", value: `${flatsQuery.data?.length ?? "—"}`, icon: "door-front", route: "/(admin)/flats" },
-        { label: "Amenities", value: `${amenitiesQuery.data?.length ?? "—"}`, icon: "pool", route: "/(admin)/amenities" },
+        { label: "Towers", value: `${towersQuery.data?.length ?? "—"}`, route: "/(admin)/towers" },
+        { label: "Flats", value: `${flatsQuery.data?.length ?? "—"}`, route: "/(admin)/flats" },
       ],
     },
     {
       label: "People",
+      icon: "groups",
+      tint: "bg-secondary-container/30",
+      iconColor: "#845400",
       items: [
-        { label: "Residents", value: `${residentsQuery.data?.length ?? "—"}`, icon: "group", route: "/(admin)/residents" },
-        { label: "Guards", value: `${guardsQuery.data?.length ?? "—"}`, icon: "shield", route: "/(admin)/guards" },
-        { label: "Staff", value: `${staffQuery.data?.length ?? "—"}`, icon: "badge", route: "/(admin)/staff" },
+        { label: "Residents", value: `${residentsQuery.data?.length ?? "—"}`, route: "/(admin)/residents" },
+        { label: "Guards", value: `${guardsQuery.data?.length ?? "—"}`, route: "/(admin)/guards" },
       ],
     },
     {
       label: "Communications",
+      icon: "campaign",
+      tint: "bg-secondary-container/30",
+      iconColor: "#845400",
       items: [
-        {
-          label: "Notices",
-          value: `${noticesQuery.data?.length ?? "—"} Active`,
-          icon: "campaign",
-          route: "/(admin)/notices",
-        },
-        {
-          label: "Polls",
-          value: `${pollsQuery.data?.filter((p) => !p.isClosed).length ?? "—"} Active`,
-          icon: "poll",
-          route: "/(admin)/polls",
-        },
+        { label: "Active Notices", value: `${noticesQuery.data?.length ?? "—"}`, route: "/(admin)/notices" },
+        { label: "Open Polls", value: `${pollsQuery.data?.filter((p) => !p.isClosed).length ?? "—"}`, route: "/(admin)/polls" },
+      ],
+    },
+    {
+      label: "Operations",
+      icon: "build",
+      tint: "bg-surface-container",
+      iconColor: "#6244CD",
+      items: [
+        { label: "Amenities", value: `${amenitiesQuery.data?.length ?? "—"}`, route: "/(admin)/amenities" },
+        { label: "Support Staff", value: `${staffQuery.data?.length ?? "—"}`, route: "/(admin)/staff" },
       ],
     },
     {
       label: "Finance",
+      icon: "payments",
+      tint: "bg-status-red/15",
+      iconColor: "#BA1A1A",
       items: [
-        {
-          label: "Dues",
-          value: `${duesQuery.data?.filter((d) => d.status !== "paid").length ?? "—"} Pending`,
-          icon: "payments",
-          route: "/(admin)/dues",
-        },
+        { label: "Dues Pending", value: `${duesQuery.data?.filter((d) => d.status !== "paid").length ?? "—"}`, route: "/(admin)/dues" },
       ],
     },
   ];
@@ -72,7 +82,7 @@ export default function AdminSociety() {
     <View className="flex-1 bg-background">
       <ScreenHeader title="Management Hub" role="admin" />
       <ScrollView
-        contentContainerClassName="gap-6 p-4 pb-8"
+        contentContainerClassName="gap-4 p-4 pb-8"
         refreshControl={
           <RefreshControl
             refreshing={
@@ -100,27 +110,50 @@ export default function AdminSociety() {
           />
         }
       >
-        <Text className="text-body-sm text-text-muted">Oversee society operations, infrastructure, and communications.</Text>
+        <Text className="text-body-sm text-text-muted">Oversee and manage all aspects of your community.</Text>
 
         {sections.map((section) => (
-          <View key={section.label} className="gap-2">
-            <GroupLabel label={section.label} />
-            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
-              {section.items.map((item, index) => (
-                <Pressable
-                  key={item.label}
-                  onPress={() => router.push(item.route as never)}
-                  className={`flex-row items-center gap-3 p-4 active:bg-white/5 ${index > 0 ? "border-t border-border-subtle" : ""}`}
-                >
-                  <MaterialIcons name={item.icon} size={20} color="#c6c5d5" />
-                  <Text className="flex-1 text-body-md font-medium text-on-surface">{item.label}</Text>
-                  <Text className="text-body-sm text-text-muted">{item.value}</Text>
-                  <MaterialIcons name="chevron-right" size={18} color="#8A8F98" />
-                </Pressable>
+          <View key={section.label} className="gap-3 rounded-card bg-surface p-5" style={shadowCard}>
+            <View className="flex-row items-center justify-between">
+              <View className={`h-11 w-11 items-center justify-center rounded-full ${section.tint}`}>
+                <MaterialIcons name={section.icon} size={20} color={section.iconColor} />
+              </View>
+              <MaterialIcons name="north-east" size={18} color="#CAC4D6" />
+            </View>
+            <Text className="text-headline-md font-extrabold text-on-surface">{section.label}</Text>
+
+            <View className={`flex-row gap-3 ${section.items.length === 1 ? "" : ""}`}>
+              {section.items.map((item) => (
+                <PressableScale key={item.label} scaleTo={0.97} className="flex-1" onPress={() => router.push(item.route as never)}>
+                  <View className="gap-1 rounded-md bg-surface-container p-3">
+                    <Text className="text-label-sm text-text-muted">{item.label}</Text>
+                    <Text className="text-headline-md font-extrabold text-primary-container">{item.value}</Text>
+                  </View>
+                </PressableScale>
               ))}
             </View>
           </View>
         ))}
+
+        <View className="gap-2">
+          <Text className="text-label-caps uppercase text-text-muted">Quick Actions</Text>
+          <View className="flex-row gap-3">
+            <Button className="flex-1" variant="primary" onPress={() => router.push("/(admin)/notices")}>
+              + New Notice
+            </Button>
+            <Button className="flex-1" variant="outline" onPress={() => router.push("/(admin)/residents")}>
+              Add Resident
+            </Button>
+          </View>
+        </View>
+
+        <PressableScale onPress={() => router.push("/(admin)/more")}>
+          <View className="flex-row items-center gap-3 rounded-card bg-surface p-4" style={shadowCard}>
+            <MaterialIcons name="account-circle" size={22} color="#797585" />
+            <Text className="flex-1 text-body-md font-bold text-on-surface">My Profile</Text>
+            <MaterialIcons name="chevron-right" size={20} color="#CAC4D6" />
+          </View>
+        </PressableScale>
       </ScrollView>
     </View>
   );

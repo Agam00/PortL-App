@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, ScrollView, ActivityIndicator } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
@@ -53,12 +54,17 @@ export default function CheckPreApproved() {
           them in instantly.
         </Text>
 
-        <Input placeholder="Search name or phone" value={query} onChangeText={setQuery} />
+        <Input
+          placeholder="Search name or phone"
+          value={query}
+          onChangeText={setQuery}
+          leftElement={<MaterialIcons name="search" size={20} color="#797585" />}
+        />
 
-        {searchQuery.isFetching && <ActivityIndicator size="small" color="#5e6ad2" />}
+        {searchQuery.isFetching && <ActivityIndicator size="small" color="#6244CD" />}
 
         {debounced.length > 0 && !searchQuery.isFetching && results.length === 0 && (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState
               title="No matching pre-approval"
               description="Nothing found for that name or phone — try registering them as a new visitor instead."

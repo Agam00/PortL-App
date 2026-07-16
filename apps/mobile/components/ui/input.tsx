@@ -5,11 +5,12 @@ import type { TextInputProps } from "react-native";
 interface InputProps extends TextInputProps {
   label?: string;
   error?: string;
+  leftElement?: React.ReactNode;
   rightElement?: React.ReactNode;
 }
 
 export const Input = forwardRef<TextInput, InputProps>(function Input(
-  { label, error, rightElement, className, ...props },
+  { label, error, leftElement, rightElement, className, ...props },
   ref,
 ) {
   return (
@@ -18,17 +19,18 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
         <Text className="text-label-caps uppercase tracking-wide text-text-muted">{label}</Text>
       )}
       <View className="relative justify-center">
+        {leftElement && <View className="absolute left-4 z-10">{leftElement}</View>}
         <TextInput
           ref={ref}
-          placeholderTextColor="#8A8F98"
-          className={`rounded-lg border px-3 py-2.5 text-body-md text-on-surface ${
-            error ? "border-status-red" : "border-border-subtle focus:border-primary-container"
-          } bg-surface-elevated ${rightElement ? "pr-10" : ""} ${className ?? ""}`}
+          placeholderTextColor="#797585"
+          className={`rounded-md border-2 px-4 py-3 text-body-md text-on-surface ${
+            error ? "border-status-red" : "border-outline-variant focus:border-primary-container"
+          } bg-surface ${leftElement ? "pl-11" : ""} ${rightElement ? "pr-11" : ""} ${className ?? ""}`}
           {...props}
         />
-        {rightElement && <View className="absolute right-3">{rightElement}</View>}
+        {rightElement && <View className="absolute right-4">{rightElement}</View>}
       </View>
-      {error && <Text className="text-body-sm text-status-red">{error}</Text>}
+      {error && <Text className="text-body-sm text-status-red-strong">{error}</Text>}
     </View>
   );
 });

@@ -10,9 +10,9 @@ interface IconButtonProps extends Omit<PressableProps, "children" | "style"> {
 }
 
 /** Small icon-only action button (edit/delete/etc.) used throughout list rows — same tap target and hitSlop everywhere. */
-export function IconButton({ icon, color = "#8A8F98", size = 18, className, ...props }: IconButtonProps) {
+export function IconButton({ icon, color = "#797585", size = 18, className, ...props }: IconButtonProps) {
   return (
-    <PressableScale hitSlop={8} scaleTo={0.9} className={`p-1 ${className ?? ""}`} accessibilityRole="button" {...props}>
+    <PressableScale hitSlop={8} scaleTo={0.9} className={`p-2 rounded-full active:bg-surface-container ${className ?? ""}`} accessibilityRole="button" {...props}>
       <MaterialIcons name={icon} size={size} color={color} />
     </PressableScale>
   );

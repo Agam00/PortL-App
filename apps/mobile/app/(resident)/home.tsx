@@ -15,17 +15,28 @@ import { ScreenHeader } from "../../components/ui/screen-header";
 import { EmptyState } from "../../components/ui/empty-state";
 import { VisitorRequestCard } from "../../components/visitor-request-card";
 import { ListLoading } from "../../components/ui/list-loading";
+import { PressableScale } from "../../components/ui/pressable-scale";
+import { shadowCard } from "../../lib/shadows";
+
+function greeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
 
 const QUICK_ACTIONS: {
   label: string;
   meta: string;
   icon: React.ComponentProps<typeof MaterialIcons>["name"];
+  tint: string;
+  iconColor: string;
   route?: "/(resident)/pre-approve" | "/(resident)/helpdesk" | "/(resident)/dues" | "/(resident)/amenities";
 }[] = [
-  { label: "Pre-Approve", meta: "Generate pass", icon: "qr-code-scanner", route: "/(resident)/pre-approve" },
-  { label: "Help Desk", meta: "Raise ticket", icon: "support-agent", route: "/(resident)/helpdesk" },
-  { label: "Dues", meta: "View balance", icon: "payments", route: "/(resident)/dues" },
-  { label: "Bookings", meta: "Amenities", icon: "event", route: "/(resident)/amenities" },
+  { label: "Pre-Approve Guest", meta: "Generate pass", icon: "qr-code-scanner", tint: "bg-surface-container", iconColor: "#6244CD", route: "/(resident)/pre-approve" },
+  { label: "Help Desk", meta: "Raise ticket", icon: "support-agent", tint: "bg-secondary-container/30", iconColor: "#845400", route: "/(resident)/helpdesk" },
+  { label: "Pay Dues", meta: "View balance", icon: "payments", tint: "bg-secondary-container/30", iconColor: "#845400", route: "/(resident)/dues" },
+  { label: "Book Amenities", meta: "Facilities", icon: "event", tint: "bg-surface-container", iconColor: "#6244CD", route: "/(resident)/amenities" },
 ];
 
 export default function ResidentHome() {
@@ -78,25 +89,26 @@ export default function ResidentHome() {
         }
       >
         {user && (
-          <Text className="text-body-sm text-text-muted">
-            Good morning, {user.fullName.split(" ")[0]}
+          <Text className="text-headline-md font-extrabold text-on-surface">
+            Hello, {user.fullName.split(" ")[0]}! 👋
           </Text>
         )}
 
         <View className="gap-3">
           <View className="flex-row items-center justify-between">
-            <Text className="text-headline-md font-semibold text-on-surface">
-              Pending Approvals
-            </Text>
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="notifications-none" size={20} color="#FEB246" />
+              <Text className="text-headline-md font-extrabold text-on-surface">Pending Approvals</Text>
+            </View>
             <Pressable onPress={() => router.push("/(resident)/visitor-history")}>
-              <Text className="text-body-sm text-primary">View All</Text>
+              <Text className="text-body-sm font-bold text-primary-container">View All</Text>
             </Pressable>
           </View>
 
           {pendingQuery.isLoading ? (
             <ListLoading />
           ) : pendingQuery.isError ? (
-            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <View className="rounded-card bg-surface">
               <EmptyState
                 title="Couldn't load pending requests"
                 description="Pull down to refresh and try again."
@@ -104,7 +116,7 @@ export default function ResidentHome() {
               />
             </View>
           ) : pending.length === 0 ? (
-            <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+            <View className="rounded-card bg-surface">
               <EmptyState
                 title="No pending requests"
                 description="You're all caught up — new visitor and delivery requests will show up here."
@@ -130,21 +142,23 @@ export default function ResidentHome() {
         </View>
 
         <View className="gap-3">
+          <Text className="text-headline-md font-extrabold text-on-surface">Quick Actions</Text>
           {[QUICK_ACTIONS.slice(0, 2), QUICK_ACTIONS.slice(2, 4)].map((row, rowIndex) => (
             <View key={rowIndex} className="flex-row gap-3">
               {row.map((action) => (
-                <Pressable
+                <PressableScale
                   key={action.label}
+                  scaleTo={0.97}
                   disabled={!action.route}
                   onPress={() => action.route && router.push(action.route)}
-                  className="flex-1 gap-3 rounded-lg border border-border-subtle bg-surface-elevated p-4 active:bg-white/5"
+                  className="flex-1 items-center gap-3 rounded-card bg-surface p-5"
+                  style={shadowCard}
                 >
-                  <MaterialIcons name={action.icon} size={20} color="#5e6ad2" />
-                  <View>
-                    <Text className="text-body-md font-medium text-on-surface">{action.label}</Text>
-                    <Text className="text-meta-text text-text-muted">{action.meta}</Text>
+                  <View className={`h-12 w-12 items-center justify-center rounded-full ${action.tint}`}>
+                    <MaterialIcons name={action.icon} size={22} color={action.iconColor} />
                   </View>
-                </Pressable>
+                  <Text className="text-center text-body-sm font-bold text-on-surface">{action.label}</Text>
+                </PressableScale>
               ))}
             </View>
           ))}

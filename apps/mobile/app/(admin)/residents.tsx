@@ -204,7 +204,7 @@ export default function AdminResidents() {
                         setFlatId(flat.id);
                         setFlatError(null);
                       }}
-                      className={`rounded-md border px-3 py-1.5 ${flatId === flat.id ? "border-primary-container bg-white/5" : "border-border-subtle"}`}
+                      className={`rounded-md border px-3 py-1.5 ${flatId === flat.id ? "border-primary-container bg-surface-container" : "border-outline-variant"}`}
                     >
                       <Text className={`text-body-sm ${flatId === flat.id ? "text-primary-container" : "text-on-surface-variant"}`}>
                         {flat.flatNumber}
@@ -225,11 +225,11 @@ export default function AdminResidents() {
         {residentsQuery.isLoading ? (
           <ListLoading />
         ) : residentsQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load residents" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : residents.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No residents found" description="Invite a resident to get started." icon="group" />
           </View>
         ) : (
@@ -275,7 +275,7 @@ export default function AdminResidents() {
                   )}
                 </View>
                 {reassigningId === resident.id && (
-                  <View className="gap-2 border-t border-border-subtle pt-3">
+                  <View className="gap-2 border-t border-outline-variant pt-3">
                     <Text className="text-label-caps uppercase text-text-muted">Move to flat</Text>
                     <View className="flex-row flex-wrap gap-2">
                       {flats
@@ -284,7 +284,7 @@ export default function AdminResidents() {
                           <Pressable
                             key={flat.id}
                             onPress={() => setReassignFlatId(flat.id)}
-                            className={`rounded-md border px-3 py-1.5 ${reassignFlatId === flat.id ? "border-primary-container bg-white/5" : "border-border-subtle"}`}
+                            className={`rounded-md border px-3 py-1.5 ${reassignFlatId === flat.id ? "border-primary-container bg-surface-container" : "border-outline-variant"}`}
                           >
                             <Text className={`text-body-sm ${reassignFlatId === flat.id ? "text-primary-container" : "text-on-surface-variant"}`}>
                               {flat.flatNumber}

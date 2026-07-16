@@ -14,7 +14,7 @@ import { useAuthStore } from "../stores/auth-store";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// Portl is dark-mode-only by design (see DESIGN_SYSTEM.md) — no light theme exists.
+// Portl uses the "Friendly Community Console" light-mode design system (see DESIGN_SYSTEM.md).
 export default function RootLayout() {
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
 
@@ -27,8 +27,8 @@ export default function RootLayout() {
       <AppProviders>
         <SafeAreaProvider>
           <View className="flex-1 bg-background">
-            <StatusBar style="light" />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#131314" } }} />
+            <StatusBar style="dark" />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FDF8FF" } }} />
             <Toast />
             <PushRegistration />
           </View>

@@ -25,28 +25,31 @@ export default function AdminLayout() {
       <Tabs.Screen
         name="society"
         options={{
-          title: "Society",
+          title: "Management",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="business" color={color} size={size} />
+            <MaterialIcons name="hub" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
         name="requests"
         options={{
-          title: "Requests",
+          title: "Operations",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="fact-check" color={color} size={size} />
+            <MaterialIcons name="build" color={color} size={size} />
           ),
         }}
       />
       <Tabs.Screen
-        name="more"
+        name="notifications"
         options={{
-          title: "More",
-          tabBarIcon: ({ color, size }) => <MaterialIcons name="menu" color={color} size={size} />,
+          title: "Alerts",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="notifications" color={color} size={size} />
+          ),
         }}
       />
+      <Tabs.Screen name="more" options={{ href: null }} />
       <Tabs.Screen name="towers" options={{ href: null }} />
       <Tabs.Screen name="flats" options={{ href: null }} />
       <Tabs.Screen name="residents" options={{ href: null }} />
@@ -56,7 +59,6 @@ export default function AdminLayout() {
       <Tabs.Screen name="polls" options={{ href: null }} />
       <Tabs.Screen name="staff" options={{ href: null }} />
       <Tabs.Screen name="dues" options={{ href: null }} />
-      <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );
 }

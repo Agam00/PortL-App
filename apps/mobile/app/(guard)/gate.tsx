@@ -13,8 +13,10 @@ import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
 import { GroupLabel } from "../../components/ui/group-label";
+import { PulsingDot } from "../../components/ui/pulsing-dot";
 import { GuardQueueRow } from "../../components/guard-queue-row";
 import { ListLoading } from "../../components/ui/list-loading";
+import { shadowCard } from "../../lib/shadows";
 
 export default function GuardGate() {
   const router = useRouter();
@@ -70,7 +72,7 @@ export default function GuardGate() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Gate" role="guard" />
+      <ScreenHeader title="Gate Dashboard" role="guard" />
       <ScrollView
         contentContainerClassName="gap-4 p-4 pb-8"
         refreshControl={
@@ -78,24 +80,27 @@ export default function GuardGate() {
         }
       >
         <View className="flex-row gap-3">
-          <View className="flex-1 justify-center gap-1 rounded-lg border border-border-subtle bg-surface-elevated p-3">
-            <Text className="text-meta-text text-text-muted">Pending</Text>
-            <Text className="text-headline-lg font-semibold text-on-surface">{pending.length}</Text>
-          </View>
-          <View className="flex-1 justify-center gap-1 rounded-lg border border-border-subtle bg-surface-elevated p-3">
-            <Text className="text-meta-text text-text-muted">Checked In</Text>
-            <Text className="text-headline-lg font-semibold text-on-surface">{checkedIn.length}</Text>
-          </View>
-          <View className="flex-1 justify-center gap-1 rounded-lg border border-border-subtle bg-surface-elevated p-3">
-            <Text className="text-meta-text text-text-muted">Expiring Soon</Text>
+          <View className="flex-1 justify-center gap-1 rounded-card bg-surface p-4" style={shadowCard}>
+            <Text className="text-body-sm text-text-muted">Pending</Text>
             <View className="flex-row items-center gap-1.5">
-              <Text className="text-headline-lg font-semibold text-on-surface">{expiringSoon.length}</Text>
-              {expiringSoon.length > 0 && <View className="h-1.5 w-1.5 rounded-full bg-status-amber" />}
+              <Text className="text-headline-md font-extrabold text-status-amber">{pending.length}</Text>
+              {pending.length > 0 && <PulsingDot />}
+            </View>
+          </View>
+          <View className="flex-1 justify-center gap-1 rounded-card bg-surface p-4" style={shadowCard}>
+            <Text className="text-body-sm text-text-muted">Checked In</Text>
+            <Text className="text-headline-md font-extrabold text-primary-container">{checkedIn.length}</Text>
+          </View>
+          <View className="flex-1 justify-center gap-1 rounded-card bg-surface p-4" style={shadowCard}>
+            <Text className="text-body-sm text-text-muted">Expiring</Text>
+            <View className="flex-row items-center gap-1.5">
+              <Text className="text-headline-md font-extrabold text-status-red-strong">{expiringSoon.length}</Text>
+              {expiringSoon.length > 0 && <PulsingDot />}
             </View>
           </View>
         </View>
 
-        <View className="flex-row gap-2">
+        <View className="flex-row gap-3">
           <Button className="flex-1" variant="primary" onPress={() => router.push("/(guard)/visitors")}>
             Register Visitor
           </Button>
@@ -104,14 +109,10 @@ export default function GuardGate() {
           </Button>
         </View>
 
-        <Button variant="outline" onPress={() => router.push("/(guard)/resident-directory")}>
-          Resident Directory
-        </Button>
-
         {queueQuery.isLoading ? (
           <ListLoading />
         ) : queueQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState
               title="Couldn't load the queue"
               description="Pull down to refresh and try again."
@@ -119,7 +120,7 @@ export default function GuardGate() {
             />
           </View>
         ) : queue.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState
               title="No requests yet"
               description="Requests you register will show up here with live status."
@@ -130,7 +131,7 @@ export default function GuardGate() {
           <>
             {pending.length > 0 && (
               <View className="gap-2">
-                <GroupLabel label="Pending" />
+                <GroupLabel label="Pending Approval" />
                 {pending.map((visitor) => (
                   <GuardQueueRow key={visitor.id} visitor={visitor} />
                 ))}
@@ -139,7 +140,7 @@ export default function GuardGate() {
 
             {approved.length > 0 && (
               <View className="gap-2">
-                <GroupLabel label="Approved — awaiting entry" />
+                <GroupLabel label="Approved / Pre-Booked" />
                 {approved.map((visitor) => (
                   <GuardQueueRow
                     key={visitor.id}
@@ -157,7 +158,7 @@ export default function GuardGate() {
 
             {checkedIn.length > 0 && (
               <View className="gap-2">
-                <GroupLabel label="Checked in" />
+                <GroupLabel label="Currently On-Site" />
                 {checkedIn.map((visitor) => (
                   <GuardQueueRow
                     key={visitor.id}

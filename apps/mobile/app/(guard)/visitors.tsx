@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { MaterialIcons } from "@expo/vector-icons";
 import { createVisitorInputSchema } from "@repo/services/visitor/model";
 import type { FlatSearchResult } from "@repo/services/resident/model";
 import type { z } from "zod";
@@ -16,6 +17,8 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { Chip } from "../../components/ui/chip";
 import { FlatSearchField } from "../../components/flat-search-field";
+import { PressableScale } from "../../components/ui/pressable-scale";
+import { shadowCard } from "../../lib/shadows";
 
 type FormValues = z.infer<typeof createVisitorInputSchema>;
 
@@ -79,7 +82,9 @@ export default function GuardRegisterVisitor() {
     >
       <ScreenHeader title="Register Visitor" role="guard" />
       <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
-        <View className="gap-4 rounded-lg border border-border-subtle bg-surface p-4">
+        <Text className="text-body-sm text-text-muted">Log a new entry into the community.</Text>
+
+        <View className="gap-4 rounded-card bg-surface p-5" style={shadowCard}>
           <Controller
             control={control}
             name="flatId"
@@ -98,42 +103,43 @@ export default function GuardRegisterVisitor() {
               />
             )}
           />
+        </View>
 
-          <View className="gap-2">
-            <Text className="text-label-caps uppercase text-text-muted">Visitor Type</Text>
+        <View className="gap-2">
+          <Text className="text-label-caps uppercase tracking-wide text-text-muted">Visitor Type</Text>
+          <View className="flex-row flex-wrap gap-2">
+            {VISITOR_TYPES.map((t) => (
+              <Chip
+                key={t.value}
+                label={t.label}
+                icon={t.icon}
+                selected={selectedType === t.value}
+                onPress={() => setValue("type", t.value)}
+              />
+            ))}
+          </View>
+        </View>
+
+        {selectedType === "delivery" && (
+          <View className="gap-2 rounded-card bg-surface-container p-4">
+            <Text className="text-label-caps uppercase tracking-wide text-text-muted">Quick Select Provider</Text>
             <View className="flex-row flex-wrap gap-2">
-              {VISITOR_TYPES.map((t) => (
-                <Chip
-                  key={t.value}
-                  label={t.label}
-                  icon={t.icon}
-                  selected={selectedType === t.value}
-                  onPress={() => setValue("type", t.value)}
-                />
+              {QUICK_BRANDS.map((brand) => (
+                <Chip key={brand} label={brand} onPress={() => setValue("name", brand)} />
               ))}
             </View>
           </View>
+        )}
 
-          {selectedType === "delivery" && (
-            <View className="gap-2">
-              <Text className="text-label-caps uppercase text-text-muted">Quick Select</Text>
-              <View className="flex-row flex-wrap gap-2">
-                {QUICK_BRANDS.map((brand) => (
-                  <Chip key={brand} label={brand} onPress={() => setValue("name", brand)} />
-                ))}
-              </View>
-            </View>
-          )}
-
-          <View className="h-px bg-border-subtle" />
-
+        <View className="gap-4 rounded-card bg-surface p-5" style={shadowCard}>
+          <Text className="text-headline-md font-extrabold text-on-surface">Details</Text>
           <Controller
             control={control}
             name="name"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
-                label="Full Name"
-                placeholder="Enter visitor name"
+                label="Name"
+                placeholder="Visitor Name"
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -147,9 +153,9 @@ export default function GuardRegisterVisitor() {
             name="phone"
             render={({ field: { onChange, onBlur, value } }) => (
               <Input
-                label="Phone Number"
+                label="Phone Number (Optional)"
                 keyboardType="phone-pad"
-                placeholder="10-digit number"
+                placeholder="+91"
                 onBlur={onBlur}
                 onChangeText={onChange}
                 value={value}
@@ -157,31 +163,43 @@ export default function GuardRegisterVisitor() {
               />
             )}
           />
-
-          <View className="gap-2">
-            <Text className="text-label-caps uppercase text-text-muted">Photo (Optional)</Text>
-            {photo ? (
-              <View className="flex-row items-center gap-3">
-                <Image source={{ uri: photo }} className="h-16 w-16 rounded-lg border border-border-subtle" />
-                <Button variant="outline" onPress={() => setPhoto(null)}>
-                  Remove
-                </Button>
-              </View>
-            ) : (
-              <Button variant="outline" loading={isCapturing} onPress={handleCapturePhoto}>
-                Take Photo
-              </Button>
-            )}
-          </View>
-
-          <Button
-            className="mt-2"
-            onPress={handleSubmit((values) => createMutation.mutate(values))}
-            loading={createMutation.isPending}
-          >
-            Send Request
-          </Button>
         </View>
+
+        <View className="items-center gap-3 rounded-card bg-surface p-6" style={shadowCard}>
+          {photo ? (
+            <>
+              <Image source={{ uri: photo }} className="h-24 w-24 rounded-full" />
+              <Button variant="outline" onPress={() => setPhoto(null)}>
+                Remove Photo
+              </Button>
+            </>
+          ) : (
+            <>
+              <PressableScale
+                onPress={handleCapturePhoto}
+                disabled={isCapturing}
+                scaleTo={0.95}
+                className="h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-primary-container bg-surface-container"
+              >
+                {isCapturing ? (
+                  <ActivityIndicator color="#6244CD" />
+                ) : (
+                  <MaterialIcons name="photo-camera" size={26} color="#6244CD" />
+                )}
+              </PressableScale>
+              <Text className="text-body-sm font-bold text-on-surface">Take Photo</Text>
+              <Text className="text-body-sm text-text-muted">Optional visual record for security.</Text>
+            </>
+          )}
+        </View>
+
+        <Button
+          className="mt-2"
+          onPress={handleSubmit((values) => createMutation.mutate(values))}
+          loading={createMutation.isPending}
+        >
+          Allow Entry
+        </Button>
       </ScrollView>
     </KeyboardAvoidingView>
   );

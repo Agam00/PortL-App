@@ -155,11 +155,11 @@ export default function AdminStaff() {
         {staffQuery.isLoading ? (
           <ListLoading />
         ) : staffQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load staff directory" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : staff.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No staff entries" description="Add a staff or service provider above." icon="badge" />
           </View>
         ) : (
@@ -177,7 +177,7 @@ export default function AdminStaff() {
                 </View>
                 <Pressable
                   onPress={() => updateMutation.mutate({ staffId: entry.id, isVerifiedByAdmin: !entry.isVerifiedByAdmin })}
-                  className={`rounded-md border px-2 py-1 ${entry.isVerifiedByAdmin ? "border-status-green/40" : "border-border-subtle"}`}
+                  className={`rounded-md border px-2 py-1 ${entry.isVerifiedByAdmin ? "border-status-green/40" : "border-outline-variant"}`}
                   accessibilityLabel={entry.isVerifiedByAdmin ? `Mark ${entry.name} as unverified` : `Mark ${entry.name} as verified`}
                   accessibilityRole="button"
                 >
@@ -187,7 +187,7 @@ export default function AdminStaff() {
                 </Pressable>
                 <IconButton
                   icon="delete-outline"
-                  color="#F87171"
+                  color="#BA1A1A"
                   onPress={() => confirmDelete(entry.id, entry.name)}
                   accessibilityLabel={`Delete ${entry.name}`}
                 />

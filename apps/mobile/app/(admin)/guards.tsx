@@ -157,11 +157,11 @@ export default function AdminGuards() {
         {guardsQuery.isLoading ? (
           <ListLoading />
         ) : guardsQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load guards" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : guards.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No guards found" description="Invite a guard to get started." icon="shield" />
           </View>
         ) : (

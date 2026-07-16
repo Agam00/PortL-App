@@ -12,6 +12,7 @@ import { getErrorMessage } from "../../lib/error-message";
 import { hapticError } from "../../lib/haptics";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
+import { shadowCard } from "../../lib/shadows";
 
 interface LoginForm {
   identifier: string;
@@ -49,31 +50,34 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       className="flex-1 bg-background"
     >
-      <ScrollView
-        contentContainerClassName="flex-1 justify-center items-center px-6"
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="w-full max-w-[360px]">
-          <View className="mb-8 flex-row items-center justify-center gap-1">
-            <Text className="text-headline-lg font-semibold tracking-tight text-on-surface">
-              Portl
+      <ScrollView contentContainerClassName="flex-grow justify-center px-6 py-12" keyboardShouldPersistTaps="handled">
+        <View className="w-full max-w-[400px] self-center">
+          <Text className="text-center text-headline-xl font-extrabold tracking-tight text-primary-container">
+            PORTL
+          </Text>
+
+          <View className="mt-8 gap-2">
+            <Text className="text-center text-headline-lg font-extrabold text-on-surface">Welcome Home</Text>
+            <Text className="text-center text-body-md text-text-muted">
+              Sign in to access your community console and connect with neighbors.
             </Text>
-            <View className="mt-1 h-1.5 w-1.5 rounded-full bg-primary-container" />
           </View>
 
-          <View className="w-full gap-4">
+          <View className="mt-8 gap-4 rounded-card bg-surface p-6" style={shadowCard}>
             <Controller
               control={control}
               name="identifier"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
+                  label="Email or Phone"
                   autoCapitalize="none"
                   keyboardType="email-address"
-                  placeholder="Phone or email"
+                  placeholder="jane@example.com"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
                   error={errors.identifier?.message}
+                  leftElement={<MaterialIcons name="person-outline" size={20} color="#797585" />}
                 />
               )}
             />
@@ -82,12 +86,14 @@ export default function LoginScreen() {
               name="password"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
+                  label="Password"
                   secureTextEntry={!showPassword}
-                  placeholder="Password"
+                  placeholder="••••••••"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
                   error={errors.password?.message}
+                  leftElement={<MaterialIcons name="lock-outline" size={20} color="#797585" />}
                   rightElement={
                     <Pressable
                       accessibilityLabel="Toggle password visibility"
@@ -97,7 +103,7 @@ export default function LoginScreen() {
                       <MaterialIcons
                         name={showPassword ? "visibility" : "visibility-off"}
                         size={20}
-                        color="#8A8F98"
+                        color="#797585"
                       />
                     </Pressable>
                   }
@@ -105,12 +111,20 @@ export default function LoginScreen() {
               )}
             />
 
+            <Pressable
+              className="self-end"
+              hitSlop={8}
+              onPress={() => showToast("Contact your society admin to reset your password", "info")}
+            >
+              <Text className="text-body-sm font-bold text-primary-container">Forgot Password?</Text>
+            </Pressable>
+
             <Button
               className="mt-2"
               onPress={handleSubmit((values) => loginMutation.mutate(values))}
               loading={loginMutation.isPending}
             >
-              Log in
+              Sign In
             </Button>
           </View>
         </View>

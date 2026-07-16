@@ -11,6 +11,7 @@ import { Chip } from "../../components/ui/chip";
 import { EmptyState } from "../../components/ui/empty-state";
 import { Button } from "../../components/ui/button";
 import { ListLoading } from "../../components/ui/list-loading";
+import { shadowCard } from "../../lib/shadows";
 
 function timeAgo(iso: string | null) {
   if (!iso) return "";
@@ -117,11 +118,11 @@ export default function AdminRequests() {
         {complaintsQuery.isLoading ? (
           <ListLoading />
         ) : complaintsQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load complaints" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : complaints.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No matching complaints" description="Nothing found for this search or filter." icon="report-problem" />
           </View>
         ) : (
@@ -132,7 +133,8 @@ export default function AdminRequests() {
                 <Pressable
                   key={complaint.id}
                   onPress={() => setExpandedId(expanded ? null : complaint.id)}
-                  className="gap-2 rounded-xl border border-border-subtle bg-surface p-4"
+                  className="gap-2 rounded-card bg-surface p-4"
+                  style={shadowCard}
                 >
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-1.5">
@@ -148,7 +150,7 @@ export default function AdminRequests() {
                   </Text>
 
                   {expanded && (
-                    <View className="gap-3 border-t border-border-subtle pt-3">
+                    <View className="gap-3 border-t border-outline-variant pt-3">
                       <Text className="text-body-sm text-on-surface-variant">{complaint.description}</Text>
 
                       <View className="gap-2">
@@ -181,13 +183,13 @@ export default function AdminRequests() {
 
                       <Text className="text-label-caps uppercase text-text-muted">Updates</Text>
                       {commentsQuery.isLoading ? (
-                        <ActivityIndicator color="#5e6ad2" />
+                        <ActivityIndicator color="#6244CD" />
                       ) : (commentsQuery.data ?? []).length === 0 ? (
                         <Text className="text-body-sm text-text-muted">No replies yet.</Text>
                       ) : (
                         <View className="gap-2">
                           {(commentsQuery.data ?? []).map((comment) => (
-                            <View key={comment.id} className="rounded-lg border border-border-subtle bg-surface-elevated p-3">
+                            <View key={comment.id} className="rounded-md bg-surface-container p-3">
                               <View className="flex-row items-center justify-between">
                                 <Text className="text-body-sm font-medium text-on-surface">
                                   {comment.authorName} {comment.authorRole !== "admin" ? `(${comment.authorRole})` : ""}

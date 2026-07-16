@@ -21,41 +21,29 @@ export default function ResidentLayout() {
         }}
       />
       <Tabs.Screen
-        name="notices"
+        name="services"
         options={{
-          title: "Notices",
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="campaign" color={color} size={size} />
-          ),
+          title: "Services",
+          tabBarIcon: ({ color, size }) => <MaterialIcons name="grid-view" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
-        name="helpdesk"
+        name="social"
         options={{
-          title: "Helpdesk",
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="support-agent" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="amenities"
-        options={{
-          title: "Amenities",
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="event" color={color} size={size} />
-          ),
+          title: "Social",
+          tabBarIcon: ({ color, size }) => <MaterialIcons name="groups" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="person" color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <MaterialIcons name="person" color={color} size={size} />,
         }}
       />
+      <Tabs.Screen name="notices" options={{ href: null }} />
+      <Tabs.Screen name="helpdesk" options={{ href: null }} />
+      <Tabs.Screen name="amenities" options={{ href: null }} />
       <Tabs.Screen name="pre-approve" options={{ href: null }} />
       <Tabs.Screen name="pre-approvals" options={{ href: null }} />
       <Tabs.Screen name="visitor-history" options={{ href: null }} />

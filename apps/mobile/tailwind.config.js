@@ -5,36 +5,43 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Portl design system — see apps/mobile/DESIGN_SYSTEM.md (source: Stitch export).
-        // Dark-mode-only, monochrome-plus-one-accent, Linear-inspired. Tailwind's default
-        // rounded-md (6px) / rounded-lg (8px) already match the spec, so no radius overrides needed.
-        background: "#131314",
-        surface: "#131314",
-        "surface-elevated": "#1F2023",
-        "surface-container-lowest": "#0e0e0f",
-        "surface-container-high": "#2a2a2b",
-        "on-surface": "#e5e2e3",
-        "on-surface-variant": "#c6c5d5",
-        "text-muted": "#8A8F98",
-        "border-subtle": "rgba(255,255,255,0.08)",
-        "outline-variant": "#454652",
-        primary: "#bdc2ff",
-        "primary-container": "#5e6ad2",
-        "inverse-primary": "#4854bb",
-        "status-green": "#4ADE80",
-        "status-amber": "#FACC15",
-        "status-red": "#F87171",
+        // Portl design system — see apps/mobile/DESIGN_SYSTEM.md (source: Stitch export,
+        // "Friendly Community Console"). Light mode, warm off-white + saturated violet accent,
+        // big soft radii, ambient shadows instead of hairline borders.
+        background: "#FDF8FF",
+        surface: "#FFFFFF",
+        "surface-container": "#F1ECF8",
+        "surface-container-high": "#ECE6F2",
+        "on-surface": "#1C1A23",
+        "on-surface-variant": "#48454F",
+        "text-muted": "#797585",
+        outline: "#797585",
+        "outline-variant": "#CAC4D6",
+        primary: "#6244CD",
+        "primary-container": "#7B5FE8",
+        "inverse-primary": "#4A27B5",
+        secondary: "#845400",
+        "secondary-container": "#FEB246",
+        "status-green": "#27C96D",
+        "status-amber": "#FEB246",
+        "status-red": "#FF5F5F",
+        "status-red-strong": "#BA1A1A",
       },
       fontSize: {
         // Size + line-height + letter-spacing only — apply font-weight separately
         // (font-semibold/font-medium/font-normal) since fontWeight isn't part of
         // Tailwind's fontSize tuple spec.
-        "headline-lg": ["22px", { lineHeight: "28px", letterSpacing: "-0.02em" }],
-        "headline-md": ["20px", { lineHeight: "24px", letterSpacing: "-0.01em" }],
-        "body-md": ["14px", { lineHeight: "20px" }],
-        "body-sm": ["13px", { lineHeight: "18px" }],
+        "headline-xl": ["40px", { lineHeight: "48px", letterSpacing: "-0.02em" }],
+        "headline-lg": ["28px", { lineHeight: "36px", letterSpacing: "-0.01em" }],
+        "headline-md": ["24px", { lineHeight: "32px" }],
+        "body-lg": ["18px", { lineHeight: "28px" }],
+        "body-md": ["16px", { lineHeight: "24px" }],
+        "body-sm": ["14px", { lineHeight: "20px" }],
         "label-caps": ["12px", { lineHeight: "16px", letterSpacing: "0.05em" }],
         "meta-text": ["12px", { lineHeight: "16px" }],
+      },
+      borderRadius: {
+        card: "20px",
       },
     },
   },

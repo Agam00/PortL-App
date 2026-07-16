@@ -8,6 +8,7 @@ import { getErrorMessage } from "../lib/error-message";
 import { ScreenHeader } from "./ui/screen-header";
 import { RoleBadge } from "./ui/role-badge";
 import { Button } from "./ui/button";
+import { shadowCard } from "../lib/shadows";
 
 function initialsFrom(name: string) {
   return name
@@ -28,12 +29,12 @@ function InfoRow({
   value: string;
 }) {
   return (
-    <View className="flex-row items-center justify-between rounded-lg border border-border-subtle bg-surface p-4">
+    <View className="flex-row items-center justify-between rounded-card bg-surface p-4" style={shadowCard}>
       <View className="flex-row items-center gap-3">
-        <MaterialIcons name={icon} size={20} color="#8A8F98" />
+        <MaterialIcons name={icon} size={20} color="#797585" />
         <Text className="text-body-md text-text-muted">{label}</Text>
       </View>
-      <Text className="text-body-md font-medium text-on-surface">{value}</Text>
+      <Text className="text-body-md font-bold text-on-surface">{value}</Text>
     </View>
   );
 }
@@ -59,13 +60,13 @@ export function RoleProfileScreen() {
     <View className="flex-1 bg-background">
       <ScreenHeader title="Profile" role={user.role} />
       <ScrollView contentContainerClassName="gap-4 p-4 pb-8">
-        <View className="items-center gap-4 rounded-xl border border-border-subtle bg-surface-elevated p-6">
-          <View className="h-24 w-24 items-center justify-center rounded-full border-2 border-primary-container bg-surface-container-high">
-            <Text className="text-headline-lg font-semibold text-on-surface">
+        <View className="items-center gap-4 rounded-card bg-surface p-6" style={shadowCard}>
+          <View className="h-24 w-24 items-center justify-center rounded-full bg-surface-container">
+            <Text className="text-headline-lg font-extrabold text-primary-container">
               {initialsFrom(user.fullName)}
             </Text>
           </View>
-          <Text className="text-headline-md font-semibold text-on-surface">{user.fullName}</Text>
+          <Text className="text-headline-md font-extrabold text-on-surface">{user.fullName}</Text>
           <RoleBadge role={user.role} />
         </View>
 

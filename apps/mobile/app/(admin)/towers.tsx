@@ -142,19 +142,19 @@ export default function AdminTowers() {
         {towersQuery.isLoading ? (
           <ListLoading />
         ) : towersQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load towers" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : towers.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No towers yet" description="Add your first tower to get started." icon="business" />
           </View>
         ) : (
           <View className="gap-2">
             {towers.map((tower) => (
               <ListRowCard key={tower.id} className="flex-row items-center gap-3">
-                <View className="h-11 w-11 items-center justify-center rounded-lg border border-border-subtle bg-surface-elevated">
-                  <MaterialIcons name="business" size={20} color="#c6c5d5" />
+                <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-container">
+                  <MaterialIcons name="business" size={20} color="#48454F" />
                 </View>
                 <View className="min-w-0 flex-1">
                   <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
@@ -168,7 +168,7 @@ export default function AdminTowers() {
                 <IconButton icon="edit" onPress={() => startEdit(tower)} accessibilityLabel={`Edit ${tower.name}`} />
                 <IconButton
                   icon="delete-outline"
-                  color="#F87171"
+                  color="#BA1A1A"
                   onPress={() => confirmDelete(tower.id, tower.name)}
                   accessibilityLabel={`Delete ${tower.name}`}
                 />

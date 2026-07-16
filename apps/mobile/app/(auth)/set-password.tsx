@@ -1,4 +1,5 @@
-import { View, Text } from "react-native";
+import { useState } from "react";
+import { View, Text, ScrollView } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
@@ -11,6 +12,7 @@ import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
+import { shadowCard } from "../../lib/shadows";
 
 interface SetPasswordForm {
   newPassword: string;
@@ -21,15 +23,20 @@ export default function SetPasswordScreen() {
   const user = useAuthStore((s) => s.user);
   const updateUser = useAuthStore((s) => s.updateUser);
   const showToast = useUiStore((s) => s.showToast);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<SetPasswordForm>({
     resolver: zodResolver(setPasswordInputSchema),
     defaultValues: { newPassword: "" },
   });
+
+  const newPassword = watch("newPassword");
 
   const setPasswordMutation = trpc.auth.setPassword.useMutation({
     onSuccess: () => {
@@ -44,50 +51,77 @@ export default function SetPasswordScreen() {
     },
   });
 
+  function onSubmit(values: SetPasswordForm) {
+    if (values.newPassword !== confirmPassword) {
+      setConfirmError("Passwords don't match");
+      return;
+    }
+    setConfirmError(null);
+    setPasswordMutation.mutate(values);
+  }
+
   return (
-    <View className="flex-1 bg-background">
-      <View className="w-full flex-row items-center justify-center gap-2 py-8">
-        <MaterialIcons name="grid-view" size={20} color="#5e6ad2" />
-        <Text className="text-headline-md font-bold tracking-tight text-on-surface">PORTL</Text>
-      </View>
+    <ScrollView className="flex-1 bg-background" contentContainerClassName="flex-grow justify-center px-6 py-12">
+      <View className="w-full max-w-[400px] self-center">
+        <Text className="text-center text-headline-xl font-extrabold tracking-tight text-primary-container">
+          PORTL
+        </Text>
+        <Text className="mt-1 text-center text-body-md text-text-muted">Friendly Community Console</Text>
 
-      <View className="flex-1 items-center px-6">
-        <View className="w-full max-w-[400px] gap-2 rounded-lg border border-border-subtle bg-surface-elevated p-6">
-          <Text className="text-headline-lg font-semibold text-on-surface">
-            Set new password
-          </Text>
-          <Text className="mb-4 text-body-md text-text-muted">
-            Enter a new secure password for your account.
-          </Text>
+        <View className="mt-8 items-center gap-4 rounded-card bg-surface p-6" style={shadowCard}>
+          <View className="h-16 w-16 items-center justify-center rounded-full bg-surface-container">
+            <MaterialIcons name="lock-reset" size={28} color="#6244CD" />
+          </View>
 
-          <Controller
-            control={control}
-            name="newPassword"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label="New password"
-                secureTextEntry
-                placeholder="********"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                error={errors.newPassword?.message}
-              />
-            )}
+          <View className="items-center gap-1">
+            <Text className="text-headline-md font-extrabold text-on-surface">Welcome to PORTL!</Text>
+            <Text className="text-body-md text-text-muted">Let's secure your account.</Text>
+          </View>
+
+          <View className="w-full gap-1">
+            <Controller
+              control={control}
+              name="newPassword"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <Input
+                  label="New Password"
+                  secureTextEntry
+                  placeholder="Enter your new password"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  error={errors.newPassword?.message}
+                  leftElement={<MaterialIcons name="lock-outline" size={20} color="#797585" />}
+                />
+              )}
+            />
+            <Text className="text-body-sm text-text-muted">Must be at least 6 characters long.</Text>
+          </View>
+
+          <Input
+            label="Confirm Password"
+            secureTextEntry
+            placeholder="Re-enter your password"
+            value={confirmPassword}
+            onChangeText={(v) => {
+              setConfirmPassword(v);
+              if (confirmError) setConfirmError(null);
+            }}
+            error={confirmError ?? undefined}
+            leftElement={<MaterialIcons name="lock-outline" size={20} color="#797585" />}
+            className="w-full"
           />
-          <Text className="mb-2 text-meta-text text-text-muted">
-            Must be at least 6 characters long.
-          </Text>
 
           <Button
-            className="mt-2"
-            onPress={handleSubmit((values) => setPasswordMutation.mutate(values))}
+            className="mt-2 w-full"
+            onPress={handleSubmit(onSubmit)}
             loading={setPasswordMutation.isPending}
+            disabled={!newPassword || !confirmPassword}
           >
-            Save and continue
+            Set Password
           </Button>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }

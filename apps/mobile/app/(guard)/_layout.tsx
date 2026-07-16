@@ -16,18 +16,9 @@ export default function GuardLayout() {
       <Tabs.Screen
         name="gate"
         options={{
-          title: "Gate",
+          title: "Home",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="verified-user" color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="visitors"
-        options={{
-          title: "Visitors",
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="people" color={color} size={size} />
+            <MaterialIcons name="home" color={color} size={size} />
           ),
         }}
       />
@@ -41,6 +32,15 @@ export default function GuardLayout() {
         }}
       />
       <Tabs.Screen
+        name="resident-directory"
+        options={{
+          title: "Residents",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="people" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
@@ -49,8 +49,8 @@ export default function GuardLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="visitors" options={{ href: null }} />
       <Tabs.Screen name="check-preapproved" options={{ href: null }} />
-      <Tabs.Screen name="resident-directory" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );

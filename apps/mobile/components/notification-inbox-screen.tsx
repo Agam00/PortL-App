@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
+import { View, Text, ScrollView, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../lib/trpc";
@@ -7,6 +7,8 @@ import { ScreenHeader } from "./ui/screen-header";
 import { EmptyState } from "./ui/empty-state";
 import { Button } from "./ui/button";
 import { ListLoading } from "./ui/list-loading";
+import { PressableScale } from "./ui/pressable-scale";
+import { shadowCard } from "../lib/shadows";
 
 const TYPE_ICON: Record<string, React.ComponentProps<typeof MaterialIcons>["name"]> = {
   visitor_request: "person",
@@ -67,43 +69,42 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
         {notificationsQuery.isLoading ? (
           <ListLoading />
         ) : notificationsQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load notifications" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : notifications.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No notifications yet" description="Updates and alerts will show up here." icon="notifications-none" />
           </View>
         ) : (
           <View className="gap-2">
             {notifications.map((notification) => (
-              <Pressable
-                key={notification.id}
-                onPress={() => handlePress(notification)}
-                className={`flex-row items-start gap-3 rounded-lg border p-4 ${
-                  notification.readAt ? "border-border-subtle bg-surface" : "border-border-subtle bg-surface-elevated"
-                }`}
-              >
-                <View className="h-9 w-9 items-center justify-center rounded-full border border-border-subtle bg-surface-container-high">
-                  <MaterialIcons name={TYPE_ICON[notification.type] ?? "notifications"} size={18} color="#c6c5d5" />
-                </View>
-                <View className="min-w-0 flex-1">
-                  <View className="flex-row items-start justify-between gap-2">
-                    <Text
-                      className={`flex-1 text-body-md ${notification.readAt ? "text-on-surface-variant" : "font-semibold text-on-surface"}`}
-                    >
-                      {notification.title}
-                    </Text>
-                    {!notification.readAt && <View className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary-container" />}
+              <PressableScale key={notification.id} scaleTo={0.98} onPress={() => handlePress(notification)}>
+                <View
+                  className="flex-row items-start gap-3 rounded-card p-4"
+                  style={[shadowCard, { backgroundColor: notification.readAt ? "#FFFFFF" : "#F1ECF8" }]}
+                >
+                  <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-high">
+                    <MaterialIcons name={TYPE_ICON[notification.type] ?? "notifications"} size={18} color="#6244CD" />
                   </View>
-                  {notification.body && (
-                    <Text className="text-body-sm text-text-muted" numberOfLines={2}>
-                      {notification.body}
-                    </Text>
-                  )}
-                  <Text className="text-meta-text text-text-muted">{timeAgo(notification.createdAt)}</Text>
+                  <View className="min-w-0 flex-1">
+                    <View className="flex-row items-start justify-between gap-2">
+                      <Text
+                        className={`flex-1 text-body-md ${notification.readAt ? "text-on-surface-variant" : "font-bold text-on-surface"}`}
+                      >
+                        {notification.title}
+                      </Text>
+                      {!notification.readAt && <View className="mt-1.5 h-2 w-2 rounded-full bg-primary-container" />}
+                    </View>
+                    {notification.body && (
+                      <Text className="text-body-sm text-text-muted" numberOfLines={2}>
+                        {notification.body}
+                      </Text>
+                    )}
+                    <Text className="mt-1 text-label-sm text-text-muted">{timeAgo(notification.createdAt)}</Text>
+                  </View>
                 </View>
-              </Pressable>
+              </PressableScale>
             ))}
           </View>
         )}

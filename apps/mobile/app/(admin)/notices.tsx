@@ -205,11 +205,11 @@ export default function AdminNotices() {
         {noticesQuery.isLoading ? (
           <ListLoading />
         ) : noticesQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load notices" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : notices.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No notices yet" description="Publish your first notice above." icon="campaign" />
           </View>
         ) : (
@@ -229,7 +229,7 @@ export default function AdminNotices() {
                   </View>
                   <IconButton
                     icon="delete-outline"
-                    color="#F87171"
+                    color="#BA1A1A"
                     onPress={() => confirmDelete(notice.id, notice.title)}
                     accessibilityLabel={`Delete ${notice.title}`}
                   />

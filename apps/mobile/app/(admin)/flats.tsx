@@ -199,11 +199,11 @@ export default function AdminFlats() {
         {flatsQuery.isLoading ? (
           <ListLoading />
         ) : flatsQuery.isError ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="Couldn't load flats" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : flats.length === 0 ? (
-          <View className="rounded-lg border border-border-subtle bg-surface-elevated">
+          <View className="rounded-card bg-surface">
             <EmptyState title="No flats yet" description="Add a flat to a tower to get started." icon="door-front" />
           </View>
         ) : (
@@ -212,7 +212,7 @@ export default function AdminFlats() {
               <GroupLabel label={`${towerName} · ${towerFlats.length} units`} />
               {towerFlats.map((flat) => (
                 <ListRowCard key={flat.id} className="flex-row items-center gap-3">
-                  <View className="h-11 w-11 items-center justify-center rounded-lg border border-border-subtle bg-surface-elevated">
+                  <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-container">
                     <Text className="text-body-sm font-semibold text-on-surface">{flat.flatNumber.split("-").pop()}</Text>
                   </View>
                   <View className="min-w-0 flex-1">
@@ -230,7 +230,7 @@ export default function AdminFlats() {
                   <IconButton icon="edit" onPress={() => startEdit(flat)} accessibilityLabel={`Edit ${flat.flatNumber}`} />
                   <IconButton
                     icon="delete-outline"
-                    color="#F87171"
+                    color="#BA1A1A"
                     onPress={() => confirmDelete(flat.id, flat.flatNumber)}
                     accessibilityLabel={`Delete ${flat.flatNumber}`}
                   />

@@ -23,21 +23,23 @@ export function ScreenHeader({ title, role }: { title: string; role: string }) {
   const onInboxScreen = notificationsRoute && pathname === notificationsRoute;
 
   return (
-    <View className="flex-row items-center justify-between border-b border-border-subtle bg-background px-4 py-4">
-      <Text className="flex-1 text-headline-lg font-semibold text-on-surface">{title}</Text>
+    <View className="flex-row items-center justify-between bg-background px-5 pb-4 pt-2">
+      <Text className="flex-1 text-headline-md font-extrabold text-on-surface">{title}</Text>
       <View className="flex-row items-center gap-3">
         {notificationsRoute && !onInboxScreen && (
           <Pressable
             onPress={() => router.push(notificationsRoute as never)}
             hitSlop={8}
-            className="relative"
+            className="relative h-10 w-10 items-center justify-center rounded-full bg-surface-container"
             accessibilityLabel={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : "Notifications"}
             accessibilityRole="button"
           >
-            <MaterialIcons name="notifications-none" size={22} color="#c6c5d5" />
+            <MaterialIcons name="notifications-none" size={20} color="#48454F" />
             {unreadCount > 0 && (
-              <View className="absolute -right-1 -top-1 h-4 min-w-4 items-center justify-center rounded-full bg-status-red px-1">
-                <Text className="text-[10px] font-semibold text-white">{unreadCount > 9 ? "9+" : unreadCount}</Text>
+              <View className="absolute -right-0.5 -top-0.5 h-4 min-w-4 items-center justify-center rounded-full bg-status-red-strong px-1">
+                <Text className="text-label-sm font-bold text-white" style={{ fontSize: 10, lineHeight: 12 }}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </Text>
               </View>
             )}
           </Pressable>
