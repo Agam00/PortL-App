@@ -371,7 +371,7 @@ Resolved: user created a Firebase project (`portl-f2e6f`), registered an Android
 - [x] App icon, splash screen, and consistent color/typography scale across all 3 roles (same design system, role-tinted accent color is a nice touch: e.g. resident=blue, guard=amber, admin=slate)
 - [x] Basic accessibility pass: tap target sizes, contrast, screen-reader labels on icon-only buttons
 - [x] Performance pass: verify list screens (visitor history, notices) use `FlashList`/`FlatList` properly (no unbounded re-renders), images are reasonably sized
-- [ ] Commit: `polish: loading/empty/error states, a11y, perf` — pending explicit go-ahead (never commit without being asked, per standing user instruction)
+- [x] Commit: `polish: loading/empty/error states, a11y, perf` — bundled into the full design-system-pivot commit on 2026-07-16 per explicit user go-ahead (see addendum below)
 
 **Survey first, then fix:** a full read-through of every screen under `app/(resident)/`, `app/(guard)/`, `app/(admin)/` plus shared `components/` against the 8-point checklist above, before touching any code. Findings: loading-state and empty-state coverage were already solid everywhere (the Phase 4D fix held, no regressions in later phases). The real gaps were pull-to-refresh (missing on 19 of ~30 list screens — every admin CRUD screen plus several resident/guard ones), zero `expo-haptics` usage anywhere in the app, ~10 hand-rolled admin/resident forms using one generic `showToast("Fill all fields")` instead of per-field inline errors, no `isError` branch on any query (a failed fetch silently rendered as "empty" — indistinguishable from genuinely empty), missing `accessibilityLabel` on most icon-only buttons (edit/delete/call/send-comment/close icons), and three long-list screens (`visitor-history.tsx`, guard `history.tsx`, guard `resident-directory.tsx`) using `ScrollView`+`.map()` instead of a virtualized list.
 
@@ -410,6 +410,27 @@ All fixes verified: root `pnpm check-types` clean, `expo export --platform web` 
 **Now in progress:** a scoped visual/motion polish pass (separate from the correctness fixes above), explicitly not a full 30-screen rewrite — batched and tested on-device between batches since there's no way to verify motion/visual changes without the user's eyes. Locked: color tokens, fonts, no-shadow rule. Fair game: spacing/rhythm, micro-interactions, motion, delight touches, information hierarchy. Priority order per user's choice: visitor-approval flow (the stated headline feature) first, then resident home / guard gate / admin dashboard, then fan out.
 
 Batch 1 (done, on-device testing pending user feedback): built `components/ui/pressable-scale.tsx` (press-feedback wrapper using React Native's built-in `Animated` API — deliberately not `react-native-reanimated`'s worklet-based API despite it being installed, since a missing/misconfigured Babel plugin for worklets is exactly the kind of failure that wouldn't surface until on-device testing, per the Phase 10 EAS build lesson about exactly this class of native-config mismatch). Upgraded `Button`, `Chip`, `IconButton` to use it — broad low-risk coverage since those 3 components are used nearly everywhere. Added `LayoutAnimation`-based smooth insert/remove transitions (RN core API, no new dependency) to the resident Home pending-approvals list and the guard Gate queue, scoped to the user's own action (approve/reject, mark entry/exit) rather than every background poll tick.
+
+**Superseded by a full identity pivot, below** — the scoped motion-only polish plan above stopped after Batch 1 once the user decided to replace the entire visual identity instead of iterating on the locked Linear-inspired system.
+
+### Full design system pivot: "Friendly Community Console" (2026-07-16)
+Motivation: the hackathon rubric weights UI heavily, and the user wanted a warmer, higher-energy visual identity than the original "calm, efficient, dependable" dark/Linear-inspired system — informed in part by a commercial competitor app referenced for tone and pattern inspiration (not literal cloning, which was explicitly declined on IP grounds). The user generated a full mockup set via Google Stitch and gave the explicit go-ahead for a full switch (not a partial borrow into the old system) plus a 4-tab-per-role nav restructure (down from 5).
+
+**Foundation rewritten:**
+- `DESIGN_SYSTEM.md` and `PRODUCT.md` rewritten for the new direction: light mode, `#FDF8FF` background, violet primary (`#6244CD`/`#7B5FE8`), amber secondary, pill-shaped buttons/badges, ambient violet-tinted shadows instead of hairline borders, Be Vietnam Pro headings / Nunito Sans body.
+- `tailwind.config.js` tokens fully replaced (colors, type scale, `rounded-card`); new `lib/shadows.ts` (`shadowCard`/`shadowElevated`); `lib/tab-bar-options.ts` retinted (shared across all 3 roles' tab layouts, so this one file gated whether the whole app looked switched-over).
+- App shell hardcoded dark values fixed: `app/_layout.tsx` (background + `StatusBar` style), `app.json` (`userInterfaceStyle`, splash background, notification icon color).
+
+**All ~38 screens rebuilt** to match the Stitch mockups while preserving every existing behavior (queries, mutations, haptics, pull-to-refresh, LayoutAnimation): auth screens by hand first as the pattern-setter, then resident/guard/admin screens split across parallel sub-agents. Nav restructured to 4 tabs per role; added two new resident hub screens not in the original nav (`services.tsx`, `social.tsx`) grouping existing feature screens with live counts from real queries.
+
+**Problems caught and fixed:**
+- `Button`'s primary variant was initially built with `expo-linear-gradient`'s `LinearGradient` — caught before device testing as a native module not yet linked into the installed dev-client APK, which would have crashed every screen with a primary button (worse than an inert side-effect call, since it's a required render component). Reverted to a solid color, documented in-code.
+- The resident-screens sub-agent hit an account-level session limit mid-task; diagnosed the exact gap via a `grep` sweep for old-theme tokens plus `npx tsc --noEmit` rather than re-doing all the work — found and fixed 2 real type errors (`dues.tsx`, `pre-approvals.tsx`) and manually rebuilt the one screen it hadn't reached (`staff-directory.tsx`).
+- A Metro/NativeWind caching gotcha made the rebuild briefly appear reverted on-device (login screen showed new copy but old dark colors) — `tailwind.config.js` token changes need a full `expo start --clear`, not just a JS reload.
+
+**Verification:** app-wide grep sweep confirmed zero old-theme references left anywhere in `app/`/`components/`/`lib/`; root `pnpm check-types` clean (same pre-existing out-of-scope `apps/web` failure); `expo export --platform web` clean; confirmed no stray `LinearGradient` usage reintroduced by any sub-agent. **Confirmed working on-device by the user across all 3 roles (2026-07-16).**
+
+> Native-module caveat, same shape as Phase 11's: `expo-linear-gradient` is now installed but unused in render code (avoided per above), and doesn't need a rebuild since it's inert. `expo-haptics`/`expo-splash-screen` from Phase 11 still await the deferred EAS rebuild.
 
 ---
 
