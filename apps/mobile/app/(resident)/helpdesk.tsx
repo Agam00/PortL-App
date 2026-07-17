@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, ScrollView, RefreshControl, Pressable, Image, ActivityIndicator, KeyboardAvoidingView, Platform } from "react-native";
+import { useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
@@ -9,20 +10,27 @@ import { captureVisitorPhoto } from "../../lib/capture-visitor-photo";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Chip } from "../../components/ui/chip";
-import { StatusDot } from "../../components/ui/status-dot";
 import { EmptyState } from "../../components/ui/empty-state";
 import { ListLoading } from "../../components/ui/list-loading";
-import { PressableScale } from "../../components/ui/pressable-scale";
 import { shadowCard } from "../../lib/shadows";
 
 const CATEGORIES = ["Plumbing", "Electrical", "Security", "Cleaning", "Other"];
 
-const STATUS_TONE: Record<string, "green" | "amber" | "red" | "neutral"> = {
-  open: "red",
-  in_progress: "amber",
-  resolved: "green",
-  closed: "neutral",
+const CATEGORY_ICON: Record<string, React.ComponentProps<typeof MaterialIcons>["name"]> = {
+  Plumbing: "water-drop",
+  Electrical: "bolt",
+  Security: "shield",
+  Cleaning: "cleaning-services",
+  Other: "home-repair-service",
+};
+
+// helpdesk mockup status chips: Open = soft red, In Progress = solid amber,
+// Resolved/Closed = soft gray with check.
+const STATUS_CHIP: Record<string, { label: string; bg: string; fg: string; icon?: React.ComponentProps<typeof MaterialIcons>["name"] }> = {
+  open: { label: "Open", bg: "#FBDADA", fg: "#BA1A1A" },
+  in_progress: { label: "In Progress", bg: "#FEB246", fg: "#3D2E00" },
+  resolved: { label: "Resolved", bg: "#ECE6F2", fg: "#48454F", icon: "check-circle-outline" },
+  closed: { label: "Closed", bg: "#ECE6F2", fg: "#48454F", icon: "check-circle-outline" },
 };
 
 function timeAgo(iso: string | null) {
@@ -39,16 +47,21 @@ function timeAgo(iso: string | null) {
 export default function ResidentHelpdesk() {
   const showToast = useUiStore((s) => s.showToast);
   const utils = trpc.useUtils();
-  const [showForm, setShowForm] = useState(false);
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const { complaintId: deepLinkedId } = useLocalSearchParams<{ complaintId?: string }>();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [commentBody, setCommentBody] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
+
+  // Arriving from a complaint notification: open that exact ticket's thread.
+  useEffect(() => {
+    if (deepLinkedId) setSelectedId(deepLinkedId);
+  }, [deepLinkedId]);
 
   const ticketsQuery = trpc.complaints.mine.useQuery();
   const commentsQuery = trpc.complaints.listComments.useQuery(
@@ -57,7 +70,6 @@ export default function ResidentHelpdesk() {
   );
 
   function resetForm() {
-    setShowForm(false);
     setCategory(CATEGORIES[0]);
     setTitle("");
     setDescription("");
@@ -116,94 +128,113 @@ export default function ResidentHelpdesk() {
   const tickets = ticketsQuery.data ?? [];
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1 bg-background">
-      <ScreenHeader title="Helpdesk Tickets" role="resident" />
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
+      <ScreenHeader
+        title="Raise a Ticket"
+        subtitle="Need help with something in your unit or the building? Let us know below."
+        role="resident"
+      />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-5 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={ticketsQuery.isRefetching} onRefresh={() => ticketsQuery.refetch()} />}
       >
-        <View className="flex-row items-center justify-between">
-          <Text className="flex-1 text-body-sm text-text-muted">Manage and track your maintenance requests and society complaints.</Text>
-          <PressableScale
-            onPress={() => (showForm ? resetForm() : setShowForm(true))}
-            scaleTo={0.92}
-            className="h-10 w-10 items-center justify-center rounded-full bg-surface-container"
-            style={shadowCard}
-            accessibilityLabel={showForm ? "Close ticket form" : "Raise a new ticket"}
+        <View className="gap-4 rounded-xl bg-surface p-5" style={shadowCard}>
+          <View className="gap-2">
+            <Text className="text-body-md font-bold text-on-surface">Category</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+              {CATEGORIES.map((c) => {
+                const selected = category === c;
+                return (
+                  <Pressable
+                    key={c}
+                    onPress={() => setCategory(c)}
+                    className="flex-row items-center gap-1.5 rounded-full px-4 py-2"
+                    style={
+                      selected
+                        ? { backgroundColor: "#6244CD" }
+                        : { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E4DEEC" }
+                    }
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                  >
+                    <MaterialIcons name={CATEGORY_ICON[c] ?? "handyman"} size={16} color={selected ? "#fff" : "#48454F"} />
+                    <Text className="text-body-md font-bold" style={{ color: selected ? "#FFFFFF" : "#48454F" }}>
+                      {c}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+          <Input
+            label="Subject"
+            placeholder="E.g., Leaky faucet in kitchen"
+            value={title}
+            onChangeText={(v) => {
+              setTitle(v);
+              if (titleError) setTitleError(null);
+            }}
+            error={titleError ?? undefined}
+            style={{ backgroundColor: "#F8F5FC" }}
+          />
+          <Input
+            label="Description"
+            placeholder="Please provide details about the issue..."
+            value={description}
+            onChangeText={(v) => {
+              setDescription(v);
+              if (descriptionError) setDescriptionError(null);
+            }}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+            className="min-h-[96px]"
+            error={descriptionError ?? undefined}
+            style={{ backgroundColor: "#F8F5FC" }}
+          />
+          <View className="gap-2">
+            {photo ? (
+              <View className="flex-row items-center gap-3">
+                <Image source={{ uri: photo }} className="h-16 w-16 rounded-md" />
+                <Button variant="outline" onPress={() => setPhoto(null)}>
+                  Remove
+                </Button>
+              </View>
+            ) : (
+              <Pressable
+                onPress={handleCapturePhoto}
+                disabled={isCapturing}
+                className="items-center gap-2 py-6"
+                style={{ borderWidth: 2, borderStyle: "dashed", borderColor: "#D9D3E2", borderRadius: 12 }}
+              >
+                {isCapturing ? (
+                  <ActivityIndicator color="#6244CD" />
+                ) : (
+                  <>
+                    <MaterialIcons name="add-a-photo" size={26} color="#797585" />
+                    <Text className="text-body-md font-bold text-on-surface-variant">Attach a photo (Optional)</Text>
+                  </>
+                )}
+              </Pressable>
+            )}
+          </View>
+          <Pressable
+            onPress={handleSubmit}
+            disabled={createMutation.isPending}
+            className="h-12 flex-row items-center justify-center gap-2 rounded-full"
+            style={{ backgroundColor: "#6244CD" }}
+            accessibilityLabel="Submit ticket"
             accessibilityRole="button"
           >
-            <MaterialIcons name={showForm ? "close" : "add"} size={22} color="#6244CD" />
-          </PressableScale>
+            {!createMutation.isPending && <MaterialIcons name="send" size={18} color="#fff" />}
+            <Text className="text-body-md font-bold" style={{ color: "#FFFFFF" }}>
+              {createMutation.isPending ? "Submitting..." : "Submit Ticket"}
+            </Text>
+          </Pressable>
         </View>
 
-        {showForm && (
-          <View className="gap-4 rounded-card bg-surface p-5" style={shadowCard}>
-            <View className="flex-row items-center gap-2">
-              <MaterialIcons name="support-agent" size={22} color="#6244CD" />
-              <Text className="text-headline-md font-extrabold text-on-surface">Raise a Ticket</Text>
-            </View>
-            <View className="flex-row flex-wrap gap-2">
-              {CATEGORIES.map((c) => (
-                <Chip key={c} label={c} selected={category === c} onPress={() => setCategory(c)} />
-              ))}
-            </View>
-            <Input
-              label="Subject"
-              placeholder="e.g. Water leak in bathroom"
-              value={title}
-              onChangeText={(v) => {
-                setTitle(v);
-                if (titleError) setTitleError(null);
-              }}
-              error={titleError ?? undefined}
-            />
-            <Input
-              label="Description"
-              placeholder="Describe the issue..."
-              value={description}
-              onChangeText={(v) => {
-                setDescription(v);
-                if (descriptionError) setDescriptionError(null);
-              }}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-              className="min-h-[96px]"
-              error={descriptionError ?? undefined}
-            />
-            <View className="gap-2">
-              {photo ? (
-                <View className="flex-row items-center gap-3">
-                  <Image source={{ uri: photo }} className="h-16 w-16 rounded-md" />
-                  <Button variant="outline" onPress={() => setPhoto(null)}>
-                    Remove
-                  </Button>
-                </View>
-              ) : (
-                <Pressable
-                  onPress={handleCapturePhoto}
-                  disabled={isCapturing}
-                  className="items-center gap-2 rounded-md border-2 border-dashed border-outline-variant bg-surface-container py-6"
-                >
-                  {isCapturing ? (
-                    <ActivityIndicator color="#6244CD" />
-                  ) : (
-                    <>
-                      <MaterialIcons name="photo-camera" size={24} color="#797585" />
-                      <Text className="text-body-sm text-text-muted">Attach a photo (Optional)</Text>
-                    </>
-                  )}
-                </Pressable>
-              )}
-            </View>
-            <Button onPress={handleSubmit} loading={createMutation.isPending}>
-              Submit Ticket
-            </Button>
-          </View>
-        )}
-
-        <Text className="text-headline-md font-extrabold text-on-surface">My Tickets</Text>
+        <Text className="pt-2 text-headline-lg font-extrabold text-on-surface">My Tickets</Text>
 
         {ticketsQuery.isLoading ? (
           <ListLoading />
@@ -221,24 +252,44 @@ export default function ResidentHelpdesk() {
               <Pressable
                 key={ticket.id}
                 onPress={() => setSelectedId(selectedId === ticket.id ? null : ticket.id)}
-                className="gap-2 rounded-card bg-surface p-4"
+                className="gap-2 rounded-xl bg-surface p-4"
                 style={shadowCard}
               >
-                <View className="flex-row items-center justify-between">
-                  <View className="rounded-full bg-surface-container px-2.5 py-1">
-                    <Text className="text-label-sm font-bold uppercase text-text-muted">{ticket.category}</Text>
+                <View className="flex-row items-center justify-between gap-2">
+                  <View className="flex-row items-center gap-1.5">
+                    <MaterialIcons name={CATEGORY_ICON[ticket.category] ?? "handyman"} size={16} color="#6244CD" />
+                    <Text className="text-body-sm font-bold" style={{ color: "#6244CD" }}>
+                      {ticket.category}
+                    </Text>
                   </View>
-                  <StatusDot label={ticket.status.replace("_", " ")} tone={STATUS_TONE[ticket.status] ?? "neutral"} />
+                  {(() => {
+                    const chip = STATUS_CHIP[ticket.status] ?? STATUS_CHIP.open;
+                    return (
+                      <View
+                        className="flex-row items-center gap-1 rounded-full px-3 py-1"
+                        style={{ backgroundColor: chip.bg }}
+                      >
+                        {chip.icon && <MaterialIcons name={chip.icon} size={13} color={chip.fg} />}
+                        <Text className="text-body-sm font-bold" style={{ color: chip.fg }}>
+                          {chip.label}
+                        </Text>
+                      </View>
+                    );
+                  })()}
                 </View>
                 <Text
-                  className={`text-body-md font-bold ${ticket.status === "resolved" || ticket.status === "closed" ? "text-text-muted line-through" : "text-on-surface"}`}
+                  className={`text-body-lg font-bold ${ticket.status === "resolved" || ticket.status === "closed" ? "text-text-muted line-through" : "text-on-surface"}`}
                 >
                   {ticket.title}
                 </Text>
                 <Text className="text-body-sm text-text-muted" numberOfLines={2}>
                   {ticket.description}
                 </Text>
-                <Text className="text-label-sm text-text-muted">{timeAgo(ticket.createdAt)}</Text>
+                <Text className="text-body-sm text-text-muted">
+                  {ticket.status === "resolved" && ticket.resolvedAt
+                    ? `Resolved ${timeAgo(ticket.resolvedAt)}`
+                    : `Submitted ${timeAgo(ticket.createdAt)}`}
+                </Text>
 
                 {selectedId === ticket.id && (
                   <View className="gap-3 border-t border-outline-variant pt-3">

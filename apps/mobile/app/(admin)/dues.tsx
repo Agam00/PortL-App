@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -87,9 +88,13 @@ export default function AdminDues() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Dues Management" role="admin" />
+      <ScreenHeader
+        title="Dues Management"
+        subtitle="Generate maintenance dues and track payment status across the society."
+        role="admin"
+      />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -101,15 +106,16 @@ export default function AdminDues() {
           />
         }
       >
-        <Text className="text-body-sm text-text-muted">Generate maintenance dues and track payment status across the society.</Text>
-
         <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
           {showForm ? "Cancel" : "+ Generate Due"}
         </Button>
 
         {showForm && (
           <FormPanel>
-            <Text className="text-body-md font-semibold text-on-surface">New Due</Text>
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="add-circle-outline" size={20} color="#6244CD" />
+              <Text className="text-body-md font-bold text-on-surface">New Due</Text>
+            </View>
             <View className="gap-2">
               <Text className="text-label-caps uppercase text-text-muted">Flat</Text>
               <View className="flex-row flex-wrap gap-2">
@@ -167,20 +173,25 @@ export default function AdminDues() {
             {dues.map((due) => (
               <ListRowCard key={due.id} className="flex-row items-center justify-between gap-3">
                 <View className="min-w-0 flex-1">
-                  <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
+                  <Text className="text-body-md font-bold text-on-surface" numberOfLines={1}>
                     {due.flatNumber} · {periodLabel(due.period)}
                   </Text>
-                  <Text className="text-meta-text text-text-muted">₹{Number(due.amount).toFixed(2)}</Text>
+                  <Text className="text-body-sm text-text-muted">₹{Number(due.amount).toFixed(2)}</Text>
                 </View>
                 <View
-                  className={`rounded-md border px-2 py-0.5 ${
-                    due.status === "paid" ? "border-status-green/40" : due.isOverdue ? "border-status-red/40" : "border-status-amber/40"
-                  }`}
+                  className="rounded-full px-3 py-1"
+                  style={{
+                    backgroundColor:
+                      due.status === "paid"
+                        ? "rgba(39,201,109,0.16)"
+                        : due.isOverdue
+                          ? "rgba(186,26,26,0.10)"
+                          : "rgba(254,178,70,0.28)",
+                  }}
                 >
                   <Text
-                    className={`text-meta-text uppercase ${
-                      due.status === "paid" ? "text-status-green" : due.isOverdue ? "text-status-red" : "text-status-amber"
-                    }`}
+                    className="text-meta-text font-semibold uppercase"
+                    style={{ color: due.status === "paid" ? "#1B7A44" : due.isOverdue ? "#BA1A1A" : "#845400" }}
                   >
                     {due.status === "paid" ? "Paid" : due.isOverdue ? "Overdue" : "Pending"}
                   </Text>

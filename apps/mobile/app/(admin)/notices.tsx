@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -10,9 +11,9 @@ import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
 import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
-import { ListRowCard } from "../../components/ui/list-row-card";
 import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
+import { shadowCard } from "../../lib/shadows";
 
 const SCOPES: { value: "all" | "tower" | "flat"; label: string }[] = [
   { value: "all", label: "All Residents" },
@@ -20,12 +21,19 @@ const SCOPES: { value: "all" | "tower" | "flat"; label: string }[] = [
   { value: "flat", label: "Specific Flat" },
 ];
 
+function formatPublished(iso: string | null) {
+  if (!iso) return null;
+  const date = new Date(iso);
+  return `${date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })} • ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+}
+
 export default function AdminNotices() {
   const showToast = useUiStore((s) => s.showToast);
   const utils = trpc.useUtils();
   const [showForm, setShowForm] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [search, setSearch] = useState("");
   const [scope, setScope] = useState<"all" | "tower" | "flat">("all");
   const [targetTowerId, setTargetTowerId] = useState<string | null>(null);
   const [targetFlatId, setTargetFlatId] = useState<string | null>(null);
@@ -99,15 +107,20 @@ export default function AdminNotices() {
     });
   }
 
-  const notices = noticesQuery.data ?? [];
+  const notices = (noticesQuery.data ?? []).filter(
+    (n) =>
+      search.trim().length === 0 ||
+      n.title.toLowerCase().includes(search.toLowerCase()) ||
+      n.body.toLowerCase().includes(search.toLowerCase()),
+  );
   const towers = towersQuery.data ?? [];
   const flats = flatsQuery.data ?? [];
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Notices Management" role="admin" />
+      <ScreenHeader title="Notices Management" subtitle="Broadcast important updates to the community." role="admin" />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={noticesQuery.isRefetching} onRefresh={() => noticesQuery.refetch()} />}
       >
@@ -117,7 +130,10 @@ export default function AdminNotices() {
 
         {showForm && (
           <FormPanel>
-            <Text className="text-body-md font-semibold text-on-surface">Compose Notice</Text>
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="campaign" size={20} color="#6244CD" />
+              <Text className="text-body-md font-bold text-on-surface">Compose Notice</Text>
+            </View>
             <Input
               label="Title"
               placeholder="e.g. Scheduled Water Maintenance"
@@ -200,7 +216,9 @@ export default function AdminNotices() {
           </FormPanel>
         )}
 
-        <Text className="text-headline-md font-semibold text-on-surface">Active Notices</Text>
+        <View className="bg-surface p-3" style={[{ borderRadius: 16 }, shadowCard]}>
+          <Input placeholder="Search notices..." value={search} onChangeText={setSearch} />
+        </View>
 
         {noticesQuery.isLoading ? (
           <ListLoading />
@@ -213,32 +231,58 @@ export default function AdminNotices() {
             <EmptyState title="No notices yet" description="Publish your first notice above." icon="campaign" />
           </View>
         ) : (
-          <View className="gap-2">
-            {notices.map((notice) => (
-              <ListRowCard key={notice.id} className="gap-2">
-                <View className="flex-row items-start justify-between gap-2">
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-body-md font-medium text-on-surface">{notice.title}</Text>
-                    <Text className="text-meta-text text-text-muted">
-                      {notice.targetScope === "all"
-                        ? "All residents"
-                        : notice.targetScope === "tower"
-                          ? `Tower: ${notice.targetTowerName ?? "—"}`
-                          : `Flat: ${notice.targetFlatNumber ?? "—"}`}
-                    </Text>
-                  </View>
-                  <IconButton
-                    icon="delete-outline"
-                    color="#BA1A1A"
-                    onPress={() => confirmDelete(notice.id, notice.title)}
-                    accessibilityLabel={`Delete ${notice.title}`}
+          <View className="gap-4">
+            {notices.map((notice) => {
+              const published = formatPublished(notice.publishedAt);
+              const audience =
+                notice.targetScope === "all"
+                  ? "All Residents"
+                  : notice.targetScope === "tower"
+                    ? `Tower ${notice.targetTowerName ?? "—"}`
+                    : `Flat ${notice.targetFlatNumber ?? "—"}`;
+              return (
+                <View key={notice.id} className="bg-surface" style={[{ borderRadius: 20, overflow: "hidden" }, shadowCard]}>
+                  <View
+                    pointerEvents="none"
+                    style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, backgroundColor: "#FEB246" }}
                   />
+                  <View className="gap-2 p-5">
+                    <View className="flex-row items-center gap-3">
+                      <View
+                        className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1"
+                        style={{ backgroundColor: "rgba(39,201,109,0.14)" }}
+                      >
+                        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#27C96D" }} />
+                        <Text className="text-label-caps font-bold uppercase" style={{ color: "#1B7A44" }}>
+                          Active
+                        </Text>
+                      </View>
+                      {published && (
+                        <Text className="min-w-0 flex-1 text-meta-text text-text-muted" numberOfLines={1}>
+                          {published}
+                        </Text>
+                      )}
+                      <IconButton
+                        icon="delete-outline"
+                        color="#BA1A1A"
+                        onPress={() => confirmDelete(notice.id, notice.title)}
+                        accessibilityLabel={`Delete ${notice.title}`}
+                      />
+                    </View>
+                    <Text className="text-headline-md font-extrabold text-on-surface">{notice.title}</Text>
+                    <Text className="text-body-md text-on-surface-variant" numberOfLines={2}>
+                      {notice.body}
+                    </Text>
+                    <View className="flex-row items-center gap-2 pt-1">
+                      <MaterialIcons name="groups" size={16} color="#797585" />
+                      <View className="rounded-full bg-surface-container-high px-2.5 py-1">
+                        <Text className="text-meta-text text-on-surface-variant">Audience: {audience}</Text>
+                      </View>
+                    </View>
+                  </View>
                 </View>
-                <Text className="text-body-sm text-on-surface-variant" numberOfLines={3}>
-                  {notice.body}
-                </Text>
-              </ListRowCard>
-            ))}
+              );
+            })}
           </View>
         )}
       </ScrollView>

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Alert, Switch } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -10,8 +11,8 @@ import { Input } from "../../components/ui/input";
 import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
-import { ListRowCard } from "../../components/ui/list-row-card";
 import { ListLoading } from "../../components/ui/list-loading";
+import { shadowCard } from "../../lib/shadows";
 
 export default function AdminGuards() {
   const showToast = useUiStore((s) => s.showToast);
@@ -98,23 +99,26 @@ export default function AdminGuards() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Guards Management" role="admin" />
+      <ScreenHeader title="Guards Management" subtitle="Manage active security personnel and gate assignments." role="admin" />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={guardsQuery.isRefetching} onRefresh={() => guardsQuery.refetch()} />}
       >
-        <Text className="text-body-sm text-text-muted">Manage security personnel access and active rosters.</Text>
-
-        <Input placeholder="Search by name or phone" value={search} onChangeText={setSearch} />
-
         <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
-          {showForm ? "Cancel" : "+ Add Guard"}
+          {showForm ? "Cancel" : "+ Invite Guard"}
         </Button>
+
+        <View className="bg-surface p-3" style={[{ borderRadius: 16 }, shadowCard]}>
+          <Input placeholder="Search guards..." value={search} onChangeText={setSearch} />
+        </View>
 
         {showForm && (
           <FormPanel>
-            <Text className="text-body-md font-semibold text-on-surface">Invite Guard</Text>
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="person-add-alt" size={20} color="#6244CD" />
+              <Text className="text-body-md font-bold text-on-surface">Invite Guard</Text>
+            </View>
             <Input
               label="Full Name"
               placeholder="e.g. Ramesh Kumar"
@@ -149,8 +153,11 @@ export default function AdminGuards() {
               error={phoneError ?? undefined}
             />
             <Button onPress={handleInvite} loading={inviteMutation.isPending}>
-              Send Invite
+              Send Invitation
             </Button>
+            <Text className="text-center text-meta-text text-text-muted">
+              They'll sign in to the Guard app with a temporary password.
+            </Text>
           </FormPanel>
         )}
 
@@ -165,29 +172,68 @@ export default function AdminGuards() {
             <EmptyState title="No guards found" description="Invite a guard to get started." icon="shield" />
           </View>
         ) : (
-          <View className="gap-2">
+          <View className="gap-4">
             {guards.map((guard) => (
-              <ListRowCard key={guard.id} className="flex-row items-center gap-3">
-                <Avatar name={guard.fullName} />
-                <View className="min-w-0 flex-1">
-                  <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
-                    {guard.fullName}
-                  </Text>
-                  <Text className="text-meta-text text-text-muted" numberOfLines={1}>
-                    {guard.phone}
-                  </Text>
+              <View
+                key={guard.id}
+                className="gap-3 bg-surface p-5"
+                style={[{ borderRadius: 20, opacity: guard.isActive ? 1 : 0.75 }, shadowCard]}
+              >
+                <View className="flex-row items-center gap-4">
+                  <Avatar name={guard.fullName} size={52} />
+                  <View className="min-w-0 flex-1">
+                    <Text
+                      className={`text-headline-md font-extrabold ${guard.isActive ? "text-on-surface" : "text-text-muted"}`}
+                      numberOfLines={1}
+                    >
+                      {guard.fullName}
+                    </Text>
+                    <Text className="text-body-sm text-text-muted" numberOfLines={1}>
+                      {guard.phone}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={guard.isActive}
+                    onValueChange={(next) => {
+                      if (next) {
+                        activateMutation.mutate({ userId: guard.id });
+                      } else {
+                        confirmDeactivate(guard.id, guard.fullName);
+                      }
+                    }}
+                    trackColor={{ false: "#E3DEEB", true: "#6244CD" }}
+                    thumbColor="#FFFFFF"
+                    accessibilityLabel={`${guard.isActive ? "Deactivate" : "Activate"} ${guard.fullName}`}
+                  />
                 </View>
-                <View className={`h-1.5 w-1.5 rounded-full ${guard.isActive ? "bg-status-green" : "bg-status-red"}`} />
-                {guard.isActive ? (
-                  <Button variant="danger" onPress={() => confirmDeactivate(guard.id, guard.fullName)}>
-                    Deactivate
-                  </Button>
-                ) : (
-                  <Button variant="outline" loading={activateMutation.isPending} onPress={() => activateMutation.mutate({ userId: guard.id })}>
-                    Activate
-                  </Button>
-                )}
-              </ListRowCard>
+
+                <View style={{ height: 1, backgroundColor: "rgba(202,196,214,0.45)" }} />
+
+                <View className="flex-row">
+                  <View className="flex-1 gap-1">
+                    <Text className="text-meta-text text-text-muted">Email</Text>
+                    <View className="flex-row items-center gap-1.5">
+                      <MaterialIcons name="mail-outline" size={14} color="#6244CD" />
+                      <Text className="min-w-0 flex-1 text-body-sm font-semibold text-on-surface" numberOfLines={1}>
+                        {guard.email}
+                      </Text>
+                    </View>
+                  </View>
+                  <View className="flex-1 gap-1">
+                    <Text className="text-meta-text text-text-muted">Status</Text>
+                    <View className="flex-row items-center gap-1.5">
+                      <MaterialIcons
+                        name={guard.isActive ? "verified-user" : "do-not-disturb"}
+                        size={14}
+                        color={guard.isActive ? "#27C96D" : "#797585"}
+                      />
+                      <Text className="text-body-sm font-semibold text-on-surface">
+                        {guard.isActive ? "On Duty Access" : "Access Revoked"}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
             ))}
           </View>
         )}

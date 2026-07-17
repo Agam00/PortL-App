@@ -11,7 +11,6 @@ import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticError } from "../../lib/haptics";
 import { Input } from "../../components/ui/input";
-import { Button } from "../../components/ui/button";
 import { shadowCard } from "../../lib/shadows";
 
 interface LoginForm {
@@ -58,74 +57,94 @@ export default function LoginScreen() {
 
           <View className="mt-8 gap-2">
             <Text className="text-center text-headline-lg font-extrabold text-on-surface">Welcome Home</Text>
-            <Text className="text-center text-body-md text-text-muted">
+            <Text className="text-center text-body-lg text-on-surface-variant">
               Sign in to access your community console and connect with neighbors.
             </Text>
           </View>
 
-          <View className="mt-8 gap-4 rounded-card bg-surface p-6" style={shadowCard}>
-            <Controller
-              control={control}
-              name="identifier"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Email or Phone"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  placeholder="jane@example.com"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.identifier?.message}
-                  leftElement={<MaterialIcons name="person-outline" size={20} color="#797585" />}
-                />
-              )}
-            />
-            <Controller
-              control={control}
-              name="password"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <Input
-                  label="Password"
-                  secureTextEntry={!showPassword}
-                  placeholder="••••••••"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.password?.message}
-                  leftElement={<MaterialIcons name="lock-outline" size={20} color="#797585" />}
-                  rightElement={
-                    <Pressable
-                      accessibilityLabel="Toggle password visibility"
-                      onPress={() => setShowPassword((v) => !v)}
-                      hitSlop={8}
-                    >
-                      <MaterialIcons
-                        name={showPassword ? "visibility" : "visibility-off"}
-                        size={20}
-                        color="#797585"
-                      />
-                    </Pressable>
-                  }
-                />
-              )}
-            />
+          <View className="mt-8 gap-4 bg-surface p-6" style={[{ borderRadius: 24 }, shadowCard]}>
+            <View className="gap-2">
+              <Text className="text-body-md font-bold text-on-surface">Email or Phone</Text>
+              <Controller
+                control={control}
+                name="identifier"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Input
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    placeholder="jane@example.com"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    error={errors.identifier?.message}
+                    leftElement={<MaterialIcons name="person-outline" size={20} color="#797585" />}
+                  />
+                )}
+              />
+            </View>
+            <View className="gap-2">
+              <Text className="text-body-md font-bold text-on-surface">Password</Text>
+              <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <Input
+                    secureTextEntry={!showPassword}
+                    placeholder="••••••••"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    error={errors.password?.message}
+                    leftElement={<MaterialIcons name="lock-outline" size={20} color="#797585" />}
+                    rightElement={
+                      <Pressable
+                        accessibilityLabel="Toggle password visibility"
+                        onPress={() => setShowPassword((v) => !v)}
+                        hitSlop={8}
+                      >
+                        <MaterialIcons
+                          name={showPassword ? "visibility" : "visibility-off"}
+                          size={20}
+                          color="#797585"
+                        />
+                      </Pressable>
+                    }
+                  />
+                )}
+              />
+            </View>
 
             <Pressable
               className="self-end"
               hitSlop={8}
               onPress={() => showToast("Contact your society admin to reset your password", "info")}
             >
-              <Text className="text-body-sm font-bold text-primary-container">Forgot Password?</Text>
+              <Text className="text-body-md font-bold text-primary-container">Forgot Password?</Text>
             </Pressable>
 
-            <Button
-              className="mt-2"
+            <Pressable
               onPress={handleSubmit((values) => loginMutation.mutate(values))}
-              loading={loginMutation.isPending}
+              disabled={loginMutation.isPending}
+              className="mt-2 h-14 flex-row items-center justify-center gap-2 rounded-full"
+              style={{ backgroundColor: "#6244CD" }}
+              accessibilityLabel="Sign in"
+              accessibilityRole="button"
             >
-              Sign In
-            </Button>
+              <Text className="text-body-lg font-bold" style={{ color: "#FFFFFF" }}>
+                {loginMutation.isPending ? "Signing In..." : "Sign In"}
+              </Text>
+              {!loginMutation.isPending && <MaterialIcons name="arrow-forward" size={20} color="#fff" />}
+            </Pressable>
+          </View>
+
+          <View className="mt-8 flex-row items-center justify-center gap-1">
+            <Text className="text-body-md text-on-surface-variant">Don't have an account?</Text>
+            <Pressable
+              hitSlop={8}
+              onPress={() => showToast("Portl accounts are created by your society admin", "info")}
+            >
+              <Text className="text-body-md font-bold text-primary-container">Request Access</Text>
+            </Pressable>
           </View>
         </View>
       </ScrollView>

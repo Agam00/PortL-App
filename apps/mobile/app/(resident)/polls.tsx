@@ -6,7 +6,6 @@ import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
-import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
 import { ListLoading } from "../../components/ui/list-loading";
 import { shadowCard } from "../../lib/shadows";
@@ -16,7 +15,7 @@ function closesInLabel(closesAt: string | null) {
   const diffMs = new Date(closesAt).getTime() - Date.now();
   if (diffMs <= 0) return null;
   const days = Math.floor(diffMs / 86_400_000);
-  if (days >= 1) return `${days}d left`;
+  if (days >= 1) return `${days} day${days === 1 ? "" : "s"} left`;
   const hours = Math.max(1, Math.floor(diffMs / 3_600_000));
   return `${hours}h left`;
 }
@@ -62,43 +61,61 @@ export default function ResidentPolls() {
 
   function renderResultBars(poll: (typeof polls)[number]) {
     return (
-      <View className="gap-2.5">
+      <View className="gap-3">
         {poll.options.map((option) => {
           const pct = poll.totalVotes > 0 ? Math.round((option.voteCount / poll.totalVotes) * 100) : 0;
           const isMine = poll.myVote.includes(option.id);
           return (
-            <View key={option.id} className="gap-1">
+            <View key={option.id} className="gap-1.5">
               <View className="flex-row items-center justify-between">
-                <Text className={`text-body-sm ${isMine ? "font-bold text-primary-container" : "text-on-surface"}`}>
+                <Text
+                  className={`text-body-md ${isMine ? "font-bold" : "text-on-surface"}`}
+                  style={isMine ? { color: "#6244CD" } : undefined}
+                >
                   {option.label}
-                  {isMine ? " ✓" : ""}
                 </Text>
-                <Text className="text-body-sm text-text-muted">{pct}%</Text>
+                <Text
+                  className={`text-body-sm font-bold ${isMine ? "" : "text-on-surface-variant"}`}
+                  style={isMine ? { color: "#6244CD" } : undefined}
+                >
+                  {pct}%
+                </Text>
               </View>
-              <View className="h-2 overflow-hidden rounded-full bg-surface-container">
-                <View className="h-full rounded-full bg-primary-container" style={{ width: `${pct}%` }} />
+              <View className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: "#E4DEEC" }}>
+                <View
+                  className="h-full rounded-full"
+                  style={{ width: `${pct}%`, backgroundColor: isMine ? "#6244CD" : "#C6BDD4" }}
+                />
               </View>
             </View>
           );
         })}
-        <Text className="text-body-sm text-text-muted">{poll.totalVotes} Total Votes</Text>
+        <Text className="pt-1 text-center text-body-sm text-text-muted">{poll.totalVotes} Total Votes</Text>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <ScreenHeader title="Community Polls" role="resident" />
+    <View className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
+      <ScreenHeader title="Community Polls" subtitle="Have your say in community decisions." role="resident" />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-5 pb-8 pt-2"
         refreshControl={<RefreshControl refreshing={pollsQuery.isRefetching} onRefresh={() => pollsQuery.refetch()} />}
       >
-        <Text className="text-body-sm text-text-muted">Have your say in community decisions.</Text>
-
-        <View className="flex-row gap-6 border-b border-outline-variant">
+        <View className="flex-row gap-6" style={{ borderBottomWidth: 1, borderBottomColor: "#E4DEEC" }}>
           {TABS.map((t) => (
-            <Pressable key={t} onPress={() => setTab(t)} className={`pb-3 ${tab === t ? "border-b-2 border-primary-container" : ""}`}>
-              <Text className={`text-body-md ${tab === t ? "font-bold text-primary-container" : "text-text-muted"}`}>{t}</Text>
+            <Pressable
+              key={t}
+              onPress={() => setTab(t)}
+              className="pb-3"
+              style={tab === t ? { borderBottomWidth: 2, borderBottomColor: "#6244CD", marginBottom: -1 } : undefined}
+            >
+              <Text
+                className={`text-body-md ${tab === t ? "font-bold" : "text-text-muted"}`}
+                style={tab === t ? { color: "#6244CD" } : undefined}
+              >
+                {t}
+              </Text>
             </Pressable>
           ))}
         </View>
@@ -106,60 +123,93 @@ export default function ResidentPolls() {
         {pollsQuery.isLoading ? (
           <ListLoading />
         ) : pollsQuery.isError ? (
-          <View className="rounded-card bg-surface">
+          <View className="rounded-xl bg-surface">
             <EmptyState title="Couldn't load polls" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : shown.length === 0 ? (
-          <View className="rounded-card bg-surface">
+          <View className="rounded-xl bg-surface">
             <EmptyState title={`No ${tab.toLowerCase()} polls`} description="Community polls will show up here." icon="poll" />
           </View>
         ) : (
-          <View className="gap-3">
+          <View className="gap-4">
             {shown.map((poll) => {
               const mySelection = selections[poll.id] ?? [];
               const closesLabel = closesInLabel(poll.closesAt);
               return (
-                <View key={poll.id} className="gap-3 rounded-card bg-surface p-4" style={shadowCard}>
-                  {closesLabel && !poll.isClosed && (
-                    <View className="self-end rounded-full bg-secondary-container px-3 py-1">
-                      <View className="flex-row items-center gap-1">
-                        <MaterialIcons name="schedule" size={12} color="#1C1A23" />
-                        <Text className="text-label-sm font-bold text-on-surface">{closesLabel}</Text>
-                      </View>
+                <View key={poll.id} className="gap-3 rounded-xl bg-surface p-5" style={shadowCard}>
+                  {!poll.isClosed && tab === "Active" && closesLabel && (
+                    <View
+                      className="flex-row items-center gap-1 self-end rounded-full px-3 py-1"
+                      style={{ backgroundColor: "#FEB246" }}
+                    >
+                      <MaterialIcons name="schedule" size={13} color="#3D2E00" />
+                      <Text className="text-body-sm font-bold" style={{ color: "#3D2E00" }}>
+                        {closesLabel}
+                      </Text>
                     </View>
                   )}
-                  <Text className="text-body-md font-bold text-on-surface">{poll.question}</Text>
+                  {tab !== "Active" && (
+                    <View
+                      className="flex-row items-center gap-1 self-end rounded-full px-3 py-1"
+                      style={{ backgroundColor: "#ECE6F2" }}
+                    >
+                      <MaterialIcons name="check-circle-outline" size={13} color="#48454F" />
+                      <Text className="text-body-sm font-bold" style={{ color: "#48454F" }}>
+                        {tab === "Voted" ? "Voted" : "Closed"}
+                      </Text>
+                    </View>
+                  )}
+                  <Text className="text-body-lg font-extrabold text-on-surface">{poll.question}</Text>
 
                   {tab === "Active" ? (
                     <>
-                      <View className="gap-2">
+                      <View className="gap-3">
                         {poll.options.map((option) => {
                           const selected = mySelection.includes(option.id);
                           return (
                             <Pressable
                               key={option.id}
                               onPress={() => toggleOption(poll.id, option.id, poll.multiSelect)}
-                              className={`flex-row items-center gap-3 rounded-md border-2 px-4 py-3 ${
-                                selected ? "border-primary-container bg-surface-container" : "border-outline-variant"
-                              }`}
+                              className="flex-row items-center gap-3 rounded-xl bg-surface px-4 py-3.5"
+                              style={{
+                                borderWidth: selected ? 2 : 1,
+                                borderColor: selected ? "#6244CD" : "#E4DEEC",
+                                backgroundColor: selected ? "#F5F1FB" : "#FFFFFF",
+                              }}
+                              accessibilityRole={poll.multiSelect ? "checkbox" : "radio"}
+                              accessibilityState={{ selected }}
                             >
                               <MaterialIcons
-                                name={poll.multiSelect ? (selected ? "check-box" : "check-box-outline-blank") : selected ? "radio-button-checked" : "radio-button-unchecked"}
-                                size={18}
-                                color={selected ? "#6244CD" : "#797585"}
+                                name={
+                                  poll.multiSelect
+                                    ? selected
+                                      ? "check-box"
+                                      : "check-box-outline-blank"
+                                    : selected
+                                      ? "radio-button-checked"
+                                      : "radio-button-unchecked"
+                                }
+                                size={20}
+                                color={selected ? "#6244CD" : "#C6BDD4"}
                               />
-                              <Text className="text-body-sm text-on-surface">{option.label}</Text>
+                              <Text className="flex-1 text-body-md text-on-surface">{option.label}</Text>
                             </Pressable>
                           );
                         })}
                       </View>
-                      <Button
-                        disabled={mySelection.length === 0}
-                        loading={voteMutation.isPending}
+                      <Pressable
+                        disabled={mySelection.length === 0 || voteMutation.isPending}
                         onPress={() => voteMutation.mutate({ pollId: poll.id, optionIds: mySelection })}
+                        className="mt-1 h-12 flex-row items-center justify-center gap-2 rounded-full"
+                        style={{ backgroundColor: mySelection.length === 0 ? "#B9A8F0" : "#6244CD" }}
+                        accessibilityLabel="Vote now"
+                        accessibilityRole="button"
                       >
-                        Vote Now
-                      </Button>
+                        <Text className="text-body-md font-bold" style={{ color: "#FFFFFF" }}>
+                          {voteMutation.isPending ? "Submitting..." : "Vote Now"}
+                        </Text>
+                        {!voteMutation.isPending && <MaterialIcons name="how-to-vote" size={18} color="#fff" />}
+                      </Pressable>
                     </>
                   ) : (
                     renderResultBars(poll)

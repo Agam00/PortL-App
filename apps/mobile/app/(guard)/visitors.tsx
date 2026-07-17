@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
+import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform, Pressable, ActivityIndicator } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -15,14 +15,14 @@ import { VISITOR_TYPES } from "../../lib/visitor-types";
 import { ScreenHeader } from "../../components/ui/screen-header";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import { Chip } from "../../components/ui/chip";
 import { FlatSearchField } from "../../components/flat-search-field";
 import { PressableScale } from "../../components/ui/pressable-scale";
 import { shadowCard } from "../../lib/shadows";
 
 type FormValues = z.infer<typeof createVisitorInputSchema>;
 
-const QUICK_BRANDS = ["Amazon Delivery", "Zomato", "Swiggy Delivery", "Flipkart"];
+// register_visitor mockup: short provider names on white pill chips.
+const QUICK_BRANDS = ["Amazon", "Zomato", "Swiggy", "Flipkart"];
 
 export default function GuardRegisterVisitor() {
   const showToast = useUiStore((s) => s.showToast);
@@ -80,11 +80,9 @@ export default function GuardRegisterVisitor() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       className="flex-1 bg-background"
     >
-      <ScreenHeader title="Register Visitor" role="guard" />
-      <ScrollView contentContainerClassName="gap-4 p-4 pb-8" keyboardShouldPersistTaps="handled">
-        <Text className="text-body-sm text-text-muted">Log a new entry into the community.</Text>
-
-        <View className="gap-4 rounded-card bg-surface p-5" style={shadowCard}>
+      <ScreenHeader title="Register Visitor" subtitle="Log a new entry into the community." role="guard" />
+      <ScrollView contentContainerClassName="gap-5 px-4 pb-8 pt-2" keyboardShouldPersistTaps="handled">
+        <View className="gap-4 rounded-xl bg-surface p-5" style={shadowCard}>
           <Controller
             control={control}
             name="flatId"
@@ -105,34 +103,66 @@ export default function GuardRegisterVisitor() {
           />
         </View>
 
-        <View className="gap-2">
-          <Text className="text-label-caps uppercase tracking-wide text-text-muted">Visitor Type</Text>
-          <View className="flex-row flex-wrap gap-2">
-            {VISITOR_TYPES.map((t) => (
-              <Chip
-                key={t.value}
-                label={t.label}
-                icon={t.icon}
-                selected={selectedType === t.value}
-                onPress={() => setValue("type", t.value)}
-              />
-            ))}
+        {/* Mockup: 2-column grid of square type cards, icon above label. */}
+        <View className="gap-3">
+          <Text className="text-body-md font-bold text-on-surface">Visitor Type</Text>
+          <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+            {VISITOR_TYPES.map((t) => {
+              const isSelected = selectedType === t.value;
+              return (
+                <PressableScale
+                  key={t.value}
+                  scaleTo={0.96}
+                  onPress={() => setValue("type", t.value)}
+                  className="items-center justify-center gap-2 bg-surface p-5"
+                  style={[
+                    {
+                      borderRadius: 12,
+                      width: "47%",
+                      borderWidth: isSelected ? 2 : 1,
+                      borderColor: isSelected ? "#6244CD" : "transparent",
+                      backgroundColor: isSelected ? "#F1ECF8" : "#FFFFFF",
+                    },
+                    shadowCard,
+                  ]}
+                  accessibilityLabel={`Visitor type: ${t.label}`}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isSelected }}
+                >
+                  <MaterialIcons name={t.icon} size={26} color={isSelected ? "#6244CD" : "#1C1A23"} />
+                  <Text className={`text-body-sm font-bold ${isSelected ? "text-primary" : "text-on-surface"}`}>
+                    {t.label}
+                  </Text>
+                </PressableScale>
+              );
+            })}
           </View>
         </View>
 
         {selectedType === "delivery" && (
-          <View className="gap-2 rounded-card bg-surface-container p-4">
-            <Text className="text-label-caps uppercase tracking-wide text-text-muted">Quick Select Provider</Text>
+          <View className="gap-3 p-4" style={{ borderRadius: 16, backgroundColor: "#F1ECF8" }}>
+            <Text className="text-body-sm font-bold text-on-surface">Quick Select Provider</Text>
             <View className="flex-row flex-wrap gap-2">
               {QUICK_BRANDS.map((brand) => (
-                <Chip key={brand} label={brand} onPress={() => setValue("name", brand)} />
+                <Pressable
+                  key={brand}
+                  onPress={() => setValue("name", brand)}
+                  className="rounded-full bg-surface px-5 py-2.5"
+                  style={shadowCard}
+                  accessibilityLabel={`Set name to ${brand}`}
+                  accessibilityRole="button"
+                >
+                  <Text className="text-body-sm font-bold text-on-surface">{brand}</Text>
+                </Pressable>
               ))}
             </View>
           </View>
         )}
 
-        <View className="gap-4 rounded-card bg-surface p-5" style={shadowCard}>
-          <Text className="text-headline-md font-extrabold text-on-surface">Details</Text>
+        <View className="gap-4 rounded-xl bg-surface p-5" style={shadowCard}>
+          <View className="border-b border-outline-variant pb-3">
+            <Text className="text-body-lg font-bold text-on-surface">Details</Text>
+          </View>
           <Controller
             control={control}
             name="name"
@@ -165,10 +195,10 @@ export default function GuardRegisterVisitor() {
           />
         </View>
 
-        <View className="items-center gap-3 rounded-card bg-surface p-6" style={shadowCard}>
+        <View className="items-center gap-3 rounded-xl bg-surface p-6" style={shadowCard}>
           {photo ? (
             <>
-              <Image source={{ uri: photo }} className="h-24 w-24 rounded-full" />
+              <Image source={{ uri: photo }} style={{ width: 120, height: 120, borderRadius: 60 }} />
               <Button variant="outline" onPress={() => setPhoto(null)}>
                 Remove Photo
               </Button>
@@ -179,27 +209,52 @@ export default function GuardRegisterVisitor() {
                 onPress={handleCapturePhoto}
                 disabled={isCapturing}
                 scaleTo={0.95}
-                className="h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-primary-container bg-surface-container"
+                className="items-center justify-center gap-1"
+                style={{
+                  width: 120,
+                  height: 120,
+                  borderRadius: 60,
+                  borderWidth: 2,
+                  borderStyle: "dashed",
+                  borderColor: "#7B5FE8",
+                  backgroundColor: "#F1ECF8",
+                }}
+                accessibilityLabel="Take a photo of the visitor"
+                accessibilityRole="button"
               >
                 {isCapturing ? (
                   <ActivityIndicator color="#6244CD" />
                 ) : (
-                  <MaterialIcons name="photo-camera" size={26} color="#6244CD" />
+                  <>
+                    <MaterialIcons name="photo-camera" size={26} color="#6244CD" />
+                    <Text className="text-body-sm font-bold text-primary">Take Photo</Text>
+                  </>
                 )}
               </PressableScale>
-              <Text className="text-body-sm font-bold text-on-surface">Take Photo</Text>
               <Text className="text-body-sm text-text-muted">Optional visual record for security.</Text>
             </>
           )}
         </View>
 
-        <Button
-          className="mt-2"
+        <Pressable
           onPress={handleSubmit((values) => createMutation.mutate(values))}
-          loading={createMutation.isPending}
+          disabled={createMutation.isPending}
+          className="mt-1 h-14 flex-row items-center justify-center gap-2 rounded-full"
+          style={{ backgroundColor: "#7B5FE8" }}
+          accessibilityLabel="Allow entry"
+          accessibilityRole="button"
         >
-          Allow Entry
-        </Button>
+          {createMutation.isPending ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <>
+              <MaterialIcons name="check-circle-outline" size={22} color="#fff" />
+              <Text className="text-body-lg font-bold" style={{ color: "#FFFFFF" }}>
+                Allow Entry
+              </Text>
+            </>
+          )}
+        </Pressable>
       </ScrollView>
     </KeyboardAvoidingView>
   );

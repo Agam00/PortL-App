@@ -11,9 +11,10 @@ import { Input } from "../../components/ui/input";
 import { TimeField } from "../../components/ui/time-field";
 import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
-import { ListRowCard } from "../../components/ui/list-row-card";
 import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
+import { PressableScale } from "../../components/ui/pressable-scale";
+import { shadowCard } from "../../lib/shadows";
 
 function timeToDate(time: string): Date {
   const [h, m] = time.split(":").map(Number);
@@ -158,23 +159,26 @@ export default function AdminAmenities() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Facilities Management" role="admin" />
+      <ScreenHeader title="Amenities" subtitle="Manage community facilities, schedules, and capacities." role="admin" />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={amenitiesQuery.isRefetching} onRefresh={() => amenitiesQuery.refetch()} />}
       >
-        <Text className="text-body-sm text-text-muted">Manage society amenities and access rules.</Text>
-
         <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
-          {showForm ? "Cancel" : "+ Add Facility"}
+          {showForm ? "Cancel" : "+ New Amenity"}
         </Button>
 
         {showForm && (
-          <FormPanel>
-            <Text className="text-body-md font-semibold text-on-surface">{editingId ? "Edit Facility" : "New Facility"}</Text>
+          <FormPanel className="bg-surface" style={{ borderWidth: 1.5, borderColor: "#7B5FE8" }}>
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name={editingId ? "edit-note" : "add-circle-outline"} size={22} color="#6244CD" />
+              <Text className="text-headline-md font-extrabold text-on-surface">
+                {editingId ? "Edit Amenity" : "New Amenity"}
+              </Text>
+            </View>
             <Input
-              label="Facility Name"
+              label="Name"
               placeholder="e.g. Swimming Pool"
               value={name}
               onChangeText={(v) => {
@@ -184,15 +188,20 @@ export default function AdminAmenities() {
               error={nameError ?? undefined}
             />
             <Input label="Description (optional)" placeholder="Short description" value={description} onChangeText={setDescription} />
-            <Input label="Capacity" placeholder="e.g. 20" keyboardType="number-pad" value={capacity} onChangeText={setCapacity} />
             <View className="flex-row gap-3">
-              <TimeField label="Opens At" value={openTime} onChange={setOpenTime} />
-              <TimeField label="Closes At" value={closeTime} onChange={setCloseTime} />
+              <TimeField label="Open Time" value={openTime} onChange={setOpenTime} />
+              <TimeField label="Close Time" value={closeTime} onChange={setCloseTime} />
             </View>
+            <Input label="Max Capacity" placeholder="e.g. 20" keyboardType="number-pad" value={capacity} onChangeText={setCapacity} />
             <Input label="Slot Length (minutes)" placeholder="e.g. 60" keyboardType="number-pad" value={slotMinutes} onChangeText={setSlotMinutes} />
-            <Button onPress={handleSubmit} loading={createMutation.isPending || updateMutation.isPending}>
-              {editingId ? "Save Changes" : "Add Facility"}
-            </Button>
+            <View className="flex-row gap-3">
+              <Button variant="outline" className="flex-1" onPress={resetForm}>
+                Cancel
+              </Button>
+              <Button className="flex-1" onPress={handleSubmit} loading={createMutation.isPending || updateMutation.isPending}>
+                {editingId ? "Save Changes" : "Add Amenity"}
+              </Button>
+            </View>
           </FormPanel>
         )}
 
@@ -207,57 +216,84 @@ export default function AdminAmenities() {
             <EmptyState title="No facilities yet" description="Add a facility to get started." icon="pool" />
           </View>
         ) : (
-          <View className="gap-2">
+          <View className="gap-4">
             {amenities.map((amenity) => (
-              <ListRowCard key={amenity.id} className="gap-3">
-                <View className="flex-row items-center gap-3">
-                  <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-container">
-                    <MaterialIcons name="pool" size={20} color="#48454F" />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
-                      {amenity.name}
-                    </Text>
-                    <View className="flex-row items-center gap-1.5">
-                      <View className={`h-1.5 w-1.5 rounded-full ${amenity.isActive ? "bg-status-green" : "bg-status-amber"}`} />
-                      <Text className="text-meta-text text-text-muted">{amenity.isActive ? "Active" : "Inactive"}</Text>
-                    </View>
-                  </View>
-                  <IconButton icon="edit" onPress={() => startEdit(amenity)} accessibilityLabel={`Edit ${amenity.name}`} />
-                  <IconButton
-                    icon="delete-outline"
-                    color="#BA1A1A"
-                    onPress={() => confirmDelete(amenity.id, amenity.name)}
-                    accessibilityLabel={`Delete ${amenity.name}`}
-                  />
-                </View>
-                <View className="h-px bg-border-subtle" />
-                <View className="flex-row justify-between">
-                  <View>
-                    <Text className="text-meta-text text-text-muted">Capacity</Text>
-                    <Text className="text-body-sm text-on-surface">{amenity.capacity} Persons</Text>
-                  </View>
-                  <View>
-                    <Text className="text-meta-text text-text-muted">Hours</Text>
-                    <Text className="text-body-sm text-on-surface">
-                      {amenity.openTime.slice(0, 5)} - {amenity.closeTime.slice(0, 5)}
-                    </Text>
-                  </View>
-                  <Button
-                    variant="outline"
+              <View key={amenity.id} className="gap-3 bg-surface p-5" style={[{ borderRadius: 20 }, shadowCard]}>
+                <View className="flex-row items-center justify-between">
+                  <Pressable
                     onPress={() => toggleActiveMutation.mutate({ amenityId: amenity.id, isActive: !amenity.isActive })}
+                    className="flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
+                    style={{ backgroundColor: amenity.isActive ? "rgba(254,178,70,0.28)" : "rgba(186,26,26,0.10)" }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${amenity.name} is ${amenity.isActive ? "open — tap to close" : "under maintenance — tap to open"}`}
                   >
-                    {amenity.isActive ? "Deactivate" : "Activate"}
-                  </Button>
+                    {amenity.isActive ? (
+                      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#845400" }} />
+                    ) : (
+                      <MaterialIcons name="warning-amber" size={13} color="#BA1A1A" />
+                    )}
+                    <Text className="text-meta-text font-semibold" style={{ color: amenity.isActive ? "#845400" : "#BA1A1A" }}>
+                      {amenity.isActive ? "Open" : "Maintenance"}
+                    </Text>
+                  </Pressable>
+                  <View className="flex-row items-center gap-1">
+                    <IconButton icon="edit" size={20} onPress={() => startEdit(amenity)} accessibilityLabel={`Edit ${amenity.name}`} />
+                    <IconButton
+                      icon="delete-outline"
+                      size={20}
+                      color="#BA1A1A"
+                      onPress={() => confirmDelete(amenity.id, amenity.name)}
+                      accessibilityLabel={`Delete ${amenity.name}`}
+                    />
+                  </View>
                 </View>
 
-                <Pressable
+                <View className="gap-1">
+                  <Text className="text-headline-md font-extrabold text-on-surface">{amenity.name}</Text>
+                  {amenity.description ? (
+                    <View className="flex-row items-center gap-1.5">
+                      <MaterialIcons name="place" size={14} color="#797585" />
+                      <Text className="min-w-0 flex-1 text-body-sm text-text-muted" numberOfLines={1}>
+                        {amenity.description}
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+
+                <View className="flex-row gap-3">
+                  <View
+                    className="flex-1 gap-1 p-3"
+                    style={{ borderRadius: 12, borderWidth: 1, borderColor: "#E3DBF0", backgroundColor: "#FDFBFF" }}
+                  >
+                    <Text className="text-meta-text text-text-muted">Schedule</Text>
+                    <Text className="text-body-md font-bold text-on-surface">
+                      {amenity.openTime.slice(0, 5)} - {amenity.closeTime.slice(0, 5)}
+                    </Text>
+                    <Text className="text-meta-text text-text-muted">{amenity.slotMinutes}-min slots</Text>
+                  </View>
+                  <View
+                    className="flex-1 gap-1 p-3"
+                    style={{ borderRadius: 12, borderWidth: 1, borderColor: "#E3DBF0", backgroundColor: "#FDFBFF" }}
+                  >
+                    <Text className="text-meta-text text-text-muted">Capacity</Text>
+                    <View className="flex-row items-baseline gap-1">
+                      <Text className="text-headline-md font-extrabold text-primary">{amenity.capacity}</Text>
+                      <Text className="text-body-sm text-text-muted">persons</Text>
+                    </View>
+                  </View>
+                </View>
+
+                <PressableScale
+                  scaleTo={0.97}
                   onPress={() => setBookingsAmenityId(bookingsAmenityId === amenity.id ? null : amenity.id)}
-                  className="flex-row items-center gap-1.5 p-1"
+                  className="flex-row items-center justify-center gap-2 bg-surface-container py-3"
+                  style={{ borderRadius: 12 }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${bookingsAmenityId === amenity.id ? "Hide" : "Show"} bookings for ${amenity.name}`}
                 >
-                  <MaterialIcons name={bookingsAmenityId === amenity.id ? "expand-less" : "expand-more"} size={18} color="#6244CD" />
-                  <Text className="text-body-sm font-medium text-primary-container">View Bookings</Text>
-                </Pressable>
+                  <MaterialIcons name="event-note" size={18} color="#6244CD" />
+                  <Text className="text-body-sm font-semibold text-primary">Booking Oversight</Text>
+                </PressableScale>
 
                 {bookingsAmenityId === amenity.id && (
                   <View className="gap-2 border-t border-outline-variant pt-3">
@@ -267,7 +303,11 @@ export default function AdminAmenities() {
                       <Text className="text-body-sm text-text-muted">No bookings yet.</Text>
                     ) : (
                       (bookingsQuery.data ?? []).map((booking) => (
-                        <View key={booking.id} className="flex-row items-center justify-between rounded-md bg-surface-container p-3">
+                        <View
+                          key={booking.id}
+                          className="flex-row items-center justify-between bg-surface-container p-3"
+                          style={{ borderRadius: 12 }}
+                        >
                           <View className="min-w-0 flex-1">
                             <Text className="text-body-sm font-medium text-on-surface" numberOfLines={1}>
                               {booking.flatNumber} · {booking.bookedByName}
@@ -282,7 +322,7 @@ export default function AdminAmenities() {
                     )}
                   </View>
                 )}
-              </ListRowCard>
+              </View>
             ))}
           </View>
         )}

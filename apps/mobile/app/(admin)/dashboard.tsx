@@ -3,12 +3,47 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useAuthStore } from "../../stores/auth-store";
 import { ScreenHeader } from "../../components/ui/screen-header";
-import { StatusDot } from "../../components/ui/status-dot";
 import { EmptyState } from "../../components/ui/empty-state";
-import { VISITOR_STATUS_TONE, VISITOR_STATUS_LABEL, VISITOR_TYPE_LABEL } from "../../lib/visitor-status";
+import { VISITOR_TYPE_LABEL } from "../../lib/visitor-status";
+import type { VisitorOutput } from "@repo/services/visitor/model";
 import { ListLoading } from "../../components/ui/list-loading";
-import { PulsingDot } from "../../components/ui/pulsing-dot";
 import { shadowCard } from "../../lib/shadows";
+
+function timeAgo(iso: string) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hr ago`;
+  return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+const STATUS_PHRASE: Record<VisitorOutput["status"], string> = {
+  pending: "Waiting at Gate",
+  approved: "Approved",
+  rejected: "Rejected",
+  expired: "Pass Expired",
+  checked_in: "Entered",
+  checked_out: "Exited",
+  cancelled: "Cancelled",
+};
+
+const TYPE_ICON: Record<VisitorOutput["type"], React.ComponentProps<typeof MaterialIcons>["name"]> = {
+  guest: "door-front",
+  delivery: "local-shipping",
+  cab: "directions-car",
+  service: "build",
+  other: "person",
+};
+
+const TYPE_ICON_COLOR: Record<VisitorOutput["type"], string> = {
+  guest: "#6244CD",
+  delivery: "#FEB246",
+  cab: "#AA6700",
+  service: "#FEB246",
+  other: "#6244CD",
+};
 
 export default function AdminDashboard() {
   const user = useAuthStore((s) => s.user);
@@ -19,25 +54,30 @@ export default function AdminDashboard() {
   const feed = (feedQuery.data ?? []).slice(0, 8);
   const occupancyPct = metrics && metrics.totalFlats > 0 ? Math.round((metrics.occupiedFlats / metrics.totalFlats) * 100) : null;
 
+  // dashboard mockup: 2×2 glass cards, tinted icon circle top-left, glowing status dot top-right.
   const STATS: {
     label: string;
     value: string;
     icon: React.ComponentProps<typeof MaterialIcons>["name"];
     tint: string;
     iconColor: string;
-    dot?: "green" | "amber";
+    dotColor: string;
   }[] = [
-    { label: "OCCUPIED FLATS", value: occupancyPct !== null ? `${occupancyPct}%` : "—", icon: "home", tint: "bg-surface-container", iconColor: "#6244CD", dot: "green" },
-    { label: "VISITORS TODAY", value: metrics ? `${metrics.todayVisitorCount}` : "—", icon: "groups", tint: "bg-secondary-container/30", iconColor: "#845400", dot: "amber" },
-    { label: "OPEN COMPLAINTS", value: metrics ? `${metrics.openComplaints}` : "—", icon: "report-problem", tint: "bg-status-red/15", iconColor: "#BA1A1A", dot: metrics && metrics.openComplaints > 0 ? "amber" : undefined },
-    { label: "DUES PENDING", value: metrics ? `${metrics.pendingDues}` : "—", icon: "payments", tint: "bg-secondary-container/30", iconColor: "#845400" },
+    { label: "OCCUPIED FLATS", value: occupancyPct !== null ? `${occupancyPct}%` : "—", icon: "home", tint: "rgba(98,68,205,0.10)", iconColor: "#6244CD", dotColor: "#22c55e" },
+    { label: "VISITORS TODAY", value: metrics ? `${metrics.todayVisitorCount}` : "—", icon: "groups", tint: "rgba(254,178,70,0.20)", iconColor: "#E19613", dotColor: "#FEB246" },
+    { label: "OPEN COMPLAINTS", value: metrics ? `${metrics.openComplaints}` : "—", icon: "warning-amber", tint: "rgba(186,26,26,0.10)", iconColor: "#BA1A1A", dotColor: "#BA1A1A" },
+    { label: "DUES PENDING", value: metrics ? `${metrics.pendingDues}` : "—", icon: "payments", tint: "rgba(170,103,0,0.15)", iconColor: "#AA6700", dotColor: "#AA6700" },
   ];
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Dashboard" role="admin" />
+      <ScreenHeader
+        title={`Hello, ${user?.fullName.split(" ")[0] ?? "Admin"}! 👋`}
+        subtitle="Here is the current status of your community."
+        role="admin"
+      />
       <ScrollView
-        contentContainerClassName="gap-6 p-4 pb-8"
+        contentContainerClassName="gap-6 px-4 pb-8 pt-2"
         refreshControl={
           <RefreshControl
             refreshing={metricsQuery.isRefetching || feedQuery.isRefetching}
@@ -48,28 +88,23 @@ export default function AdminDashboard() {
           />
         }
       >
-        {user && (
-          <View className="gap-1">
-            <Text className="text-headline-md font-extrabold text-on-surface">Hello, {user.fullName.split(" ")[0]}! 👋</Text>
-            <Text className="text-body-sm text-text-muted">Here is the current status of your community.</Text>
-          </View>
-        )}
-
-        <View className="gap-3">
+        <View className="gap-4">
           {[STATS.slice(0, 2), STATS.slice(2, 4)].map((row, rowIndex) => (
-            <View key={rowIndex} className="flex-row gap-3">
+            <View key={rowIndex} className="flex-row gap-4">
               {row.map((stat) => (
-                <View key={stat.label} className="flex-1 gap-3 rounded-card bg-surface p-4" style={shadowCard}>
+                <View key={stat.label} className="flex-1 gap-4 rounded-card bg-surface p-4" style={shadowCard}>
                   <View className="flex-row items-start justify-between">
-                    <View className={`h-10 w-10 items-center justify-center rounded-full ${stat.tint}`}>
-                      <MaterialIcons name={stat.icon} size={20} color={stat.iconColor} />
+                    <View
+                      className="h-11 w-11 items-center justify-center rounded-full"
+                      style={{ backgroundColor: stat.tint }}
+                    >
+                      <MaterialIcons name={stat.icon} size={22} color={stat.iconColor} />
                     </View>
-                    {stat.dot === "amber" && <PulsingDot />}
-                    {stat.dot === "green" && <View className="h-2 w-2 rounded-full bg-status-green" />}
+                    <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: stat.dotColor }} />
                   </View>
                   <View>
                     <Text className="text-headline-lg font-extrabold text-on-surface">{stat.value}</Text>
-                    <Text className="text-label-sm uppercase tracking-wide text-text-muted">{stat.label}</Text>
+                    <Text className="text-label-caps uppercase text-text-muted">{stat.label}</Text>
                   </View>
                 </View>
               ))}
@@ -90,16 +125,21 @@ export default function AdminDashboard() {
               feed.map((visitor, index) => (
                 <View
                   key={visitor.id}
-                  className={`flex-row items-center justify-between gap-3 p-4 ${index > 0 ? "border-t border-outline-variant" : ""}`}
+                  className={`flex-row items-center gap-4 p-4 ${index > 0 ? "border-t border-outline-variant" : ""}`}
                 >
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-body-sm font-bold text-on-surface" numberOfLines={1}>
-                      {visitor.name}
-                      {visitor.flatNumber ? ` · ${visitor.flatNumber}` : ""}
-                    </Text>
-                    <Text className="text-label-sm text-text-muted">{VISITOR_TYPE_LABEL[visitor.type]}</Text>
+                  <View className="h-12 w-12 items-center justify-center rounded-full bg-surface-container-high">
+                    <MaterialIcons name={TYPE_ICON[visitor.type]} size={22} color={TYPE_ICON_COLOR[visitor.type]} />
                   </View>
-                  <StatusDot label={VISITOR_STATUS_LABEL[visitor.status]} tone={VISITOR_STATUS_TONE[visitor.status]} />
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-body-md font-bold text-on-surface" numberOfLines={2}>
+                      {VISITOR_TYPE_LABEL[visitor.type]} {STATUS_PHRASE[visitor.status]}
+                    </Text>
+                    <Text className="text-body-sm text-on-surface-variant" numberOfLines={1}>
+                      {visitor.flatNumber ? `Flat ${visitor.flatNumber} - ` : ""}
+                      {visitor.name}
+                    </Text>
+                  </View>
+                  <Text className="text-meta-text text-text-muted">{timeAgo(visitor.createdAt)}</Text>
                 </View>
               ))
             )}

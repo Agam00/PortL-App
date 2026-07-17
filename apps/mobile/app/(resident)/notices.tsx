@@ -17,13 +17,14 @@ function formatPublishedAt(iso: string | null) {
   yesterday.setDate(now.getDate() - 1);
   const isYesterday = date.toDateString() === yesterday.toDateString();
 
-  if (isToday) return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  if (isToday) return `Today, ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
   if (isYesterday) return "Yesterday";
   return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 export default function ResidentNotices() {
   const [search, setSearch] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const utils = trpc.useUtils();
 
   const noticesQuery = trpc.notices.listForResident.useQuery({});
@@ -38,15 +39,23 @@ export default function ResidentNotices() {
       n.body.toLowerCase().includes(search.toLowerCase()),
   );
 
+  function openNotice(noticeId: string, isRead: boolean) {
+    setExpandedId((current) => (current === noticeId ? null : noticeId));
+    if (!isRead) markReadMutation.mutate({ noticeId });
+  }
+
   return (
-    <View className="flex-1 bg-background">
-      <ScreenHeader title="Notice Board" role="resident" />
+    <View className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
+      <ScreenHeader
+        title="Notice Board"
+        subtitle="Stay updated with the latest community announcements."
+        role="resident"
+      />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-5 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={noticesQuery.isRefetching} onRefresh={() => noticesQuery.refetch()} />}
       >
-        <Text className="text-body-sm text-text-muted">Stay updated with the latest community announcements.</Text>
         <Input
           placeholder="Search notices..."
           value={search}
@@ -57,34 +66,51 @@ export default function ResidentNotices() {
         {noticesQuery.isLoading ? (
           <ListLoading />
         ) : notices.length === 0 ? (
-          <View className="rounded-card bg-surface">
+          <View className="rounded-xl bg-surface">
             <EmptyState title="No notices yet" description="Society announcements will show up here." icon="campaign" />
           </View>
         ) : (
-          <View className="gap-3">
-            {notices.map((notice) => (
-              <Pressable
-                key={notice.id}
-                onPress={() => !notice.isRead && markReadMutation.mutate({ noticeId: notice.id })}
-                className="gap-2 rounded-card bg-surface p-4"
-                style={shadowCard}
-              >
-                <View className="flex-row items-start justify-between gap-2">
-                  <View className="flex-1 flex-row items-center gap-2">
-                    {!notice.isRead && <View className="h-2 w-2 rounded-full bg-primary-container" />}
-                    <Text className="text-meta-text text-text-muted">{formatPublishedAt(notice.publishedAt)}</Text>
-                  </View>
-                </View>
-                <Text
-                  className={`text-body-md ${notice.isRead ? "text-on-surface-variant" : "font-extrabold text-on-surface"}`}
+          <View className="gap-4">
+            {notices.map((notice) => {
+              const expanded = expandedId === notice.id;
+              return (
+                <Pressable
+                  key={notice.id}
+                  onPress={() => openNotice(notice.id, notice.isRead)}
+                  className="gap-2 rounded-xl bg-surface p-5"
+                  style={shadowCard}
+                  accessibilityLabel={`Notice: ${notice.title}`}
+                  accessibilityRole="button"
                 >
-                  {notice.title}
-                </Text>
-                <Text className={`text-body-sm ${notice.isRead ? "text-text-muted" : "text-on-surface-variant"}`} numberOfLines={2}>
-                  {notice.body}
-                </Text>
-              </Pressable>
-            ))}
+                  <View className="flex-row items-center justify-between gap-2">
+                    <View className="flex-row items-center gap-2">
+                      <MaterialIcons name="campaign" size={16} color="#797585" />
+                      <Text className="text-meta-text text-text-muted">{formatPublishedAt(notice.publishedAt)}</Text>
+                    </View>
+                    {!notice.isRead && (
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#B9A8F0" }} />
+                    )}
+                  </View>
+                  <Text
+                    className={`text-headline-md ${notice.isRead ? "font-bold text-on-surface-variant" : "font-extrabold text-on-surface"}`}
+                  >
+                    {notice.title}
+                  </Text>
+                  <Text
+                    className={`text-body-md ${notice.isRead ? "text-text-muted" : "text-on-surface-variant"}`}
+                    numberOfLines={expanded ? undefined : 3}
+                  >
+                    {notice.body}
+                  </Text>
+                  <View className="flex-row items-center gap-1 pt-1">
+                    <Text className="text-body-md font-bold text-primary">
+                      {expanded ? "Show less" : "Read more"}
+                    </Text>
+                    <MaterialIcons name={expanded ? "arrow-upward" : "arrow-forward"} size={16} color="#6244CD" />
+                  </View>
+                </Pressable>
+              );
+            })}
           </View>
         )}
       </ScrollView>

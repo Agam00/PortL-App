@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView } from "react-native";
+import { View, Text, ScrollView, Pressable } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "expo-router";
@@ -11,7 +11,6 @@ import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { Input } from "../../components/ui/input";
-import { Button } from "../../components/ui/button";
 import { shadowCard } from "../../lib/shadows";
 
 interface SetPasswordForm {
@@ -68,23 +67,26 @@ export default function SetPasswordScreen() {
         </Text>
         <Text className="mt-1 text-center text-body-md text-text-muted">Friendly Community Console</Text>
 
-        <View className="mt-8 items-center gap-4 rounded-card bg-surface p-6" style={shadowCard}>
-          <View className="h-16 w-16 items-center justify-center rounded-full bg-surface-container">
-            <MaterialIcons name="lock-reset" size={28} color="#6244CD" />
+        <View className="mt-8 items-center gap-4 bg-surface p-6" style={[{ borderRadius: 24 }, shadowCard]}>
+          <View
+            className="items-center justify-center"
+            style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#E4DAFB" }}
+          >
+            <MaterialIcons name="lock-reset" size={32} color="#6244CD" />
           </View>
 
           <View className="items-center gap-1">
-            <Text className="text-headline-md font-extrabold text-on-surface">Welcome to PORTL!</Text>
-            <Text className="text-body-md text-text-muted">Let's secure your account.</Text>
+            <Text className="text-center text-headline-lg font-extrabold text-on-surface">Welcome to PORTL!</Text>
+            <Text className="text-body-lg text-on-surface-variant">Let's secure your account.</Text>
           </View>
 
-          <View className="w-full gap-1">
+          <View className="w-full gap-2">
+            <Text className="text-body-md font-bold text-on-surface">New Password</Text>
             <Controller
               control={control}
               name="newPassword"
               render={({ field: { onChange, onBlur, value } }) => (
                 <Input
-                  label="New Password"
                   secureTextEntry
                   placeholder="Enter your new password"
                   onBlur={onBlur}
@@ -92,34 +94,42 @@ export default function SetPasswordScreen() {
                   value={value}
                   error={errors.newPassword?.message}
                   leftElement={<MaterialIcons name="lock-outline" size={20} color="#797585" />}
+                  style={{ backgroundColor: "#F1ECF8", borderWidth: 0 }}
                 />
               )}
             />
             <Text className="text-body-sm text-text-muted">Must be at least 6 characters long.</Text>
           </View>
 
-          <Input
-            label="Confirm Password"
-            secureTextEntry
-            placeholder="Re-enter your password"
-            value={confirmPassword}
-            onChangeText={(v) => {
-              setConfirmPassword(v);
-              if (confirmError) setConfirmError(null);
-            }}
-            error={confirmError ?? undefined}
-            leftElement={<MaterialIcons name="lock-outline" size={20} color="#797585" />}
-            className="w-full"
-          />
+          <View className="w-full gap-2">
+            <Text className="text-body-md font-bold text-on-surface">Confirm Password</Text>
+            <Input
+              secureTextEntry
+              placeholder="Re-enter your password"
+              value={confirmPassword}
+              onChangeText={(v) => {
+                setConfirmPassword(v);
+                if (confirmError) setConfirmError(null);
+              }}
+              error={confirmError ?? undefined}
+              leftElement={<MaterialIcons name="password" size={20} color="#797585" />}
+              style={{ backgroundColor: "#F1ECF8", borderWidth: 0 }}
+            />
+          </View>
 
-          <Button
-            className="mt-2 w-full"
+          <Pressable
             onPress={handleSubmit(onSubmit)}
-            loading={setPasswordMutation.isPending}
-            disabled={!newPassword || !confirmPassword}
+            disabled={!newPassword || !confirmPassword || setPasswordMutation.isPending}
+            className="mt-2 h-14 w-full flex-row items-center justify-center gap-2 rounded-full"
+            style={{ backgroundColor: !newPassword || !confirmPassword ? "#B9A8F0" : "#6244CD" }}
+            accessibilityLabel="Set password"
+            accessibilityRole="button"
           >
-            Set Password
-          </Button>
+            <Text className="text-body-lg font-bold" style={{ color: "#FFFFFF" }}>
+              {setPasswordMutation.isPending ? "Saving..." : "Set Password"}
+            </Text>
+            {!setPasswordMutation.isPending && <MaterialIcons name="arrow-forward" size={20} color="#fff" />}
+          </Pressable>
         </View>
       </View>
     </ScrollView>

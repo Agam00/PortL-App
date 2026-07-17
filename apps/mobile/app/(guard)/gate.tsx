@@ -5,18 +5,51 @@ if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 import { useRouter } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { ScreenHeader } from "../../components/ui/screen-header";
-import { Button } from "../../components/ui/button";
 import { EmptyState } from "../../components/ui/empty-state";
-import { GroupLabel } from "../../components/ui/group-label";
-import { PulsingDot } from "../../components/ui/pulsing-dot";
+import { PressableScale } from "../../components/ui/pressable-scale";
 import { GuardQueueRow } from "../../components/guard-queue-row";
 import { ListLoading } from "../../components/ui/list-loading";
 import { shadowCard } from "../../lib/shadows";
+
+function StatTile({ value, label, color }: { value: number; label: string; color: string }) {
+  return (
+    <View className="flex-1 items-center justify-center rounded-xl bg-surface p-4" style={shadowCard}>
+      <Text className="text-headline-lg font-extrabold" style={{ color }}>
+        {value}
+      </Text>
+      <Text
+        className="text-center font-bold uppercase text-on-surface-variant"
+        style={{ fontSize: 11, letterSpacing: 1, marginTop: 2 }}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+function SectionHeader({ dotColor, title, badge }: { dotColor: string; title: string; badge?: string }) {
+  return (
+    <View className="flex-row items-center justify-between">
+      <View className="flex-row items-center gap-2">
+        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: dotColor }} />
+        <Text className="text-body-lg font-bold text-on-surface">{title}</Text>
+      </View>
+      {badge && (
+        <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: "rgba(254,178,70,0.2)" }}>
+          <Text className="font-bold text-secondary" style={{ fontSize: 12 }}>
+            {badge}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function GuardGate() {
   const router = useRouter();
@@ -72,47 +105,54 @@ export default function GuardGate() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Gate Dashboard" role="guard" />
+      <ScreenHeader
+        title="Gate Dashboard"
+        subtitle="Manage incoming visitors and deliveries."
+        role="guard"
+      />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-5 px-4 pb-8 pt-2"
         refreshControl={
           <RefreshControl refreshing={queueQuery.isRefetching} onRefresh={() => queueQuery.refetch()} />
         }
       >
         <View className="flex-row gap-3">
-          <View className="flex-1 justify-center gap-1 rounded-card bg-surface p-4" style={shadowCard}>
-            <Text className="text-body-sm text-text-muted">Pending</Text>
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-headline-md font-extrabold text-status-amber">{pending.length}</Text>
-              {pending.length > 0 && <PulsingDot />}
-            </View>
-          </View>
-          <View className="flex-1 justify-center gap-1 rounded-card bg-surface p-4" style={shadowCard}>
-            <Text className="text-body-sm text-text-muted">Checked In</Text>
-            <Text className="text-headline-md font-extrabold text-primary-container">{checkedIn.length}</Text>
-          </View>
-          <View className="flex-1 justify-center gap-1 rounded-card bg-surface p-4" style={shadowCard}>
-            <Text className="text-body-sm text-text-muted">Expiring</Text>
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-headline-md font-extrabold text-status-red-strong">{expiringSoon.length}</Text>
-              {expiringSoon.length > 0 && <PulsingDot />}
-            </View>
-          </View>
+          <StatTile value={pending.length} label="Pending" color="#FEB246" />
+          <StatTile value={checkedIn.length} label="Checked In" color="#6244CD" />
+          <StatTile value={expiringSoon.length} label="Expiring" color="#BA1A1A" />
         </View>
 
         <View className="flex-row gap-3">
-          <Button className="flex-1" variant="primary" onPress={() => router.push("/(guard)/visitors")}>
-            Register Visitor
-          </Button>
-          <Button className="flex-1" variant="outline" onPress={() => router.push("/(guard)/check-preapproved")}>
-            Pre-Approved
-          </Button>
+          <PressableScale
+            scaleTo={0.95}
+            onPress={() => router.push("/(guard)/visitors")}
+            className="flex-1 items-center justify-center gap-2 p-4"
+            style={[{ borderRadius: 16, backgroundColor: "#6244CD" }, shadowCard]}
+            accessibilityLabel="Register a new visitor"
+            accessibilityRole="button"
+          >
+            <MaterialIcons name="add-circle-outline" size={30} color="#FFFFFF" />
+            <Text className="text-body-md font-bold" style={{ color: "#FFFFFF" }}>
+              Register Visitor
+            </Text>
+          </PressableScale>
+          <PressableScale
+            scaleTo={0.95}
+            onPress={() => router.push("/(guard)/check-preapproved")}
+            className="flex-1 items-center justify-center gap-2 bg-surface p-4"
+            style={[{ borderRadius: 16, borderWidth: 1, borderColor: "rgba(98,68,205,0.2)" }, shadowCard]}
+            accessibilityLabel="Check pre-approved visitors"
+            accessibilityRole="button"
+          >
+            <MaterialIcons name="check-circle-outline" size={30} color="#6244CD" />
+            <Text className="text-body-md font-bold text-primary">Pre-Approved</Text>
+          </PressableScale>
         </View>
 
         {queueQuery.isLoading ? (
           <ListLoading />
         ) : queueQuery.isError ? (
-          <View className="rounded-card bg-surface">
+          <View className="rounded-xl bg-surface">
             <EmptyState
               title="Couldn't load the queue"
               description="Pull down to refresh and try again."
@@ -120,7 +160,7 @@ export default function GuardGate() {
             />
           </View>
         ) : queue.length === 0 ? (
-          <View className="rounded-card bg-surface">
+          <View className="rounded-xl bg-surface">
             <EmptyState
               title="No requests yet"
               description="Requests you register will show up here with live status."
@@ -130,8 +170,12 @@ export default function GuardGate() {
         ) : (
           <>
             {pending.length > 0 && (
-              <View className="gap-2">
-                <GroupLabel label="Pending Approval" />
+              <View className="gap-3">
+                <SectionHeader
+                  dotColor="#FEB246"
+                  title="Pending Approval"
+                  badge={`${pending.length} New`}
+                />
                 {pending.map((visitor) => (
                   <GuardQueueRow key={visitor.id} visitor={visitor} />
                 ))}
@@ -139,8 +183,8 @@ export default function GuardGate() {
             )}
 
             {approved.length > 0 && (
-              <View className="gap-2">
-                <GroupLabel label="Approved / Pre-Booked" />
+              <View className="gap-3">
+                <SectionHeader dotColor="#6244CD" title="Approved / Pre-Booked" />
                 {approved.map((visitor) => (
                   <GuardQueueRow
                     key={visitor.id}
@@ -157,8 +201,8 @@ export default function GuardGate() {
             )}
 
             {checkedIn.length > 0 && (
-              <View className="gap-2">
-                <GroupLabel label="Currently On-Site" />
+              <View className="gap-3">
+                <SectionHeader dotColor="#797585" title="Currently On-Site" />
                 {checkedIn.map((visitor) => (
                   <GuardQueueRow
                     key={visitor.id}

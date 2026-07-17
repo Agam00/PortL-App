@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -9,11 +10,11 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
 import { EmptyState } from "../../components/ui/empty-state";
-import { GroupLabel } from "../../components/ui/group-label";
 import { FormPanel } from "../../components/ui/form-panel";
-import { ListRowCard } from "../../components/ui/list-row-card";
 import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
+import { PressableScale } from "../../components/ui/pressable-scale";
+import { shadowCard } from "../../lib/shadows";
 
 export default function AdminFlats() {
   const showToast = useUiStore((s) => s.showToast);
@@ -122,6 +123,7 @@ export default function AdminFlats() {
 
   const towers = towersQuery.data ?? [];
   const flats = flatsQuery.data ?? [];
+  const occupiedCount = flats.filter((f) => f.residentCount > 0).length;
   const flatsByTower = new Map<string, typeof flats>();
   for (const flat of flats) {
     const list = flatsByTower.get(flat.towerName) ?? [];
@@ -131,7 +133,7 @@ export default function AdminFlats() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Flats Management" role="admin" />
+      <ScreenHeader title="" role="admin" />
       <ScrollView
         contentContainerClassName="gap-4 p-4 pb-8"
         keyboardShouldPersistTaps="handled"
@@ -145,7 +147,25 @@ export default function AdminFlats() {
           />
         }
       >
-        <Text className="text-body-sm text-text-muted">Manage units, occupancy, and assignments across all towers.</Text>
+        {/* flats_management mockup: white intro card with title, blurb, and two stat chips */}
+        <View className="gap-3 bg-surface p-5" style={[{ borderRadius: 16 }, shadowCard]}>
+          <Text className="text-headline-lg font-extrabold text-on-surface">Flats Management</Text>
+          <Text className="text-body-sm text-text-muted">
+            Manage residential units across all towers. Monitor occupancy, edit details, or add new units to the registry.
+          </Text>
+          <View className="flex-row gap-3">
+            <View className="flex-1 gap-1 bg-surface-container p-4" style={{ borderRadius: 12 }}>
+              <Text className="text-label-caps uppercase text-text-muted">Total Flats</Text>
+              <Text className="text-headline-md font-extrabold text-primary">{flatsQuery.isLoading ? "—" : flats.length}</Text>
+            </View>
+            <View className="flex-1 gap-1 bg-surface-container p-4" style={{ borderRadius: 12 }}>
+              <Text className="text-label-caps uppercase text-text-muted">Occupied</Text>
+              <Text className="text-headline-md font-extrabold" style={{ color: "#E19613" }}>
+                {flatsQuery.isLoading ? "—" : occupiedCount}
+              </Text>
+            </View>
+          </View>
+        </View>
 
         <Button
           variant={showForm ? "outline" : "primary"}
@@ -156,7 +176,10 @@ export default function AdminFlats() {
 
         {showForm && (
           <FormPanel>
-            <Text className="text-body-md font-semibold text-on-surface">{editingId ? "Edit Flat" : "New Flat"}</Text>
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="add-circle-outline" size={20} color="#6244CD" />
+              <Text className="text-body-md font-bold text-on-surface">{editingId ? "Edit Flat" : "Quick Add Flat"}</Text>
+            </View>
 
             {!editingId && (
               <View className="gap-2">
@@ -191,7 +214,7 @@ export default function AdminFlats() {
             <Input label="Floor (optional)" placeholder="e.g. 1" keyboardType="number-pad" value={floor} onChangeText={setFloor} />
             <Input label="Type (optional)" placeholder="e.g. 2BHK" value={type} onChangeText={setType} />
             <Button onPress={handleSubmit} loading={createMutation.isPending || updateMutation.isPending}>
-              {editingId ? "Save Changes" : "Add Flat"}
+              {editingId ? "Save Changes" : "Add to Registry"}
             </Button>
           </FormPanel>
         )}
@@ -208,34 +231,86 @@ export default function AdminFlats() {
           </View>
         ) : (
           Array.from(flatsByTower.entries()).map(([towerName, towerFlats]) => (
-            <View key={towerName} className="gap-2">
-              <GroupLabel label={`${towerName} · ${towerFlats.length} units`} />
-              {towerFlats.map((flat) => (
-                <ListRowCard key={flat.id} className="flex-row items-center gap-3">
-                  <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-container">
-                    <Text className="text-body-sm font-semibold text-on-surface">{flat.flatNumber.split("-").pop()}</Text>
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
-                      {flat.flatNumber}
-                      {flat.type ? ` (${flat.type})` : ""}
-                    </Text>
-                    <View className="flex-row items-center gap-1.5">
-                      <View className={`h-1.5 w-1.5 rounded-full ${flat.residentCount > 0 ? "bg-status-green" : "bg-text-muted"}`} />
-                      <Text className="text-meta-text text-text-muted">
-                        {flat.residentCount > 0 ? `${flat.residentCount} resident${flat.residentCount > 1 ? "s" : ""}` : "Vacant"}
-                      </Text>
+            <View key={towerName} className="gap-3">
+              <View className="flex-row items-center gap-2 pt-1">
+                <MaterialIcons name="apartment" size={20} color="#6244CD" />
+                <Text className="text-headline-md font-extrabold text-on-surface">{towerName}</Text>
+                <View className="mx-2 flex-1" style={{ height: 1, backgroundColor: "rgba(202,196,214,0.6)" }} />
+                <Text className="text-meta-text text-text-muted">{towerFlats.length} units</Text>
+              </View>
+
+              {towerFlats.map((flat) => {
+                const occupied = flat.residentCount > 0;
+                const meta = [
+                  flat.floor !== null ? `Floor ${flat.floor}` : null,
+                  flat.type,
+                  occupied ? `${flat.residentCount} resident${flat.residentCount > 1 ? "s" : ""}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" • ");
+                return (
+                  <View
+                    key={flat.id}
+                    className="bg-surface"
+                    style={[{ borderRadius: 16, overflow: "hidden" }, shadowCard]}
+                  >
+                    <View
+                      pointerEvents="none"
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 5,
+                        backgroundColor: occupied ? "#FEB246" : "#CAC4D6",
+                      }}
+                    />
+                    <View className="gap-3 p-4 pl-5">
+                      <View className="flex-row items-center justify-between gap-3">
+                        <Text className="min-w-0 flex-1 text-headline-md font-extrabold text-on-surface" numberOfLines={1}>
+                          {flat.flatNumber}
+                        </Text>
+                        <View
+                          className="rounded-full px-3 py-1"
+                          style={{ backgroundColor: occupied ? "rgba(254,178,70,0.22)" : "#ECE6F2" }}
+                        >
+                          <Text className="text-meta-text font-semibold" style={{ color: occupied ? "#845400" : "#48454F" }}>
+                            {occupied ? "Occupied" : "Vacant"}
+                          </Text>
+                        </View>
+                      </View>
+                      {meta.length > 0 && <Text className="text-body-sm text-text-muted">{meta}</Text>}
+                      <View style={{ height: 1, backgroundColor: "rgba(202,196,214,0.45)" }} />
+                      <View className="flex-row gap-3">
+                        <PressableScale
+                          scaleTo={0.97}
+                          className="flex-1 flex-row items-center justify-center gap-2 bg-surface-container py-2.5"
+                          style={{ borderRadius: 12 }}
+                          onPress={() => startEdit(flat)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Edit ${flat.flatNumber}`}
+                        >
+                          <MaterialIcons name="edit" size={16} color="#6244CD" />
+                          <Text className="text-body-sm font-semibold text-primary">Edit</Text>
+                        </PressableScale>
+                        <PressableScale
+                          scaleTo={0.97}
+                          className="flex-1 flex-row items-center justify-center gap-2 py-2.5"
+                          style={{ borderRadius: 12, backgroundColor: "rgba(186,26,26,0.08)" }}
+                          onPress={() => confirmDelete(flat.id, flat.flatNumber)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Delete ${flat.flatNumber}`}
+                        >
+                          <MaterialIcons name="delete-outline" size={16} color="#BA1A1A" />
+                          <Text className="text-body-sm font-semibold" style={{ color: "#BA1A1A" }}>
+                            Delete
+                          </Text>
+                        </PressableScale>
+                      </View>
                     </View>
                   </View>
-                  <IconButton icon="edit" onPress={() => startEdit(flat)} accessibilityLabel={`Edit ${flat.flatNumber}`} />
-                  <IconButton
-                    icon="delete-outline"
-                    color="#BA1A1A"
-                    onPress={() => confirmDelete(flat.id, flat.flatNumber)}
-                    accessibilityLabel={`Delete ${flat.flatNumber}`}
-                  />
-                </ListRowCard>
-              ))}
+                );
+              })}
             </View>
           ))
         )}

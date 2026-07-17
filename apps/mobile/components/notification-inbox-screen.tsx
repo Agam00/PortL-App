@@ -1,34 +1,52 @@
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../lib/trpc";
 import { getNotificationRoute } from "../lib/notification-navigation";
 import { ScreenHeader } from "./ui/screen-header";
 import { EmptyState } from "./ui/empty-state";
-import { Button } from "./ui/button";
 import { ListLoading } from "./ui/list-loading";
 import { PressableScale } from "./ui/pressable-scale";
 import { shadowCard } from "../lib/shadows";
 
-const TYPE_ICON: Record<string, React.ComponentProps<typeof MaterialIcons>["name"]> = {
-  visitor_request: "person",
-  visitor_decision: "verified-user",
-  notice: "campaign",
-  poll: "poll",
-  complaint_status: "report-problem",
-  complaint_comment: "chat-bubble",
-  booking_confirmed: "event-available",
+// notifications_inbox mockup: each type gets a colored circular icon —
+// amber for visitor events, violet for bookings, brown for maintenance,
+// red for dues-like alerts, gray for community notices.
+const TYPE_STYLE: Record<string, { icon: React.ComponentProps<typeof MaterialIcons>["name"]; bg: string; fg: string }> = {
+  visitor_request: { icon: "directions-walk", bg: "#F6A83C", fg: "#3D2E00" },
+  visitor_decision: { icon: "verified-user", bg: "#F6A83C", fg: "#3D2E00" },
+  notice: { icon: "campaign", bg: "#E4DEEC", fg: "#48454F" },
+  poll: { icon: "poll", bg: "#E4DAFB", fg: "#4A27B5" },
+  complaint_status: { icon: "handyman", bg: "#9A6A00", fg: "#FFFFFF" },
+  complaint_comment: { icon: "chat-bubble", bg: "#9A6A00", fg: "#FFFFFF" },
+  booking_confirmed: { icon: "event-available", bg: "#7B5FE8", fg: "#FFFFFF" },
 };
 
-function timeAgo(iso: string | null) {
+const DEFAULT_STYLE = { icon: "notifications" as const, bg: "#E4DEEC", fg: "#48454F" };
+
+function timeLabel(iso: string | null) {
   if (!iso) return "";
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60_000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  return new Date(iso).toLocaleDateString([], { month: "short", day: "numeric" });
+  const date = new Date(iso);
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) {
+    return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  }
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  if (now.getTime() - date.getTime() < 7 * 86_400_000) {
+    return `${date.toLocaleDateString([], { weekday: "short" })}, ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  }
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+function groupOf(iso: string | null) {
+  if (!iso) return "Earlier";
+  const date = new Date(iso);
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) return "Today";
+  if (now.getTime() - date.getTime() < 7 * 86_400_000) return "Earlier this week";
+  return "Earlier";
 }
 
 export function NotificationInboxScreen({ role }: { role: "resident" | "guard" | "admin" }) {
@@ -46,67 +64,112 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
   const notifications = notificationsQuery.data ?? [];
   const hasUnread = notifications.some((n) => !n.readAt);
 
+  const groups: { label: string; items: typeof notifications }[] = [];
+  for (const notification of notifications) {
+    const label = groupOf(notification.createdAt);
+    const group = groups.find((g) => g.label === label);
+    if (group) group.items.push(notification);
+    else groups.push({ label, items: [notification] });
+  }
+
   function handlePress(notification: (typeof notifications)[number]) {
     if (!notification.readAt) markReadMutation.mutate({ notificationId: notification.id });
-    router.push(getNotificationRoute(notification.type, role) as never);
+    router.push(getNotificationRoute(notification.type, role, notification.data) as never);
   }
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
       <ScreenHeader title="Notifications" role={role} />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-5 pb-8 pt-2"
         refreshControl={
           <RefreshControl refreshing={notificationsQuery.isRefetching} onRefresh={() => notificationsQuery.refetch()} />
         }
       >
         {hasUnread && (
-          <Button variant="outline" onPress={() => markAllReadMutation.mutate(undefined)} loading={markAllReadMutation.isPending}>
-            Mark all as read
-          </Button>
+          <Pressable
+            onPress={() => markAllReadMutation.mutate(undefined)}
+            disabled={markAllReadMutation.isPending}
+            className="flex-row items-center gap-1.5 self-end rounded-full px-4 py-2"
+            style={{ backgroundColor: "#E4DAFB" }}
+            accessibilityLabel="Mark all as read"
+            accessibilityRole="button"
+          >
+            {markAllReadMutation.isPending ? (
+              <ActivityIndicator size="small" color="#4A27B5" />
+            ) : (
+              <MaterialIcons name="done-all" size={16} color="#4A27B5" />
+            )}
+            <Text className="text-body-sm font-bold" style={{ color: "#4A27B5" }}>
+              Mark all as read
+            </Text>
+          </Pressable>
         )}
 
         {notificationsQuery.isLoading ? (
           <ListLoading />
         ) : notificationsQuery.isError ? (
-          <View className="rounded-card bg-surface">
+          <View className="rounded-xl bg-surface">
             <EmptyState title="Couldn't load notifications" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : notifications.length === 0 ? (
-          <View className="rounded-card bg-surface">
+          <View className="rounded-xl bg-surface">
             <EmptyState title="No notifications yet" description="Updates and alerts will show up here." icon="notifications-none" />
           </View>
         ) : (
-          <View className="gap-2">
-            {notifications.map((notification) => (
-              <PressableScale key={notification.id} scaleTo={0.98} onPress={() => handlePress(notification)}>
-                <View
-                  className="flex-row items-start gap-3 rounded-card p-4"
-                  style={[shadowCard, { backgroundColor: notification.readAt ? "#FFFFFF" : "#F1ECF8" }]}
-                >
-                  <View className="h-10 w-10 items-center justify-center rounded-full bg-surface-container-high">
-                    <MaterialIcons name={TYPE_ICON[notification.type] ?? "notifications"} size={18} color="#6244CD" />
-                  </View>
-                  <View className="min-w-0 flex-1">
-                    <View className="flex-row items-start justify-between gap-2">
-                      <Text
-                        className={`flex-1 text-body-md ${notification.readAt ? "text-on-surface-variant" : "font-bold text-on-surface"}`}
+          groups.map((group) => (
+            <View key={group.label} className="gap-3">
+              <Text className="pt-1 text-body-md font-bold text-text-muted">{group.label}</Text>
+              {group.items.map((notification) => {
+                const style = TYPE_STYLE[notification.type] ?? DEFAULT_STYLE;
+                const unread = !notification.readAt;
+                return (
+                  <PressableScale key={notification.id} scaleTo={0.98} onPress={() => handlePress(notification)}>
+                    <View
+                      className="flex-row items-start gap-4 rounded-xl p-4"
+                      style={[shadowCard, { backgroundColor: unread ? "#EFEAFB" : "#FFFFFF" }]}
+                    >
+                      <View
+                        className="items-center justify-center"
+                        style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: style.bg }}
                       >
-                        {notification.title}
-                      </Text>
-                      {!notification.readAt && <View className="mt-1.5 h-2 w-2 rounded-full bg-primary-container" />}
+                        <MaterialIcons name={style.icon} size={24} color={style.fg} />
+                      </View>
+                      <View className="min-w-0 flex-1">
+                        <View className="flex-row items-center justify-between gap-2">
+                          <Text
+                            className={`flex-1 text-body-lg ${unread ? "font-extrabold text-on-surface" : "font-bold text-on-surface-variant"}`}
+                            numberOfLines={1}
+                          >
+                            {notification.title}
+                          </Text>
+                          <Text className="text-body-sm text-text-muted">{timeLabel(notification.createdAt)}</Text>
+                        </View>
+                        {notification.body && (
+                          <Text className="text-body-md text-on-surface-variant" numberOfLines={2}>
+                            {notification.body}
+                          </Text>
+                        )}
+                      </View>
+                      {unread && (
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: 10,
+                            right: 10,
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            backgroundColor: "#6244CD",
+                          }}
+                        />
+                      )}
                     </View>
-                    {notification.body && (
-                      <Text className="text-body-sm text-text-muted" numberOfLines={2}>
-                        {notification.body}
-                      </Text>
-                    )}
-                    <Text className="mt-1 text-label-sm text-text-muted">{timeAgo(notification.createdAt)}</Text>
-                  </View>
-                </View>
-              </PressableScale>
-            ))}
-          </View>
+                  </PressableScale>
+                );
+              })}
+            </View>
+          ))
         )}
       </ScrollView>
     </View>

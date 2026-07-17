@@ -20,18 +20,18 @@ export default function AdminSociety() {
   const pollsQuery = trpc.polls.list.useQuery();
   const duesQuery = trpc.dues.list.useQuery();
 
+  // management_hub mockup: white cards, icon squircle, ↗, two lavender stat chips
+  // with the category's accent color on the numbers.
   const sections: {
     label: string;
     icon: React.ComponentProps<typeof MaterialIcons>["name"];
-    tint: string;
-    iconColor: string;
+    accent: string;
     items: { label: string; value: string; route: string }[];
   }[] = [
     {
       label: "Infrastructure",
       icon: "apartment",
-      tint: "bg-surface-container",
-      iconColor: "#6244CD",
+      accent: "#6244CD",
       items: [
         { label: "Towers", value: `${towersQuery.data?.length ?? "—"}`, route: "/(admin)/towers" },
         { label: "Flats", value: `${flatsQuery.data?.length ?? "—"}`, route: "/(admin)/flats" },
@@ -40,8 +40,7 @@ export default function AdminSociety() {
     {
       label: "People",
       icon: "groups",
-      tint: "bg-secondary-container/30",
-      iconColor: "#845400",
+      accent: "#E19613",
       items: [
         { label: "Residents", value: `${residentsQuery.data?.length ?? "—"}`, route: "/(admin)/residents" },
         { label: "Guards", value: `${guardsQuery.data?.length ?? "—"}`, route: "/(admin)/guards" },
@@ -50,8 +49,7 @@ export default function AdminSociety() {
     {
       label: "Communications",
       icon: "campaign",
-      tint: "bg-secondary-container/30",
-      iconColor: "#845400",
+      accent: "#AA6700",
       items: [
         { label: "Active Notices", value: `${noticesQuery.data?.length ?? "—"}`, route: "/(admin)/notices" },
         { label: "Open Polls", value: `${pollsQuery.data?.filter((p) => !p.isClosed).length ?? "—"}`, route: "/(admin)/polls" },
@@ -59,9 +57,8 @@ export default function AdminSociety() {
     },
     {
       label: "Operations",
-      icon: "build",
-      tint: "bg-surface-container",
-      iconColor: "#6244CD",
+      icon: "gavel",
+      accent: "#9F87E8",
       items: [
         { label: "Amenities", value: `${amenitiesQuery.data?.length ?? "—"}`, route: "/(admin)/amenities" },
         { label: "Support Staff", value: `${staffQuery.data?.length ?? "—"}`, route: "/(admin)/staff" },
@@ -70,8 +67,7 @@ export default function AdminSociety() {
     {
       label: "Finance",
       icon: "payments",
-      tint: "bg-status-red/15",
-      iconColor: "#BA1A1A",
+      accent: "#BA1A1A",
       items: [
         { label: "Dues Pending", value: `${duesQuery.data?.filter((d) => d.status !== "paid").length ?? "—"}`, route: "/(admin)/dues" },
       ],
@@ -80,9 +76,9 @@ export default function AdminSociety() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Management Hub" role="admin" />
+      <ScreenHeader title="Management Hub" subtitle="Oversee and manage all aspects of your community." role="admin" />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         refreshControl={
           <RefreshControl
             refreshing={
@@ -110,24 +106,27 @@ export default function AdminSociety() {
           />
         }
       >
-        <Text className="text-body-sm text-text-muted">Oversee and manage all aspects of your community.</Text>
-
         {sections.map((section) => (
-          <View key={section.label} className="gap-3 rounded-card bg-surface p-5" style={shadowCard}>
-            <View className="flex-row items-center justify-between">
-              <View className={`h-11 w-11 items-center justify-center rounded-full ${section.tint}`}>
-                <MaterialIcons name={section.icon} size={20} color={section.iconColor} />
+          <View key={section.label} className="gap-3 bg-surface p-5" style={[{ borderRadius: 16 }, shadowCard]}>
+            <View className="flex-row items-start justify-between">
+              <View
+                className="h-12 w-12 items-center justify-center bg-surface-container-high"
+                style={{ borderRadius: 12 }}
+              >
+                <MaterialIcons name={section.icon} size={24} color={section.accent} />
               </View>
-              <MaterialIcons name="north-east" size={18} color="#CAC4D6" />
+              <MaterialIcons name="north-east" size={20} color="#CAC4D6" />
             </View>
             <Text className="text-headline-md font-extrabold text-on-surface">{section.label}</Text>
 
-            <View className={`flex-row gap-3 ${section.items.length === 1 ? "" : ""}`}>
+            <View className="flex-row gap-3">
               {section.items.map((item) => (
                 <PressableScale key={item.label} scaleTo={0.97} className="flex-1" onPress={() => router.push(item.route as never)}>
-                  <View className="gap-1 rounded-md bg-surface-container p-3">
+                  <View className="gap-1 p-3" style={{ borderRadius: 12, backgroundColor: "#F6F2FB" }}>
                     <Text className="text-label-sm text-text-muted">{item.label}</Text>
-                    <Text className="text-headline-md font-extrabold text-primary-container">{item.value}</Text>
+                    <Text className="text-headline-md font-extrabold" style={{ color: section.accent }}>
+                      {item.value}
+                    </Text>
                   </View>
                 </PressableScale>
               ))}
@@ -135,7 +134,7 @@ export default function AdminSociety() {
           </View>
         ))}
 
-        <View className="gap-2">
+        <View className="gap-2 pt-2">
           <Text className="text-label-caps uppercase text-text-muted">Quick Actions</Text>
           <View className="flex-row gap-3">
             <Button className="flex-1" variant="primary" onPress={() => router.push("/(admin)/notices")}>
@@ -146,14 +145,6 @@ export default function AdminSociety() {
             </Button>
           </View>
         </View>
-
-        <PressableScale onPress={() => router.push("/(admin)/more")}>
-          <View className="flex-row items-center gap-3 rounded-card bg-surface p-4" style={shadowCard}>
-            <MaterialIcons name="account-circle" size={22} color="#797585" />
-            <Text className="flex-1 text-body-md font-bold text-on-surface">My Profile</Text>
-            <MaterialIcons name="chevron-right" size={20} color="#CAC4D6" />
-          </View>
-        </PressableScale>
       </ScrollView>
     </View>
   );

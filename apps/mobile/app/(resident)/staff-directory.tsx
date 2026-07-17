@@ -37,14 +37,13 @@ export default function ResidentStaffDirectory() {
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <ScreenHeader title="Directory" role="resident" />
+    <View className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
+      <ScreenHeader title="Directory" subtitle="Find trusted service providers in your community." role="resident" />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-5 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={staffQuery.isRefetching} onRefresh={() => staffQuery.refetch()} />}
       >
-        <Text className="text-body-sm text-text-muted">Find trusted service providers in your community.</Text>
         <Input
           placeholder="Search plumbers, electricians..."
           value={search}
@@ -76,28 +75,43 @@ export default function ResidentStaffDirectory() {
             <View key={cat} className="gap-2">
               <GroupLabel label={cat} />
               {entries.map((entry) => (
-                <ListRowCard key={entry.id} className="flex-row items-center gap-3">
-                  <Avatar name={entry.name} imageUrl={entry.photoUrl} />
+                <ListRowCard key={entry.id} className="flex-row items-center gap-4">
+                  <View>
+                    <Avatar name={entry.name} imageUrl={entry.photoUrl} size={56} />
+                    {entry.isVerifiedByAdmin && (
+                      <View
+                        className="items-center justify-center"
+                        style={{
+                          position: "absolute",
+                          bottom: -2,
+                          right: -2,
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          backgroundColor: "#FFFFFF",
+                        }}
+                      >
+                        <MaterialIcons name="verified" size={16} color="#6244CD" />
+                      </View>
+                    )}
+                  </View>
                   <View className="min-w-0 flex-1">
-                    <Text className="text-body-md font-bold text-on-surface" numberOfLines={1}>
+                    <Text className="text-body-lg font-extrabold text-on-surface" numberOfLines={1}>
                       {entry.name}
                     </Text>
-                    <View className="flex-row items-center gap-1.5">
-                      <Text className="text-body-sm font-bold text-primary-container" numberOfLines={1}>
-                        {entry.category}
-                      </Text>
-                      {entry.isVerifiedByAdmin && <MaterialIcons name="verified" size={14} color="#6244CD" />}
-                    </View>
+                    <Text className="text-body-sm font-bold" style={{ color: "#6244CD" }} numberOfLines={1}>
+                      {entry.category}
+                    </Text>
                   </View>
                   <PressableScale
                     onPress={() => Linking.openURL(`tel:${entry.phone}`)}
                     scaleTo={0.9}
-                    className="h-11 w-11 items-center justify-center rounded-full bg-primary-container"
-                    style={shadowCard}
+                    className="items-center justify-center rounded-full"
+                    style={[{ width: 52, height: 52, backgroundColor: "#6C4DE0" }, shadowCard]}
                     accessibilityLabel={`Call ${entry.name}`}
                     accessibilityRole="button"
                   >
-                    <MaterialIcons name="call" size={18} color="#fff" />
+                    <MaterialIcons name="call" size={20} color="#fff" />
                   </PressableScale>
                 </ListRowCard>
               ))}

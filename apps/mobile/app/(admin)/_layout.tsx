@@ -50,6 +50,7 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen name="more" options={{ href: null }} />
+      <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="towers" options={{ href: null }} />
       <Tabs.Screen name="flats" options={{ href: null }} />
       <Tabs.Screen name="residents" options={{ href: null }} />

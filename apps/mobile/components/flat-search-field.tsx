@@ -32,8 +32,8 @@ export function FlatSearchField({
 
   if (selected) {
     return (
-      <View className="gap-1.5">
-        <Text className="text-label-caps uppercase tracking-wide text-text-muted">Destination</Text>
+      <View className="gap-2">
+        <Text className="text-body-md font-bold text-on-surface">Destination</Text>
         <View className="flex-row items-center justify-between rounded-md border-2 border-primary-container bg-surface-container px-4 py-3">
           <Text className="flex-1 text-body-md font-bold text-on-surface" numberOfLines={1}>
             {selected.flatNumber} · {selected.towerName}
@@ -48,9 +48,9 @@ export function FlatSearchField({
   }
 
   return (
-    <View className="gap-1.5">
+    <View className="gap-2">
+      <Text className="text-body-md font-bold text-on-surface">Destination</Text>
       <Input
-        label="Destination"
         placeholder="Search Flat or Resident Name..."
         value={query}
         onChangeText={setQuery}

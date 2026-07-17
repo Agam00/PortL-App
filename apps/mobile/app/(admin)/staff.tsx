@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Pressable, Alert } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Alert, Linking } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -10,9 +11,31 @@ import { Input } from "../../components/ui/input";
 import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
-import { ListRowCard } from "../../components/ui/list-row-card";
 import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
+import { PressableScale } from "../../components/ui/pressable-scale";
+import { shadowCard } from "../../lib/shadows";
+
+const CATEGORY_ICON: Record<string, React.ComponentProps<typeof MaterialIcons>["name"]> = {
+  plumber: "plumbing",
+  plumbers: "plumbing",
+  electrician: "electrical-services",
+  electricians: "electrical-services",
+  cook: "restaurant",
+  cleaner: "cleaning-services",
+  maid: "cleaning-services",
+  carpenter: "handyman",
+  painter: "format-paint",
+  gardener: "grass",
+};
+
+function categoryIcon(category: string): React.ComponentProps<typeof MaterialIcons>["name"] {
+  return CATEGORY_ICON[category.trim().toLowerCase()] ?? "badge";
+}
+
+function titleCase(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
 
 export default function AdminStaff() {
   const showToast = useUiStore((s) => s.showToast);
@@ -30,6 +53,13 @@ export default function AdminStaff() {
   const staff = (staffQuery.data ?? []).filter(
     (s) => search.trim().length === 0 || s.name.toLowerCase().includes(search.toLowerCase()) || s.category.toLowerCase().includes(search.toLowerCase()),
   );
+  const staffByCategory = new Map<string, typeof staff>();
+  for (const entry of staff) {
+    const key = titleCase(entry.category.trim());
+    const list = staffByCategory.get(key) ?? [];
+    list.push(entry);
+    staffByCategory.set(key, list);
+  }
 
   function resetForm() {
     setShowForm(false);
@@ -98,21 +128,22 @@ export default function AdminStaff() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Staff Directory" role="admin" />
+      <ScreenHeader title="Staff Directory" subtitle="Manage verified service providers." role="admin" />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={staffQuery.isRefetching} onRefresh={() => staffQuery.refetch()} />}
       >
-        <Text className="text-body-sm text-text-muted">Manage personnel, roles, and verification status.</Text>
-
         <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
-          {showForm ? "Cancel" : "+ Add Staff"}
+          {showForm ? "Cancel" : "+ Add Provider"}
         </Button>
 
         {showForm && (
           <FormPanel>
-            <Text className="text-body-md font-semibold text-on-surface">New Entry</Text>
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="add-circle-outline" size={20} color="#6244CD" />
+              <Text className="text-body-md font-bold text-on-surface">New Provider</Text>
+            </View>
             <Input
               label="Full Name"
               placeholder="e.g. John Doe"
@@ -163,37 +194,67 @@ export default function AdminStaff() {
             <EmptyState title="No staff entries" description="Add a staff or service provider above." icon="badge" />
           </View>
         ) : (
-          <View className="gap-2">
-            {staff.map((entry) => (
-              <ListRowCard key={entry.id} className="flex-row items-center gap-3">
-                <Avatar name={entry.name} />
-                <View className="min-w-0 flex-1">
-                  <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
-                    {entry.name}
-                  </Text>
-                  <Text className="text-meta-text text-text-muted" numberOfLines={1}>
-                    {entry.category} · {entry.phone}
-                  </Text>
+          Array.from(staffByCategory.entries()).map(([categoryName, entries]) => (
+            <View key={categoryName} className="gap-3">
+              <View className="flex-row items-center gap-2 pt-1">
+                <MaterialIcons name={categoryIcon(categoryName)} size={22} color="#E19613" />
+                <Text className="text-headline-md font-extrabold text-on-surface">{categoryName}</Text>
+              </View>
+
+              {entries.map((entry) => (
+                <View key={entry.id} className="gap-4 bg-surface p-5" style={[{ borderRadius: 20 }, shadowCard]}>
+                  <View className="flex-row items-center gap-4">
+                    <Avatar name={entry.name} size={52} />
+                    <View className="min-w-0 flex-1">
+                      <View className="flex-row items-center gap-1.5">
+                        <Text className="text-body-lg font-extrabold text-on-surface" numberOfLines={1}>
+                          {entry.name}
+                        </Text>
+                        <Pressable
+                          onPress={() => updateMutation.mutate({ staffId: entry.id, isVerifiedByAdmin: !entry.isVerifiedByAdmin })}
+                          hitSlop={8}
+                          accessibilityLabel={entry.isVerifiedByAdmin ? `Mark ${entry.name} as unverified` : `Mark ${entry.name} as verified`}
+                          accessibilityRole="button"
+                        >
+                          <MaterialIcons
+                            name="verified"
+                            size={18}
+                            color={entry.isVerifiedByAdmin ? "#6244CD" : "#CAC4D6"}
+                          />
+                        </Pressable>
+                      </View>
+                      <Text className="text-body-sm text-text-muted" numberOfLines={1}>
+                        {titleCase(entry.category)}
+                        {entry.isVerifiedByAdmin ? "" : " · Unverified"}
+                      </Text>
+                    </View>
+                    <IconButton
+                      icon="delete-outline"
+                      color="#BA1A1A"
+                      onPress={() => confirmDelete(entry.id, entry.name)}
+                      accessibilityLabel={`Delete ${entry.name}`}
+                    />
+                  </View>
+
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-body-lg text-on-surface-variant" numberOfLines={1}>
+                      {entry.phone}
+                    </Text>
+                    <PressableScale
+                      scaleTo={0.92}
+                      onPress={() => Linking.openURL(`tel:${entry.phone}`)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Call ${entry.name}`}
+                      className="items-center justify-center bg-surface-container"
+                      style={{ width: 48, height: 48, borderRadius: 24 }}
+                    >
+                      <MaterialIcons name="call" size={22} color="#6244CD" />
+                    </PressableScale>
+                  </View>
                 </View>
-                <Pressable
-                  onPress={() => updateMutation.mutate({ staffId: entry.id, isVerifiedByAdmin: !entry.isVerifiedByAdmin })}
-                  className={`rounded-md border px-2 py-1 ${entry.isVerifiedByAdmin ? "border-status-green/40" : "border-outline-variant"}`}
-                  accessibilityLabel={entry.isVerifiedByAdmin ? `Mark ${entry.name} as unverified` : `Mark ${entry.name} as verified`}
-                  accessibilityRole="button"
-                >
-                  <Text className={`text-meta-text ${entry.isVerifiedByAdmin ? "text-status-green" : "text-text-muted"}`}>
-                    {entry.isVerifiedByAdmin ? "Verified" : "Unverified"}
-                  </Text>
-                </Pressable>
-                <IconButton
-                  icon="delete-outline"
-                  color="#BA1A1A"
-                  onPress={() => confirmDelete(entry.id, entry.name)}
-                  accessibilityLabel={`Delete ${entry.name}`}
-                />
-              </ListRowCard>
-            ))}
-          </View>
+              ))}
+            </View>
+          ))
         )}
       </ScrollView>
     </View>

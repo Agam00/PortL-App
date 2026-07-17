@@ -10,9 +10,9 @@ import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
-import { ListRowCard } from "../../components/ui/list-row-card";
 import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
+import { shadowCard } from "../../lib/shadows";
 
 export default function AdminTowers() {
   const showToast = useUiStore((s) => s.showToast);
@@ -102,26 +102,27 @@ export default function AdminTowers() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Towers Management" role="admin" />
+      <ScreenHeader title="Towers" subtitle="Manage residential tower configurations." role="admin" />
       <ScrollView
-        contentContainerClassName="gap-4 p-4 pb-8"
+        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={towersQuery.isRefetching} onRefresh={() => towersQuery.refetch()} />}
       >
-        <Text className="text-body-sm text-text-muted">Configure and monitor residential blocks.</Text>
-
         <Button
           variant={showForm ? "outline" : "primary"}
           onPress={() => (showForm ? resetForm() : setShowForm(true))}
         >
-          {showForm ? "Cancel" : "+ Add Tower"}
+          {showForm ? "Cancel" : "+ Add New Tower"}
         </Button>
 
         {showForm && (
           <FormPanel>
-            <Text className="text-body-md font-semibold text-on-surface">
-              {editingId ? "Edit Tower" : "New Tower"}
-            </Text>
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="add-circle-outline" size={20} color="#6244CD" />
+              <Text className="text-body-md font-bold text-on-surface">
+                {editingId ? "Edit Tower" : "Quick Add Tower"}
+              </Text>
+            </View>
             <Input
               label="Tower Name"
               placeholder="e.g. Tower A"
@@ -150,29 +151,62 @@ export default function AdminTowers() {
             <EmptyState title="No towers yet" description="Add your first tower to get started." icon="business" />
           </View>
         ) : (
-          <View className="gap-2">
+          <View className="gap-4">
             {towers.map((tower) => (
-              <ListRowCard key={tower.id} className="flex-row items-center gap-3">
-                <View className="h-11 w-11 items-center justify-center rounded-full bg-surface-container">
-                  <MaterialIcons name="business" size={20} color="#48454F" />
-                </View>
-                <View className="min-w-0 flex-1">
-                  <Text className="text-body-md font-medium text-on-surface" numberOfLines={1}>
-                    {tower.name}
-                    {tower.code ? ` (${tower.code})` : ""}
-                  </Text>
-                  <Text className="text-meta-text text-text-muted">
-                    {tower.flatCount} {tower.flatCount === 1 ? "flat" : "flats"}
-                  </Text>
-                </View>
-                <IconButton icon="edit" onPress={() => startEdit(tower)} accessibilityLabel={`Edit ${tower.name}`} />
-                <IconButton
-                  icon="delete-outline"
-                  color="#BA1A1A"
-                  onPress={() => confirmDelete(tower.id, tower.name)}
-                  accessibilityLabel={`Delete ${tower.name}`}
+              <View
+                key={tower.id}
+                className="gap-3 bg-surface p-5"
+                style={[{ borderRadius: 24, overflow: "hidden" }, shadowCard]}
+              >
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: "absolute",
+                    top: -36,
+                    right: -36,
+                    width: 120,
+                    height: 120,
+                    borderRadius: 60,
+                    backgroundColor: "#F6F2FB",
+                  }}
                 />
-              </ListRowCard>
+                <View className="flex-row items-center gap-4">
+                  <View
+                    className="items-center justify-center bg-surface-container"
+                    style={{ width: 56, height: 56, borderRadius: 14 }}
+                  >
+                    <MaterialIcons name="apartment" size={28} color="#6244CD" />
+                  </View>
+                  <View className="min-w-0 flex-1 gap-1.5">
+                    <Text className="text-headline-md font-extrabold text-on-surface" numberOfLines={1}>
+                      {tower.name}
+                    </Text>
+                    <View className="flex-row gap-2">
+                      {tower.code ? (
+                        <View className="self-start rounded-full bg-surface-container-high px-2.5 py-1">
+                          <Text className="text-meta-text text-on-surface-variant">Code: {tower.code}</Text>
+                        </View>
+                      ) : null}
+                      <View className="self-start rounded-full bg-surface-container-high px-2.5 py-1">
+                        <Text className="text-meta-text text-on-surface-variant">
+                          {tower.flatCount} {tower.flatCount === 1 ? "flat" : "flats"}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </View>
+                <View className="border-t border-outline-variant/50" style={{ borderTopWidth: 1, borderColor: "rgba(202,196,214,0.45)" }} />
+                <View className="flex-row items-center justify-end gap-4">
+                  <IconButton icon="edit" size={20} color="#48454F" onPress={() => startEdit(tower)} accessibilityLabel={`Edit ${tower.name}`} />
+                  <IconButton
+                    icon="delete-outline"
+                    size={20}
+                    color="#BA1A1A"
+                    onPress={() => confirmDelete(tower.id, tower.name)}
+                    accessibilityLabel={`Delete ${tower.name}`}
+                  />
+                </View>
+              </View>
             ))}
           </View>
         )}

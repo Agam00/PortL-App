@@ -28,11 +28,13 @@ export function PushRegistration() {
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const data = response.notification.request.content.data as { type?: string } | undefined;
+      const data = response.notification.request.content.data as
+        | ({ type?: string } & Record<string, unknown>)
+        | undefined;
       const currentUser = useAuthStore.getState().user;
       if (!data?.type || !currentUser) return;
 
-      router.push(getNotificationRoute(data.type, currentUser.role) as never);
+      router.push(getNotificationRoute(data.type, currentUser.role, data) as never);
     });
     return () => subscription.remove();
   }, [router]);
