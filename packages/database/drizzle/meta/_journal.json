@@ -29,6 +29,27 @@
       "when": 1784196535262,
       "tag": "0003_curly_hawkeye",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784310134550,
+      "tag": "0004_misty_komodo",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784314873992,
+      "tag": "0005_blue_sharon_ventura",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784316296498,
+      "tag": "0006_volatile_shard",
+      "breakpoints": true
     }
   ]
 }

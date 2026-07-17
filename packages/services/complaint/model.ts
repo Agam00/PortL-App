@@ -29,8 +29,17 @@ export const complaintOutputSchema = z.object({
   assignedToName: z.string().nullable(),
   createdAt: z.string().nullable(),
   resolvedAt: z.string().nullable(),
+  // Populated by the resident community-board list; absent on the admin list.
+  commentCount: z.number().optional(),
+  isMine: z.boolean().optional(),
 });
 export type ComplaintOutput = z.infer<typeof complaintOutputSchema>;
+
+// Residents may only flip their own complaint between resolved and open (re-open).
+export const setComplaintStatusInputSchema = z.object({
+  complaintId: z.string().uuid(),
+  status: z.enum(["resolved", "open"]),
+});
 
 export const listComplaintsOutputSchema = z.array(complaintOutputSchema);
 

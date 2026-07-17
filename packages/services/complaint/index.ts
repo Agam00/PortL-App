@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { db, eq, and, alias } from "@repo/database";
+import { db, eq, and, alias, inArray, sql } from "@repo/database";
 import { complaintsTable, usersTable, flatsTable, complaintCommentsTable } from "@repo/database/schema";
 import type { ComplaintOutput, ComplaintCommentOutput } from "./model";
 
@@ -80,6 +80,45 @@ class ComplaintService {
     return rows.reverse().map(serializeComplaintRow);
   }
 
+  /** Community board: every complaint in the society, tagged with the caller's own + a comment count. */
+  async listForResident(societyId: string, userId: string): Promise<ComplaintOutput[]> {
+    const rows = await baseComplaintQuery().where(eq(complaintsTable.societyId, societyId)).orderBy(complaintsTable.createdAt);
+
+    const ids = rows.map((r) => r.id);
+    const countRows = ids.length
+      ? await db
+          .select({ complaintId: complaintCommentsTable.complaintId, count: sql<number>`count(*)::int` })
+          .from(complaintCommentsTable)
+          .where(inArray(complaintCommentsTable.complaintId, ids))
+          .groupBy(complaintCommentsTable.complaintId)
+      : [];
+    const countMap = new Map(countRows.map((r) => [r.complaintId, r.count]));
+
+    return rows.reverse().map((row) => ({
+      ...serializeComplaintRow(row),
+      commentCount: countMap.get(row.id) ?? 0,
+      isMine: row.raisedByUserId === userId,
+    }));
+  }
+
+  /** A resident may only flip their own complaint between resolved and open (re-open). */
+  async setStatusByRaiser(userId: string, complaintId: string, status: "resolved" | "open"): Promise<ComplaintOutput> {
+    const [existing] = await db.select().from(complaintsTable).where(eq(complaintsTable.id, complaintId)).limit(1);
+    if (!existing) throw new TRPCError({ code: "NOT_FOUND", message: "Complaint not found" });
+    if (existing.raisedByUserId !== userId) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "You can only update your own complaints" });
+    }
+
+    await db
+      .update(complaintsTable)
+      .set({ status, resolvedAt: status === "resolved" ? new Date() : null })
+      .where(eq(complaintsTable.id, complaintId));
+
+    const updated = await this.getById(complaintId);
+    if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    return updated;
+  }
+
   async update(
     societyId: string,
     input: {
@@ -111,19 +150,30 @@ class ComplaintService {
     return updated;
   }
 
-  private async requireCommentAccess(complaintId: string, userId: string, role: "resident" | "guard" | "admin") {
+  private async requireCommentAccess(
+    complaintId: string,
+    userId: string,
+    role: "resident" | "guard" | "admin",
+    societyId: string | null,
+  ) {
     const [complaint] = await db.select().from(complaintsTable).where(eq(complaintsTable.id, complaintId)).limit(1);
     if (!complaint) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Complaint not found" });
     }
-    if (role === "resident" && complaint.raisedByUserId !== userId) {
-      throw new TRPCError({ code: "FORBIDDEN", message: "This isn't your complaint" });
+    // Community board: a resident can read/discuss any complaint in their own society (not just their own).
+    if (role === "resident" && complaint.societyId !== societyId) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "This complaint isn't in your society" });
     }
     return complaint;
   }
 
-  async listComments(complaintId: string, userId: string, role: "resident" | "guard" | "admin"): Promise<ComplaintCommentOutput[]> {
-    await this.requireCommentAccess(complaintId, userId, role);
+  async listComments(
+    complaintId: string,
+    userId: string,
+    role: "resident" | "guard" | "admin",
+    societyId: string | null,
+  ): Promise<ComplaintCommentOutput[]> {
+    await this.requireCommentAccess(complaintId, userId, role, societyId);
 
     const rows = await db
       .select({
@@ -148,8 +198,9 @@ class ComplaintService {
     userId: string,
     role: "resident" | "guard" | "admin",
     body: string,
+    societyId: string | null,
   ): Promise<ComplaintCommentOutput> {
-    await this.requireCommentAccess(complaintId, userId, role);
+    await this.requireCommentAccess(complaintId, userId, role, societyId);
 
     const [comment] = await db
       .insert(complaintCommentsTable)

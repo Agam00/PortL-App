@@ -9,8 +9,12 @@ import {
   listNoticesOutputSchema,
   listNoticesForResidentInputSchema,
   markNoticeReadInputSchema,
+  reactNoticeInputSchema,
+  addNoticeCommentInputSchema,
+  noticeCommentOutputSchema,
+  listNoticeCommentsOutputSchema,
 } from "@repo/services/notice/model";
-import { adminProcedure, residentProcedure, router } from "../../trpc";
+import { adminProcedure, residentProcedure, protectedProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
 const TAGS = ["Notices"];
@@ -70,6 +74,7 @@ export const noticesRouter = router({
       const notices = await noticeService.listForResident(
         requireSocietyId(ctx.user.societyId),
         requireFlatId(ctx.user.flatId),
+        ctx.user.sub,
         input,
       );
       const unreadIds = await notificationService.getUnreadNoticeIds(ctx.user.sub, notices.map((n) => n.id));
@@ -83,4 +88,24 @@ export const noticesRouter = router({
     .mutation(async ({ ctx, input }) => {
       await notificationService.markNoticeRead(ctx.user.sub, input.noticeId);
     }),
+
+  react: residentProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/react"), tags: TAGS } })
+    .input(reactNoticeInputSchema)
+    .output(zodUndefinedModel)
+    .mutation(async ({ ctx, input }) => {
+      await noticeService.react(ctx.user.sub, input.noticeId, input.reaction);
+    }),
+
+  listComments: protectedProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/comments"), tags: TAGS } })
+    .input(noticeIdInputSchema)
+    .output(listNoticeCommentsOutputSchema)
+    .query(async ({ input }) => noticeService.listComments(input.noticeId)),
+
+  addComment: residentProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/comments/add"), tags: TAGS } })
+    .input(addNoticeCommentInputSchema)
+    .output(noticeCommentOutputSchema)
+    .mutation(async ({ ctx, input }) => noticeService.addComment(input.noticeId, ctx.user.sub, input.body)),
 });

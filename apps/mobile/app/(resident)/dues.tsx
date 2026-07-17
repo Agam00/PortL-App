@@ -1,150 +1,230 @@
-import { View, Text, ScrollView, RefreshControl, Alert, Pressable } from "react-native";
+import { useState } from "react";
+import { View, Text, ScrollView, RefreshControl, Pressable, Modal } from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
+import type { DueOutput } from "@repo/services/due/model";
 import { trpc } from "../../lib/trpc";
-import { useUiStore } from "../../stores/ui-store";
-import { getErrorMessage } from "../../lib/error-message";
-import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
 import { EmptyState } from "../../components/ui/empty-state";
 import { ListLoading } from "../../components/ui/list-loading";
-import { shadowCard } from "../../lib/shadows";
+import { shadowCard, shadowElevated } from "../../lib/shadows";
 
-function periodLabel(period: string) {
-  const [year, month] = period.split("-").map(Number);
-  return new Date(year ?? 2026, (month ?? 1) - 1).toLocaleDateString([], { month: "long", year: "numeric" });
+function paymentTitle(period: string) {
+  const [y, m] = period.split("-").map(Number);
+  const d = new Date(y ?? 2026, (m ?? 1) - 1);
+  const mon = d.toLocaleDateString([], { month: "short" });
+  const yy = String((y ?? 2026) % 100).padStart(2, "0");
+  return `Maintenance ${mon}'${yy}`;
 }
 
-// maintenance_dues mockup pills: OVERDUE = solid red, PENDING = solid amber,
-// PAID = soft gray.
-function statusChip(status: string, isOverdue: boolean): { label: string; bg: string; fg: string } {
-  if (status === "paid") return { label: "PAID", bg: "#ECE6F2", fg: "#48454F" };
-  if (isOverdue) return { label: "OVERDUE", bg: "#B3261E", fg: "#FFFFFF" };
-  return { label: "PENDING", bg: "#FEB246", fg: "#3D2E00" };
+function dateTimeLabel(iso: string) {
+  const d = new Date(iso);
+  return `${d.toLocaleDateString([], { day: "2-digit", month: "long" })}, ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 }
+
+function dateLabel(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString([], { day: "2-digit", month: "long" });
+}
+
+// PAID = green, PENDING = gold, OVERDUE = red (the mockup's "FAILED" red slot).
+function statusPill(due: DueOutput): { label: string; bg: string; fg: string } {
+  if (due.status === "paid") return { label: "PAID", bg: "#3DBE5D", fg: "#FFFFFF" };
+  if (due.isOverdue) return { label: "OVERDUE", bg: "#E5484D", fg: "#FFFFFF" };
+  return { label: "PENDING", bg: "#EFC050", fg: "#3D2E00" };
+}
+
+const FILTERS = ["All", "Pending", "Paid", "Overdue"] as const;
 
 export default function ResidentDues() {
-  const showToast = useUiStore((s) => s.showToast);
-  const utils = trpc.useUtils();
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const [showFilter, setShowFilter] = useState(false);
+  const [receipt, setReceipt] = useState<DueOutput | null>(null);
 
   const duesQuery = trpc.dues.mine.useQuery();
-  const payMutation = trpc.dues.payMock.useMutation({
-    onSuccess: () => {
-      hapticSuccess();
-      showToast("Marked as paid (demo)", "success");
-      utils.dues.mine.invalidate();
-    },
-    onError: (error) => {
-      hapticError();
-      showToast(getErrorMessage(error), "error");
-    },
-  });
 
-  function confirmPay(dueId: string, amount: string) {
-    Alert.alert("Confirm payment", `Pay ₹${amount} now? (demo mode — no real charge)`, [
-      { text: "Cancel", style: "cancel" },
-      { text: "Pay", onPress: () => payMutation.mutate({ dueId }) },
-    ]);
+  function startPay(due: DueOutput) {
+    router.push({
+      pathname: "/(resident)/pay",
+      params: {
+        dueId: due.id,
+        title: paymentTitle(due.period),
+        amount: Number(due.amount).toFixed(2),
+        dueDate: due.dueDate,
+        overdue: due.isOverdue ? "1" : "0",
+      },
+    });
   }
 
   const dues = duesQuery.data ?? [];
-  const unpaid = dues.filter((d) => d.status !== "paid");
-  const outstanding = unpaid.reduce((sum, d) => sum + Number(d.amount), 0);
-  const nextDue = unpaid.slice().sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())[0];
+  const filtered = dues.filter((d) => {
+    if (filter === "Paid") return d.status === "paid";
+    if (filter === "Overdue") return d.status !== "paid" && d.isOverdue;
+    if (filter === "Pending") return d.status !== "paid" && !d.isOverdue;
+    return true;
+  });
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
-      <ScreenHeader title="Maintenance Dues" role="resident" />
+    <View className="flex-1" style={{ backgroundColor: "#FBFAFE" }}>
+      {/* Header */}
+      <View className="flex-row items-center gap-3 px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
+        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Back" accessibilityRole="button">
+          <MaterialIcons name="arrow-back" size={24} color="#1C1A23" />
+        </Pressable>
+        <Text className="flex-1 text-headline-lg font-extrabold text-on-surface">Payments</Text>
+        <Pressable onPress={() => setShowFilter((v) => !v)} hitSlop={8} accessibilityLabel="Filter payments" accessibilityRole="button">
+          <MaterialIcons name="filter-list" size={24} color="#1C1A23" />
+        </Pressable>
+      </View>
+
+      {showFilter && (
+        <View className="mx-5 mb-2 flex-row flex-wrap gap-2">
+          {FILTERS.map((f) => {
+            const active = filter === f;
+            return (
+              <Pressable
+                key={f}
+                onPress={() => {
+                  setFilter(f);
+                  setShowFilter(false);
+                }}
+                className="rounded-full px-4 py-2"
+                style={{ backgroundColor: active ? "#6244CD" : "#EFEAF9" }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text className="text-body-sm font-bold" style={{ color: active ? "#FFFFFF" : "#6244CD" }}>
+                  {f}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
       <ScrollView
-        contentContainerClassName="gap-4 px-5 pb-8 pt-2"
+        contentContainerClassName="gap-3 px-4 pb-10 pt-1"
         refreshControl={<RefreshControl refreshing={duesQuery.isRefetching} onRefresh={() => duesQuery.refetch()} />}
       >
-        <View className="items-center gap-1 rounded-xl p-6" style={{ backgroundColor: "#E7E1F0" }}>
-          <Text className="text-body-sm font-bold uppercase tracking-wide" style={{ color: "#48454F" }}>
-            Total Outstanding Dues
-          </Text>
-          <Text className="text-headline-xl font-extrabold" style={{ color: "#5B3DC4" }}>
-            ₹{outstanding.toFixed(2)}
-          </Text>
-          {nextDue && (
-            <Text className="text-body-md text-on-surface-variant">
-              Due by {new Date(nextDue.dueDate).toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" })}
-            </Text>
-          )}
-        </View>
-
         {duesQuery.isLoading ? (
           <ListLoading />
         ) : duesQuery.isError ? (
           <View className="rounded-xl bg-surface">
-            <EmptyState title="Couldn't load dues" description="Pull down to refresh and try again." icon="error-outline" />
+            <EmptyState title="Couldn't load payments" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
-        ) : dues.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <View className="rounded-xl bg-surface">
-            <EmptyState title="No dues yet" description="Maintenance statements will show up here." icon="payments" />
+            <EmptyState
+              title={filter === "All" ? "No payments yet" : `No ${filter.toLowerCase()} payments`}
+              description="Maintenance statements will show up here."
+              icon="payments"
+            />
           </View>
         ) : (
-          <View className="gap-4">
-            {dues.map((due) => {
-              const chip = statusChip(due.status, due.isOverdue);
-              const isPaid = due.status === "paid";
-              return (
-                <View key={due.id} className="gap-3 rounded-xl bg-surface p-5" style={shadowCard}>
-                  <View className="flex-row items-start justify-between gap-2">
-                    <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                      <View
-                        className="items-center justify-center"
-                        style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#E4DAFB" }}
-                      >
-                        <MaterialIcons name={isPaid ? "volunteer-activism" : "build"} size={22} color="#4A27B5" />
-                      </View>
-                      <View className="min-w-0 flex-1">
-                        <Text
-                          className={`text-headline-md font-extrabold ${isPaid ? "text-text-muted line-through" : "text-on-surface"}`}
-                        >
-                          {periodLabel(due.period)}
-                        </Text>
-                        <Text className="text-body-md text-text-muted">
-                          {isPaid && due.paidAt
-                            ? `Paid on ${new Date(due.paidAt).toLocaleDateString()}`
-                            : `Due ${new Date(due.dueDate).toLocaleDateString()}`}
-                        </Text>
-                      </View>
-                    </View>
-                    <View className="rounded-full px-3 py-1" style={{ backgroundColor: chip.bg }}>
-                      <Text className="text-body-sm font-bold" style={{ color: chip.fg }}>
-                        {chip.label}
-                      </Text>
-                    </View>
-                  </View>
-                  <View
-                    className="flex-row items-center justify-between pt-3"
-                    style={{ borderTopWidth: 1, borderTopColor: "#EDE8F3" }}
-                  >
-                    <Text className="text-body-md text-text-muted">Amount Due</Text>
-                    <Text className={`text-headline-md font-extrabold ${isPaid ? "text-text-muted" : "text-on-surface"}`}>
-                      ₹{Number(due.amount).toFixed(2)}
+          filtered.map((due) => {
+            const pill = statusPill(due);
+            const isPaid = due.status === "paid";
+            return (
+              <View key={due.id} className="gap-2 rounded-2xl bg-surface p-4" style={shadowCard}>
+                <View className="flex-row items-center justify-between gap-2">
+                  <Text className="min-w-0 flex-1 text-body-lg font-extrabold text-on-surface" numberOfLines={1}>
+                    {paymentTitle(due.period)}
+                  </Text>
+                  <View className="rounded-full px-3 py-1" style={{ backgroundColor: pill.bg }}>
+                    <Text className="text-meta-text font-extrabold" style={{ color: pill.fg }}>
+                      {pill.label}
                     </Text>
                   </View>
-                  {!isPaid && (
+                </View>
+
+                <Text className="text-headline-md font-extrabold text-on-surface">₹{Number(due.amount).toFixed(2)}</Text>
+
+                <View className="mt-1 h-px" style={{ backgroundColor: "#F0ECF6" }} />
+
+                <View className="flex-row items-center justify-between pt-1">
+                  <Text className="text-body-sm text-text-muted">
+                    {isPaid && due.paidAt ? `Paid on ${dateTimeLabel(due.paidAt)}` : `Due date ${dateLabel(due.dueDate)}`}
+                  </Text>
+                  {isPaid ? (
                     <Pressable
-                      disabled={payMutation.isPending}
-                      onPress={() => confirmPay(due.id, Number(due.amount).toFixed(2))}
-                      className="h-12 items-center justify-center rounded-full"
-                      style={{ backgroundColor: "#6244CD" }}
+                      onPress={() => setReceipt(due)}
+                      className="flex-row items-center gap-1.5"
+                      accessibilityLabel="View receipt"
+                      accessibilityRole="button"
+                    >
+                      <MaterialIcons name="receipt-long" size={18} color="#2E9E4B" />
+                      <Text className="text-body-sm font-bold" style={{ color: "#2E7D32" }}>
+                        Receipt
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable
+                      onPress={() => startPay(due)}
+                      className="flex-row items-center gap-1.5"
                       accessibilityLabel={`Pay ${Number(due.amount).toFixed(2)} now`}
                       accessibilityRole="button"
                     >
-                      <Text className="text-body-md font-bold" style={{ color: "#FFFFFF" }}>
-                        {payMutation.isPending ? "Processing..." : `Pay Now (₹${Number(due.amount).toFixed(2)})`}
+                      <MaterialIcons name="attach-money" size={18} color="#2E9E4B" />
+                      <Text className="text-body-sm font-bold" style={{ color: "#2E7D32" }}>
+                        Pay Now
                       </Text>
                     </Pressable>
                   )}
                 </View>
-              );
-            })}
-          </View>
+              </View>
+            );
+          })
         )}
       </ScrollView>
+
+      {/* Receipt modal */}
+      <Modal visible={!!receipt} animationType="fade" transparent onRequestClose={() => setReceipt(null)}>
+        <Pressable className="flex-1 items-center justify-center px-8" style={{ backgroundColor: "rgba(20,17,24,0.5)" }} onPress={() => setReceipt(null)}>
+          <Pressable className="w-full gap-4 rounded-3xl bg-white p-6" style={shadowElevated} onPress={() => {}}>
+            <View className="items-center gap-2">
+              <View className="items-center justify-center rounded-full" style={{ width: 56, height: 56, backgroundColor: "#E4F5E9" }}>
+                <MaterialIcons name="check-circle" size={34} color="#3DBE5D" />
+              </View>
+              <Text className="text-headline-md font-extrabold text-on-surface">Payment Receipt</Text>
+              <Text className="text-body-sm text-text-muted">Demo payment — no real charge</Text>
+            </View>
+
+            {receipt && (
+              <View className="gap-3 rounded-2xl p-4" style={{ backgroundColor: "#F7F5FC" }}>
+                <ReceiptRow label="For" value={paymentTitle(receipt.period)} />
+                <ReceiptRow label="Amount" value={`₹${Number(receipt.amount).toFixed(2)}`} />
+                {receipt.paidAt && <ReceiptRow label="Paid on" value={dateTimeLabel(receipt.paidAt)} />}
+                <ReceiptRow label="Flat" value={`${receipt.towerName} · ${receipt.flatNumber}`} />
+                <ReceiptRow label="Receipt ID" value={`PMT-${receipt.id.slice(0, 8).toUpperCase()}`} />
+              </View>
+            )}
+
+            <Pressable
+              onPress={() => setReceipt(null)}
+              className="h-12 items-center justify-center rounded-full"
+              style={{ backgroundColor: "#6244CD" }}
+              accessibilityLabel="Close receipt"
+              accessibilityRole="button"
+            >
+              <Text className="text-body-md font-bold text-white">Done</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
+}
+
+function ReceiptRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View className="flex-row items-center justify-between gap-3">
+      <Text className="text-body-sm text-text-muted">{label}</Text>
+      <Text className="min-w-0 flex-1 text-right text-body-md font-bold text-on-surface" numberOfLines={1}>
+        {value}
+      </Text>
     </View>
   );
 }

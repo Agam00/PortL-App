@@ -6,6 +6,8 @@ export * from "./models/refresh-token";
 export * from "./models/visitor";
 export * from "./models/visitor-log";
 export * from "./models/notice";
+export * from "./models/notice-reaction";
+export * from "./models/notice-comment";
 export * from "./models/poll";
 export * from "./models/poll-option";
 export * from "./models/poll-vote";
