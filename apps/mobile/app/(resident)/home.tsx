@@ -134,20 +134,21 @@ export default function ResidentHome() {
       </View>
 
       <ScrollView
+        className="flex-1"
         contentContainerClassName="pb-28"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={pendingQuery.isRefetching}
+            refreshing={pendingQuery.isRefetching || noticesQuery.isRefetching}
             onRefresh={() => {
               pendingQuery.refetch();
               noticesQuery.refetch();
+              notificationsQuery.refetch();
             }}
           />
         }
       >
-        {/* Pending approvals surface only when there's something to act on (keeps the
-            dashboard clean otherwise, but never buries the headline visitor flow). */}
+        {/* Pending approvals surface only when there's something to act on. */}
         {pending.length > 0 && (
           <View className="gap-3 px-5 pt-2">
             <View className="flex-row items-center justify-between">

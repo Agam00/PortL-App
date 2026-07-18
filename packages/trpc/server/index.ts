@@ -16,6 +16,10 @@ import { duesRouter } from "./routes/dues/route";
 import { staffDirectoryRouter } from "./routes/staff-directory/route";
 import { notificationsRouter } from "./routes/notifications/route";
 import { pushTokensRouter } from "./routes/push-tokens/route";
+import { postsRouter } from "./routes/posts/route";
+import { alertsRouter } from "./routes/alerts/route";
+import { serviceRequestsRouter } from "./routes/service-requests/route";
+import { chatRouter } from "./routes/chat/route";
 
 export const serverRouter = router({
   health: healthRouter,
@@ -34,6 +38,10 @@ export const serverRouter = router({
   staffDirectory: staffDirectoryRouter,
   notifications: notificationsRouter,
   pushTokens: pushTokensRouter,
+  posts: postsRouter,
+  alerts: alertsRouter,
+  serviceRequests: serviceRequestsRouter,
+  chat: chatRouter,
 });
 
 export { createContext } from "./context";

@@ -1,11 +1,11 @@
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../lib/trpc";
 import { useAuthStore } from "../stores/auth-store";
 import { useUiStore } from "../stores/ui-store";
 import { getErrorMessage } from "../lib/error-message";
-import { ScreenHeader } from "./ui/screen-header";
 import { RoleBadge } from "./ui/role-badge";
 import { shadowCard } from "../lib/shadows";
 
@@ -72,6 +72,7 @@ function MenuRow({
 
 export function RoleProfileScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const logout = useAuthStore((s) => s.logout);
@@ -89,8 +90,13 @@ export function RoleProfileScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="" role={user.role} />
-      <ScrollView contentContainerClassName="gap-6 p-4 pb-8 pt-6">
+      <View className="flex-row items-center gap-3 px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
+        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Back" accessibilityRole="button">
+          <MaterialIcons name="arrow-back" size={24} color="#F5F5F5" />
+        </Pressable>
+        <Text className="text-headline-lg font-extrabold text-on-surface">Profile</Text>
+      </View>
+      <ScrollView contentContainerClassName="gap-6 p-4 pb-8 pt-4">
         <View className="items-center gap-3 bg-surface p-6" style={[{ borderRadius: 20 }, shadowCard]}>
           <View
             className="items-center justify-center bg-surface-container"

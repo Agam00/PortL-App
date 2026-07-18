@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { View, Text, ScrollView, RefreshControl, Pressable, Alert, ActivityIndicator } from "react-native";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
 import { EmptyState } from "../../components/ui/empty-state";
 import { ListLoading } from "../../components/ui/list-loading";
 import { shadowCard } from "../../lib/shadows";
@@ -38,6 +39,8 @@ function iconFor(name: string) {
 }
 
 export default function ResidentAmenities() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const showToast = useUiStore((s) => s.showToast);
   const utils = trpc.useUtils();
   const days = nextDays(7);
@@ -98,7 +101,12 @@ export default function ResidentAmenities() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
-      <ScreenHeader title="Book an Amenity" subtitle="Select a facility to reserve your spot." role="resident" />
+      <View className="flex-row items-center gap-3 px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
+        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Back" accessibilityRole="button">
+          <MaterialIcons name="arrow-back" size={24} color="#F5F5F5" />
+        </Pressable>
+        <Text className="text-headline-lg font-extrabold text-on-surface">Book an Amenity</Text>
+      </View>
       <ScrollView
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"
         refreshControl={

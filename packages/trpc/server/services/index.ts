@@ -14,6 +14,9 @@ import NotificationService from "@repo/services/notification";
 import AmenityBookingService from "@repo/services/amenity-booking";
 import DueService from "@repo/services/due";
 import PushTokenService from "@repo/services/push-token";
+import PostService from "@repo/services/post";
+import ServiceRequestService from "@repo/services/service-request";
+import ChatService from "@repo/services/chat";
 
 export const userService = new UserService();
 export const authService = new AuthService();
@@ -31,3 +34,6 @@ export const notificationService = new NotificationService();
 export const amenityBookingService = new AmenityBookingService();
 export const dueService = new DueService();
 export const pushTokenService = new PushTokenService();
+export const postService = new PostService();
+export const serviceRequestService = new ServiceRequestService();
+export const chatService = new ChatService();

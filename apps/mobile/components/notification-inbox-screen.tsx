@@ -1,9 +1,9 @@
 import { View, Text, ScrollView, RefreshControl, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../lib/trpc";
 import { getNotificationRoute } from "../lib/notification-navigation";
-import { ScreenHeader } from "./ui/screen-header";
 import { EmptyState } from "./ui/empty-state";
 import { ListLoading } from "./ui/list-loading";
 import { PressableScale } from "./ui/pressable-scale";
@@ -51,6 +51,7 @@ function groupOf(iso: string | null) {
 
 export function NotificationInboxScreen({ role }: { role: "resident" | "guard" | "admin" }) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const utils = trpc.useUtils();
 
   const notificationsQuery = trpc.notifications.list.useQuery();
@@ -79,7 +80,12 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
 
   return (
     <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
-      <ScreenHeader title="Notifications" role={role} />
+      <View className="flex-row items-center gap-3 px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
+        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Back" accessibilityRole="button">
+          <MaterialIcons name="arrow-back" size={24} color="#F5F5F5" />
+        </Pressable>
+        <Text className="text-headline-lg font-extrabold text-on-surface">Notifications</Text>
+      </View>
       <ScrollView
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"
         refreshControl={

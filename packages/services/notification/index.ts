@@ -228,6 +228,55 @@ class NotificationService {
       data: { bookingId: booking.id },
     });
   }
+
+  async notifyNewMessage(recipientId: string, senderId: string, body: string) {
+    const [sender] = await db.select({ name: usersTable.fullName }).from(usersTable).where(eq(usersTable.id, senderId)).limit(1);
+    await this.notify([recipientId], {
+      type: "message",
+      title: sender?.name ?? "New message",
+      body: body.slice(0, 120),
+      data: { peerId: senderId, peerName: sender?.name ?? "Resident" },
+    });
+  }
+
+  /** A resident pings staff — "Send Message" to admin/security, or a "Security Alert" broadcast. */
+  async notifyStaffAlert(
+    societyId: string,
+    fromUserId: string,
+    roles: ("admin" | "guard")[],
+    input: { emergency: boolean; label: string },
+  ) {
+    const [from] = await db
+      .select({ name: usersTable.fullName, flatNumber: flatsTable.flatNumber })
+      .from(usersTable)
+      .leftJoin(flatsTable, eq(flatsTable.id, usersTable.flatId))
+      .where(eq(usersTable.id, fromUserId))
+      .limit(1);
+
+    const recipients = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(and(eq(usersTable.societyId, societyId), inArray(usersTable.role, roles)));
+
+    const who = `${from?.name ?? "A resident"}${from?.flatNumber ? ` (${from.flatNumber})` : ""}`;
+
+    await this.notify(
+      recipients.map((r) => r.id),
+      input.emergency
+        ? {
+            type: "alert",
+            title: `🚨 ${input.label}`,
+            body: `${who} raised a "${input.label}" alert. Please respond immediately.`,
+            data: { alert: input.label },
+          }
+        : {
+            type: "message",
+            title: `Message from ${who}`,
+            body: `${who} wants to reach ${roles.includes("admin") ? "the admin" : "security"}.`,
+            data: {},
+          },
+    );
+  }
 }
 
 export default NotificationService;

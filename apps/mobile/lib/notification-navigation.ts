@@ -9,6 +9,12 @@ export function getNotificationRoute(type: string, role: Role, data?: Record<str
   const complaintId = typeof data?.complaintId === "string" ? data.complaintId : undefined;
   const complaintParam = complaintId ? `?complaintId=${complaintId}` : "";
 
+  // A direct chat message → open the thread with the sender (residents only).
+  if (type === "message" && role === "resident" && typeof data?.peerId === "string") {
+    const peerName = typeof data?.peerName === "string" ? data.peerName : "Resident";
+    return `/(resident)/chat?peerId=${data.peerId}&name=${encodeURIComponent(peerName)}`;
+  }
+
   switch (type) {
     case "visitor_request":
       return role === "resident" ? "/(resident)/home" : "/(guard)/gate";
