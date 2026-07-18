@@ -12,7 +12,7 @@ export default function GuardLayout() {
   }
 
   return (
-    <Tabs screenOptions={tabBarScreenOptions}>
+    <Tabs screenOptions={{ ...tabBarScreenOptions, tabBarStyle: { display: "none" } }}>
       <Tabs.Screen
         name="gate"
         options={{

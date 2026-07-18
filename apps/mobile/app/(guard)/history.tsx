@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { View, Text, TextInput, FlatList, Pressable, RefreshControl, Platform } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
-import { ScreenHeader } from "../../components/ui/screen-header";
 import { EmptyState } from "../../components/ui/empty-state";
 import { GuardHistoryCard } from "../../components/guard-history-card";
 import { ListLoading } from "../../components/ui/list-loading";
@@ -66,6 +67,8 @@ function dateLabel(date: Date | null) {
 }
 
 export default function GuardHistory() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>(FILTERS[0]);
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState<Date | null>(new Date());
@@ -91,11 +94,12 @@ export default function GuardHistory() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader
-        title="Visitor History"
-        subtitle="Track entries and exits for all gates today."
-        role="guard"
-      />
+      <View className="flex-row items-center gap-3 px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
+        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Back" accessibilityRole="button">
+          <MaterialIcons name="arrow-back" size={24} color="#F5F5F5" />
+        </Pressable>
+        <Text className="text-headline-lg font-extrabold text-on-surface">Visitor History</Text>
+      </View>
       <FlatList
         data={items}
         keyExtractor={(item) => (item.kind === "header" ? `header-${item.label}` : item.visitor.id)}
@@ -167,7 +171,7 @@ export default function GuardHistory() {
             <View className="gap-3 bg-surface p-4" style={[{ borderRadius: 16 }, shadowCard]}>
               <View
                 className="flex-row items-center gap-3 px-4"
-                style={{ borderRadius: 12, backgroundColor: "#ECE9F1" }}
+                style={{ borderRadius: 12, backgroundColor: "#242424" }}
               >
                 <MaterialIcons name="search" size={22} color="#8A8A8A" />
                 <TextInput

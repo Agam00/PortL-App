@@ -24,6 +24,7 @@ function serialize(
     decidedByUserId: row.decidedByUserId,
     validFrom: row.validFrom ? row.validFrom.toISOString() : null,
     validUntil: row.validUntil ? row.validUntil.toISOString() : null,
+    passCode: row.passCode ?? null,
     entryAt: logs?.entryAt ?? null,
     exitAt: logs?.exitAt ?? null,
     createdAt: (row.createdAt ?? new Date()).toISOString(),
@@ -190,6 +191,20 @@ class VisitorService {
     });
   }
 
+  /** A 6-digit gate-pass code, unique among this society's visitors. */
+  private async generatePassCode(societyId: string): Promise<string> {
+    for (let attempt = 0; attempt < 12; attempt++) {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      const [clash] = await db
+        .select({ id: visitorsTable.id })
+        .from(visitorsTable)
+        .where(and(eq(visitorsTable.societyId, societyId), eq(visitorsTable.passCode, code)))
+        .limit(1);
+      if (!clash) return code;
+    }
+    return String(Math.floor(100000 + Math.random() * 900000));
+  }
+
   async preApprove(
     societyId: string,
     flatId: string,
@@ -201,6 +216,8 @@ class VisitorService {
     if (validUntil <= validFrom) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "Valid-until must be after valid-from" });
     }
+
+    const passCode = await this.generatePassCode(societyId);
 
     const [visitor] = await db
       .insert(visitorsTable)
@@ -216,11 +233,43 @@ class VisitorService {
         decidedAt: new Date(),
         validFrom,
         validUntil,
+        passCode,
       })
       .returning();
 
     if (!visitor) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
-    return serialize(visitor, null);
+
+    const [flat] = await db
+      .select({ flatNumber: flatsTable.flatNumber })
+      .from(flatsTable)
+      .where(eq(flatsTable.id, flatId))
+      .limit(1);
+
+    return serialize(visitor, flat?.flatNumber ?? null);
+  }
+
+  /** Guard keypad/scan: find a currently-valid pre-approval by its 6-digit code. */
+  async lookupByPassCode(societyId: string, code: string): Promise<VisitorOutput> {
+    const now = new Date();
+    const [row] = await db
+      .select({ visitor: visitorsTable, flatNumber: flatsTable.flatNumber })
+      .from(visitorsTable)
+      .innerJoin(flatsTable, eq(visitorsTable.flatId, flatsTable.id))
+      .where(and(eq(visitorsTable.societyId, societyId), eq(visitorsTable.passCode, code)))
+      .limit(1);
+
+    if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "No visitor found for this code" });
+    const v = row.visitor;
+    if (v.status === "checked_out") {
+      throw new TRPCError({ code: "CONFLICT", message: "This visitor has already checked out" });
+    }
+    if (v.status === "cancelled" || v.status === "rejected" || v.status === "expired") {
+      throw new TRPCError({ code: "CONFLICT", message: `This pass is ${v.status}` });
+    }
+    if (v.validUntil && v.validUntil < now) {
+      throw new TRPCError({ code: "CONFLICT", message: "This pass has expired" });
+    }
+    return serialize(v, row.flatNumber);
   }
 
   async cancelPreApproval(flatId: string, visitorId: string): Promise<VisitorOutput> {
@@ -256,12 +305,13 @@ class VisitorService {
 
   async listPreApprovedForResident(flatId: string): Promise<VisitorOutput[]> {
     const rows = await db
-      .select()
+      .select({ visitor: visitorsTable, flatNumber: flatsTable.flatNumber })
       .from(visitorsTable)
+      .innerJoin(flatsTable, eq(visitorsTable.flatId, flatsTable.id))
       .where(and(eq(visitorsTable.flatId, flatId), eq(visitorsTable.source, "resident_preapproved")))
       .orderBy(desc(visitorsTable.validFrom));
 
-    return rows.map((row) => serialize(row, null));
+    return rows.map((row) => serialize(row.visitor, row.flatNumber));
   }
 
   async searchPreApproved(societyId: string, query: string): Promise<VisitorOutput[]> {

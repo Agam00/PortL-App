@@ -7,6 +7,7 @@ import {
   visitorIdInputSchema,
   preApproveVisitorInputSchema,
   searchPreApprovedInputSchema,
+  lookupByPassCodeInputSchema,
   historyFilterInputSchema,
   visitorOutputSchema,
   listVisitorsOutputSchema,
@@ -119,6 +120,14 @@ export const visitorsRouter = router({
     .output(listVisitorsOutputSchema)
     .query(async ({ ctx, input }) => {
       return visitorService.searchPreApproved(requireSocietyId(ctx.user.societyId), input.query);
+    }),
+
+  lookupByPassCode: guardProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/pass-lookup"), tags: TAGS } })
+    .input(lookupByPassCodeInputSchema)
+    .output(visitorOutputSchema)
+    .query(async ({ ctx, input }) => {
+      return visitorService.lookupByPassCode(requireSocietyId(ctx.user.societyId), input.code);
     }),
 
   /** Resident sees only their flat's history; guard/admin see the whole society. */

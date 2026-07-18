@@ -95,9 +95,22 @@ function PreApprovalCard({
       </View>
 
       {tone === "pending" ? (
-        <View className="flex-row items-center gap-2 rounded-lg px-3 py-2.5" style={{ backgroundColor: "#242424" }}>
-          <MaterialIcons name="calendar-month" size={18} color="#F5821F" />
-          <Text className="text-body-md font-bold text-on-surface">{formatWindow(visitor)}</Text>
+        <View className="gap-2">
+          <View className="flex-row items-center gap-2 rounded-lg px-3 py-2.5" style={{ backgroundColor: "#242424" }}>
+            <MaterialIcons name="calendar-month" size={18} color="#F5821F" />
+            <Text className="text-body-md font-bold text-on-surface">{formatWindow(visitor)}</Text>
+          </View>
+          {visitor.passCode && (
+            <View className="flex-row items-center justify-between rounded-lg px-3 py-2.5" style={{ backgroundColor: "rgba(245,130,31,0.12)" }}>
+              <View className="flex-row items-center gap-2">
+                <MaterialIcons name="pin" size={18} color="#F5821F" />
+                <Text className="text-body-sm text-text-muted">Gate code — share with your visitor</Text>
+              </View>
+              <Text className="text-body-lg font-extrabold tracking-widest" style={{ color: "#F5821F" }}>
+                {visitor.passCode}
+              </Text>
+            </View>
+          )}
         </View>
       ) : (
         <View className="flex-row items-center gap-2">

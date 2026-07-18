@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform, Pressable, ActivityIndicator } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useLocalSearchParams } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { createVisitorInputSchema } from "@repo/services/visitor/model";
 import type { FlatSearchResult } from "@repo/services/resident/model";
@@ -44,6 +45,14 @@ export default function GuardRegisterVisitor() {
   });
 
   const selectedType = watch("type");
+
+  // Preset the visitor type when opened from a gate "Add New Visitor" card (?type=guest).
+  const { type: typeParam } = useLocalSearchParams<{ type?: string }>();
+  useEffect(() => {
+    if (VISITOR_TYPES.some((t) => t.value === typeParam)) {
+      setValue("type", typeParam as FormValues["type"]);
+    }
+  }, [typeParam, setValue]);
 
   const createMutation = trpc.visitors.create.useMutation({
     onSuccess: (visitor) => {

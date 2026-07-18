@@ -1,0 +1,1 @@
+ALTER TABLE "visitors" ADD COLUMN "pass_code" varchar(6);

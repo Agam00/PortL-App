@@ -71,6 +71,13 @@
       "when": 1784387352575,
       "tag": "0009_pale_doorman",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1784389246135,
+      "tag": "0010_cultured_kate_bishop",
+      "breakpoints": true
     }
   ]
 }

@@ -47,6 +47,10 @@ export const visitorsTable = pgTable("visitors", {
   requestedByGuardId: uuid("requested_by_guard_id").references(() => usersTable.id),
   decidedByUserId: uuid("decided_by_user_id").references(() => usersTable.id),
 
+  // 6-digit gate-pass code for resident pre-approvals — the resident shares it, a guard
+  // types it into the gate keypad to look the visitor up and check them in. Unique per society.
+  passCode: varchar("pass_code", { length: 6 }),
+
   validFrom: timestamp("valid_from"),
   validUntil: timestamp("valid_until"),
 

@@ -45,6 +45,10 @@ export const searchPreApprovedInputSchema = z.object({
   query: z.string().min(1).max(50),
 });
 
+export const lookupByPassCodeInputSchema = z.object({
+  code: z.string().regex(/^\d{6}$/, "Enter the 6-digit code"),
+});
+
 export const historyFilterInputSchema = z.object({
   type: visitorTypeSchema.optional(),
   status: visitorStatusSchema.optional(),
@@ -66,6 +70,7 @@ export const visitorOutputSchema = z.object({
   decidedByUserId: z.string().uuid().nullable(),
   validFrom: z.string().nullable(),
   validUntil: z.string().nullable(),
+  passCode: z.string().nullable(),
   entryAt: z.string().nullable(),
   exitAt: z.string().nullable(),
   createdAt: z.string(),
