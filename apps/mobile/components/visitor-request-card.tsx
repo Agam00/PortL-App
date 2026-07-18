@@ -43,7 +43,7 @@ export function VisitorRequestCard({
             </View>
           </View>
           <View className="mt-1 flex-row items-center gap-1">
-            <MaterialIcons name="schedule" size={16} color="#48454F" />
+            <MaterialIcons name="schedule" size={16} color="#C4C4C4" />
             <Text className="text-body-sm text-on-surface-variant">{timeAgo(visitor.createdAt)}</Text>
           </View>
         </View>

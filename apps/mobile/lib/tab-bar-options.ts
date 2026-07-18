@@ -2,13 +2,13 @@
  * with a soft violet-tinted top shadow, violet active tint. */
 export const tabBarScreenOptions = {
   headerShown: false,
-  tabBarActiveTintColor: "#6244CD",
-  tabBarInactiveTintColor: "#797585",
+  tabBarActiveTintColor: "#F5821F",
+  tabBarInactiveTintColor: "#8A8A8A",
   tabBarStyle: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#1A1A1A",
     borderTopWidth: 0,
     elevation: 12,
-    shadowColor: "#6244CD",
+    shadowColor: "#F5821F",
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.06,
     shadowRadius: 12,

@@ -46,7 +46,7 @@ function statusPill(status: ComplaintOutput["status"]): { label: string; bg: str
     case "resolved":
       return { label: "RESOLVED", bg: "#E3B341", fg: "#3D2E00" };
     default:
-      return { label: "CLOSED", bg: "#ECE6F2", fg: "#48454F" };
+      return { label: "CLOSED", bg: "#262626", fg: "#C4C4C4" };
   }
 }
 
@@ -160,11 +160,11 @@ export default function ResidentHelpdesk() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FBFAFE" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
         <Text className="text-headline-lg font-extrabold text-on-surface">HelpDesk</Text>
-        <View className="flex-row rounded-full p-1" style={{ backgroundColor: "#EFEAF9" }}>
+        <View className="flex-row rounded-full p-1" style={{ backgroundColor: "#242424" }}>
           {FILTERS.map((f) => {
             const active = filter === f;
             return (
@@ -172,11 +172,11 @@ export default function ResidentHelpdesk() {
                 key={f}
                 onPress={() => setFilter(f)}
                 className="rounded-full px-3 py-1.5"
-                style={{ backgroundColor: active ? "#6244CD" : "transparent" }}
+                style={{ backgroundColor: active ? "#F5821F" : "transparent" }}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
               >
-                <Text className="text-body-sm font-bold" style={{ color: active ? "#FFFFFF" : "#6244CD" }}>
+                <Text className="text-body-sm font-bold" style={{ color: active ? "#FFFFFF" : "#F5821F" }}>
                   {f}
                 </Text>
               </Pressable>
@@ -218,12 +218,12 @@ export default function ResidentHelpdesk() {
                 {/* Top row: category + community/personal tag + status pill */}
                 <View className="flex-row items-center justify-between gap-2">
                   <View className="min-w-0 flex-row items-center gap-2">
-                    <MaterialIcons name={CATEGORY_ICON[c.category] ?? "handyman"} size={16} color="#6244CD" />
+                    <MaterialIcons name={CATEGORY_ICON[c.category] ?? "handyman"} size={16} color="#F5821F" />
                     <Text className="text-body-md font-extrabold text-on-surface" numberOfLines={1}>
                       {c.category}
                     </Text>
-                    <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: c.isMine ? "#E4DAFB" : "#EFEAF2" }}>
-                      <Text className="text-meta-text font-bold" style={{ color: c.isMine ? "#4A27B5" : "#797585" }}>
+                    <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: c.isMine ? "#2A2320" : "#242424" }}>
+                      <Text className="text-meta-text font-bold" style={{ color: c.isMine ? "#FF9A3D" : "#8A8A8A" }}>
                         {c.isMine ? "Personal" : "Community"}
                       </Text>
                     </View>
@@ -251,7 +251,7 @@ export default function ResidentHelpdesk() {
                   </Text>
                 </View>
 
-                <View className="my-0.5 h-px" style={{ backgroundColor: "#F0ECF6" }} />
+                <View className="my-0.5 h-px" style={{ backgroundColor: "#2A2A2A" }} />
 
                 {/* Action row: resolve/reopen (own only) + comment count */}
                 <View className="flex-row items-center justify-between">
@@ -268,9 +268,9 @@ export default function ResidentHelpdesk() {
                       <MaterialIcons
                         name={resolved ? "replay" : "thumb-up"}
                         size={18}
-                        color={resolved ? "#6244CD" : "#3FB950"}
+                        color={resolved ? "#F5821F" : "#3FB950"}
                       />
-                      <Text className="text-body-sm font-bold" style={{ color: resolved ? "#6244CD" : "#2E7D32" }}>
+                      <Text className="text-body-sm font-bold" style={{ color: resolved ? "#F5821F" : "#2E7D32" }}>
                         {resolved ? "Re-Open" : "Mark as Resolved"}
                       </Text>
                     </Pressable>
@@ -278,7 +278,7 @@ export default function ResidentHelpdesk() {
                     <View />
                   )}
                   <View className="flex-row items-center gap-1.5">
-                    <MaterialIcons name="chat-bubble-outline" size={15} color="#797585" />
+                    <MaterialIcons name="chat-bubble-outline" size={15} color="#8A8A8A" />
                     <Text className="text-body-sm text-text-muted">
                       {String(c.commentCount ?? 0).padStart(2, "0")} Comments
                     </Text>
@@ -292,7 +292,7 @@ export default function ResidentHelpdesk() {
 
                     <Text className="text-label-caps uppercase text-text-muted">Comments</Text>
                     {commentsQuery.isLoading ? (
-                      <ActivityIndicator color="#6244CD" />
+                      <ActivityIndicator color="#F5821F" />
                     ) : (commentsQuery.data ?? []).length === 0 ? (
                       <Text className="text-body-sm text-text-muted">No comments yet.</Text>
                     ) : (
@@ -337,7 +337,7 @@ export default function ResidentHelpdesk() {
       <Pressable
         onPress={() => setShowForm(true)}
         className="absolute flex-row items-center gap-2 self-center rounded-full px-6 py-4"
-        style={[{ bottom: insets.bottom + 16, backgroundColor: "#141118" }, shadowElevated]}
+        style={[{ bottom: insets.bottom + 16, backgroundColor: "#F5821F" }, shadowElevated]}
         accessibilityLabel="Raise new complaint"
         accessibilityRole="button"
       >
@@ -353,7 +353,7 @@ export default function ResidentHelpdesk() {
               <View className="flex-row items-center justify-between">
                 <Text className="text-headline-md font-extrabold text-on-surface">Raise a Complaint</Text>
                 <Pressable onPress={() => setShowForm(false)} hitSlop={8} accessibilityLabel="Close" accessibilityRole="button">
-                  <MaterialIcons name="close" size={24} color="#48454F" />
+                  <MaterialIcons name="close" size={24} color="#C4C4C4" />
                 </Pressable>
               </View>
 
@@ -368,12 +368,12 @@ export default function ResidentHelpdesk() {
                           key={cat}
                           onPress={() => setCategory(cat)}
                           className="flex-row items-center gap-1.5 rounded-full px-4 py-2"
-                          style={selected ? { backgroundColor: "#6244CD" } : { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E4DEEC" }}
+                          style={selected ? { backgroundColor: "#F5821F" } : { backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}
                           accessibilityRole="radio"
                           accessibilityState={{ selected }}
                         >
-                          <MaterialIcons name={CATEGORY_ICON[cat] ?? "handyman"} size={16} color={selected ? "#fff" : "#48454F"} />
-                          <Text className="text-body-md font-bold" style={{ color: selected ? "#FFFFFF" : "#48454F" }}>
+                          <MaterialIcons name={CATEGORY_ICON[cat] ?? "handyman"} size={16} color={selected ? "#fff" : "#C4C4C4"} />
+                          <Text className="text-body-md font-bold" style={{ color: selected ? "#FFFFFF" : "#C4C4C4" }}>
                             {cat}
                           </Text>
                         </Pressable>
@@ -391,7 +391,7 @@ export default function ResidentHelpdesk() {
                     if (titleError) setTitleError(null);
                   }}
                   error={titleError ?? undefined}
-                  style={{ backgroundColor: "#F8F5FC" }}
+                  style={{ backgroundColor: "#1F1F1F" }}
                 />
                 <Input
                   label="Description"
@@ -406,7 +406,7 @@ export default function ResidentHelpdesk() {
                   textAlignVertical="top"
                   className="min-h-[96px]"
                   error={descriptionError ?? undefined}
-                  style={{ backgroundColor: "#F8F5FC" }}
+                  style={{ backgroundColor: "#1F1F1F" }}
                 />
 
                 {photo ? (
@@ -421,13 +421,13 @@ export default function ResidentHelpdesk() {
                     onPress={handleCapturePhoto}
                     disabled={isCapturing}
                     className="items-center gap-2 py-6"
-                    style={{ borderWidth: 2, borderStyle: "dashed", borderColor: "#D9D3E2", borderRadius: 12 }}
+                    style={{ borderWidth: 2, borderStyle: "dashed", borderColor: "#3A3A3A", borderRadius: 12 }}
                   >
                     {isCapturing ? (
-                      <ActivityIndicator color="#6244CD" />
+                      <ActivityIndicator color="#F5821F" />
                     ) : (
                       <>
-                        <MaterialIcons name="add-a-photo" size={26} color="#797585" />
+                        <MaterialIcons name="add-a-photo" size={26} color="#8A8A8A" />
                         <Text className="text-body-md font-bold text-on-surface-variant">Attach a photo (Optional)</Text>
                       </>
                     )}
@@ -438,7 +438,7 @@ export default function ResidentHelpdesk() {
                   onPress={handleSubmit}
                   disabled={createMutation.isPending}
                   className="h-12 flex-row items-center justify-center gap-2 rounded-full"
-                  style={{ backgroundColor: "#6244CD" }}
+                  style={{ backgroundColor: "#F5821F" }}
                   accessibilityLabel="Submit complaint"
                   accessibilityRole="button"
                 >

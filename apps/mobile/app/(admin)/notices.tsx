@@ -131,7 +131,7 @@ export default function AdminNotices() {
         {showForm && (
           <FormPanel>
             <View className="flex-row items-center gap-2">
-              <MaterialIcons name="campaign" size={20} color="#6244CD" />
+              <MaterialIcons name="campaign" size={20} color="#F5821F" />
               <Text className="text-body-md font-bold text-on-surface">Compose Notice</Text>
             </View>
             <Input
@@ -274,7 +274,7 @@ export default function AdminNotices() {
                       {notice.body}
                     </Text>
                     <View className="flex-row items-center gap-2 pt-1">
-                      <MaterialIcons name="groups" size={16} color="#797585" />
+                      <MaterialIcons name="groups" size={16} color="#8A8A8A" />
                       <View className="rounded-full bg-surface-container-high px-2.5 py-1">
                         <Text className="text-meta-text text-on-surface-variant">Audience: {audience}</Text>
                       </View>

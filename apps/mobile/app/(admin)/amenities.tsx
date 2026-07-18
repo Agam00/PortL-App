@@ -170,9 +170,9 @@ export default function AdminAmenities() {
         </Button>
 
         {showForm && (
-          <FormPanel className="bg-surface" style={{ borderWidth: 1.5, borderColor: "#7B5FE8" }}>
+          <FormPanel className="bg-surface" style={{ borderWidth: 1.5, borderColor: "#FF9A3D" }}>
             <View className="flex-row items-center gap-2">
-              <MaterialIcons name={editingId ? "edit-note" : "add-circle-outline"} size={22} color="#6244CD" />
+              <MaterialIcons name={editingId ? "edit-note" : "add-circle-outline"} size={22} color="#F5821F" />
               <Text className="text-headline-md font-extrabold text-on-surface">
                 {editingId ? "Edit Amenity" : "New Amenity"}
               </Text>
@@ -252,7 +252,7 @@ export default function AdminAmenities() {
                   <Text className="text-headline-md font-extrabold text-on-surface">{amenity.name}</Text>
                   {amenity.description ? (
                     <View className="flex-row items-center gap-1.5">
-                      <MaterialIcons name="place" size={14} color="#797585" />
+                      <MaterialIcons name="place" size={14} color="#8A8A8A" />
                       <Text className="min-w-0 flex-1 text-body-sm text-text-muted" numberOfLines={1}>
                         {amenity.description}
                       </Text>
@@ -263,7 +263,7 @@ export default function AdminAmenities() {
                 <View className="flex-row gap-3">
                   <View
                     className="flex-1 gap-1 p-3"
-                    style={{ borderRadius: 12, borderWidth: 1, borderColor: "#E3DBF0", backgroundColor: "#FDFBFF" }}
+                    style={{ borderRadius: 12, borderWidth: 1, borderColor: "#333333", backgroundColor: "#0D0D0D" }}
                   >
                     <Text className="text-meta-text text-text-muted">Schedule</Text>
                     <Text className="text-body-md font-bold text-on-surface">
@@ -273,7 +273,7 @@ export default function AdminAmenities() {
                   </View>
                   <View
                     className="flex-1 gap-1 p-3"
-                    style={{ borderRadius: 12, borderWidth: 1, borderColor: "#E3DBF0", backgroundColor: "#FDFBFF" }}
+                    style={{ borderRadius: 12, borderWidth: 1, borderColor: "#333333", backgroundColor: "#0D0D0D" }}
                   >
                     <Text className="text-meta-text text-text-muted">Capacity</Text>
                     <View className="flex-row items-baseline gap-1">
@@ -291,14 +291,14 @@ export default function AdminAmenities() {
                   accessibilityRole="button"
                   accessibilityLabel={`${bookingsAmenityId === amenity.id ? "Hide" : "Show"} bookings for ${amenity.name}`}
                 >
-                  <MaterialIcons name="event-note" size={18} color="#6244CD" />
+                  <MaterialIcons name="event-note" size={18} color="#F5821F" />
                   <Text className="text-body-sm font-semibold text-primary">Booking Oversight</Text>
                 </PressableScale>
 
                 {bookingsAmenityId === amenity.id && (
                   <View className="gap-2 border-t border-outline-variant pt-3">
                     {bookingsQuery.isLoading ? (
-                      <ActivityIndicator color="#6244CD" />
+                      <ActivityIndicator color="#F5821F" />
                     ) : (bookingsQuery.data ?? []).length === 0 ? (
                       <Text className="text-body-sm text-text-muted">No bookings yet.</Text>
                     ) : (

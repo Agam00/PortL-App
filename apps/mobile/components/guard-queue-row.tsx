@@ -62,13 +62,13 @@ export function GuardQueueRow({
           </Text>
         </View>
         {showExpected ? (
-          <View className="rounded px-2 py-1" style={{ backgroundColor: "rgba(98,68,205,0.10)" }}>
+          <View className="rounded px-2 py-1" style={{ backgroundColor: "rgba(245,130,31,0.10)" }}>
             <Text className="font-bold uppercase text-primary" style={{ fontSize: 11, letterSpacing: 0.5 }}>
               Expected {expectedTime(visitor.validFrom!)}
             </Text>
           </View>
         ) : (
-          <MaterialIcons name={TYPE_ICON[visitor.type]} size={22} color="#48454F" />
+          <MaterialIcons name={TYPE_ICON[visitor.type]} size={22} color="#C4C4C4" />
         )}
       </View>
 
@@ -79,18 +79,18 @@ export function GuardQueueRow({
           className="flex-row items-center justify-center gap-2 py-3"
           style={{
             borderRadius: 12,
-            backgroundColor: isEntry ? "#F1ECF8" : "#FFFFFF",
+            backgroundColor: isEntry ? "#242424" : "#1A1A1A",
             borderWidth: 1,
-            borderColor: isEntry ? "rgba(98,68,205,0.2)" : "#CAC4D6",
+            borderColor: isEntry ? "rgba(245,130,31,0.2)" : "#6E6E6E",
           }}
           accessibilityLabel={`${actionLabel} for ${visitor.name}`}
           accessibilityRole="button"
         >
           {isActionLoading ? (
-            <ActivityIndicator size="small" color={isEntry ? "#6244CD" : "#48454F"} />
+            <ActivityIndicator size="small" color={isEntry ? "#F5821F" : "#C4C4C4"} />
           ) : (
             <>
-              <MaterialIcons name={isEntry ? "login" : "logout"} size={18} color={isEntry ? "#6244CD" : "#48454F"} />
+              <MaterialIcons name={isEntry ? "login" : "logout"} size={18} color={isEntry ? "#F5821F" : "#C4C4C4"} />
               <Text className={`text-body-md font-bold ${isEntry ? "text-primary" : "text-on-surface-variant"}`}>
                 {actionLabel}
               </Text>

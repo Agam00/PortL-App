@@ -28,8 +28,8 @@ function PreApprovedCard({
   onConfirm: () => void;
 }) {
   const isDelivery = visitor.type === "delivery";
-  const tint = isDelivery ? "rgba(254,178,70,0.18)" : "rgba(98,68,205,0.10)";
-  const iconColor = isDelivery ? "#845400" : "#6244CD";
+  const tint = isDelivery ? "rgba(254,178,70,0.18)" : "rgba(245,130,31,0.10)";
+  const iconColor = isDelivery ? "#845400" : "#F5821F";
 
   return (
     <View className="gap-4 bg-surface p-5" style={[{ borderRadius: 24, overflow: "hidden" }, shadowCard]}>
@@ -63,12 +63,12 @@ function PreApprovedCard({
           </View>
           {isDelivery && visitor.validFrom ? (
             <View className="flex-row items-center gap-1.5">
-              <MaterialIcons name="schedule" size={16} color="#48454F" />
+              <MaterialIcons name="schedule" size={16} color="#C4C4C4" />
               <Text className="text-body-md text-on-surface-variant">Expected {expectedTime(visitor.validFrom)}</Text>
             </View>
           ) : visitor.phone ? (
             <View className="flex-row items-center gap-1.5">
-              <MaterialIcons name="smartphone" size={16} color="#48454F" />
+              <MaterialIcons name="smartphone" size={16} color="#C4C4C4" />
               <Text className="text-body-md text-on-surface-variant">{visitor.phone}</Text>
             </View>
           ) : null}
@@ -77,7 +77,7 @@ function PreApprovedCard({
 
       <View
         className="flex-row items-center gap-3 bg-surface p-3"
-        style={{ borderRadius: 12, borderWidth: 1, borderColor: "#CAC4D6" }}
+        style={{ borderRadius: 12, borderWidth: 1, borderColor: "#6E6E6E" }}
       >
         <View className="items-center justify-center" style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: tint }}>
           <MaterialIcons name="apartment" size={22} color={iconColor} />
@@ -94,20 +94,20 @@ function PreApprovedCard({
         onPress={onConfirm}
         disabled={isLoading}
         className="h-12 flex-row items-center justify-center gap-2 rounded-full"
-        style={{ backgroundColor: isDelivery ? "#ECE6F2" : "#6244CD" }}
+        style={{ backgroundColor: isDelivery ? "#262626" : "#F5821F" }}
         accessibilityLabel={`${isDelivery ? "Log delivery" : "Confirm entry"} for ${visitor.name}`}
         accessibilityRole="button"
       >
         {isLoading ? (
-          <ActivityIndicator size="small" color={isDelivery ? "#1C1A23" : "#fff"} />
+          <ActivityIndicator size="small" color={isDelivery ? "#F5F5F5" : "#fff"} />
         ) : (
           <>
             <MaterialIcons
               name={isDelivery ? "fact-check" : "check-circle-outline"}
               size={20}
-              color={isDelivery ? "#1C1A23" : "#FFFFFF"}
+              color={isDelivery ? "#F5F5F5" : "#FFFFFF"}
             />
-            <Text className="text-body-md font-bold" style={{ color: isDelivery ? "#1C1A23" : "#FFFFFF" }}>
+            <Text className="text-body-md font-bold" style={{ color: isDelivery ? "#F5F5F5" : "#FFFFFF" }}>
               {isDelivery ? "Log Delivery" : "Confirm Entry"}
             </Text>
           </>
@@ -157,12 +157,12 @@ export default function CheckPreApproved() {
       <ScrollView contentContainerClassName="gap-5 px-4 pb-8 pt-2" keyboardShouldPersistTaps="handled">
         <View
           className="flex-row items-center gap-3 px-4"
-          style={{ borderRadius: 16, backgroundColor: "#F1ECF8", paddingVertical: 4 }}
+          style={{ borderRadius: 16, backgroundColor: "#242424", paddingVertical: 4 }}
         >
-          <MaterialIcons name="search" size={24} color="#6244CD" />
+          <MaterialIcons name="search" size={24} color="#F5821F" />
           <TextInput
             placeholder="Search by Name or Phone..."
-            placeholderTextColor="#797585"
+            placeholderTextColor="#8A8A8A"
             value={query}
             onChangeText={setQuery}
             className="flex-1 py-3 text-body-lg text-on-surface"
@@ -170,14 +170,14 @@ export default function CheckPreApproved() {
           />
         </View>
 
-        {searchQuery.isFetching && <ActivityIndicator size="small" color="#6244CD" />}
+        {searchQuery.isFetching && <ActivityIndicator size="small" color="#F5821F" />}
 
         {debounced.length > 0 && !searchQuery.isFetching && results.length > 0 && (
           <View className="flex-row items-center justify-between">
             <Text className="font-bold uppercase text-on-surface" style={{ fontSize: 14, letterSpacing: 1.5 }}>
               Matching Pre-Approvals
             </Text>
-            <View className="rounded-full px-3 py-1" style={{ backgroundColor: "#7B5FE8" }}>
+            <View className="rounded-full px-3 py-1" style={{ backgroundColor: "#FF9A3D" }}>
               <Text className="text-body-sm font-bold" style={{ color: "#FFFFFF" }}>
                 {results.length} Found
               </Text>

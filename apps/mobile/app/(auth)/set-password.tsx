@@ -70,9 +70,9 @@ export default function SetPasswordScreen() {
         <View className="mt-8 items-center gap-4 bg-surface p-6" style={[{ borderRadius: 24 }, shadowCard]}>
           <View
             className="items-center justify-center"
-            style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#E4DAFB" }}
+            style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: "#2A2320" }}
           >
-            <MaterialIcons name="lock-reset" size={32} color="#6244CD" />
+            <MaterialIcons name="lock-reset" size={32} color="#F5821F" />
           </View>
 
           <View className="items-center gap-1">
@@ -93,8 +93,8 @@ export default function SetPasswordScreen() {
                   onChangeText={onChange}
                   value={value}
                   error={errors.newPassword?.message}
-                  leftElement={<MaterialIcons name="lock-outline" size={20} color="#797585" />}
-                  style={{ backgroundColor: "#F1ECF8", borderWidth: 0 }}
+                  leftElement={<MaterialIcons name="lock-outline" size={20} color="#8A8A8A" />}
+                  style={{ backgroundColor: "#242424", borderWidth: 0 }}
                 />
               )}
             />
@@ -112,8 +112,8 @@ export default function SetPasswordScreen() {
                 if (confirmError) setConfirmError(null);
               }}
               error={confirmError ?? undefined}
-              leftElement={<MaterialIcons name="password" size={20} color="#797585" />}
-              style={{ backgroundColor: "#F1ECF8", borderWidth: 0 }}
+              leftElement={<MaterialIcons name="password" size={20} color="#8A8A8A" />}
+              style={{ backgroundColor: "#242424", borderWidth: 0 }}
             />
           </View>
 
@@ -121,7 +121,7 @@ export default function SetPasswordScreen() {
             onPress={handleSubmit(onSubmit)}
             disabled={!newPassword || !confirmPassword || setPasswordMutation.isPending}
             className="mt-2 h-14 w-full flex-row items-center justify-center gap-2 rounded-full"
-            style={{ backgroundColor: !newPassword || !confirmPassword ? "#B9A8F0" : "#6244CD" }}
+            style={{ backgroundColor: !newPassword || !confirmPassword ? "#7A5320" : "#F5821F" }}
             accessibilityLabel="Set password"
             accessibilityRole="button"
           >

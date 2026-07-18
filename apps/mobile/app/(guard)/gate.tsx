@@ -118,7 +118,7 @@ export default function GuardGate() {
       >
         <View className="flex-row gap-3">
           <StatTile value={pending.length} label="Pending" color="#FEB246" />
-          <StatTile value={checkedIn.length} label="Checked In" color="#6244CD" />
+          <StatTile value={checkedIn.length} label="Checked In" color="#F5821F" />
           <StatTile value={expiringSoon.length} label="Expiring" color="#BA1A1A" />
         </View>
 
@@ -127,7 +127,7 @@ export default function GuardGate() {
             scaleTo={0.95}
             onPress={() => router.push("/(guard)/visitors")}
             className="flex-1 items-center justify-center gap-2 p-4"
-            style={[{ borderRadius: 16, backgroundColor: "#6244CD" }, shadowCard]}
+            style={[{ borderRadius: 16, backgroundColor: "#F5821F" }, shadowCard]}
             accessibilityLabel="Register a new visitor"
             accessibilityRole="button"
           >
@@ -140,11 +140,11 @@ export default function GuardGate() {
             scaleTo={0.95}
             onPress={() => router.push("/(guard)/check-preapproved")}
             className="flex-1 items-center justify-center gap-2 bg-surface p-4"
-            style={[{ borderRadius: 16, borderWidth: 1, borderColor: "rgba(98,68,205,0.2)" }, shadowCard]}
+            style={[{ borderRadius: 16, borderWidth: 1, borderColor: "rgba(245,130,31,0.2)" }, shadowCard]}
             accessibilityLabel="Check pre-approved visitors"
             accessibilityRole="button"
           >
-            <MaterialIcons name="check-circle-outline" size={30} color="#6244CD" />
+            <MaterialIcons name="check-circle-outline" size={30} color="#F5821F" />
             <Text className="text-body-md font-bold text-primary">Pre-Approved</Text>
           </PressableScale>
         </View>
@@ -184,7 +184,7 @@ export default function GuardGate() {
 
             {approved.length > 0 && (
               <View className="gap-3">
-                <SectionHeader dotColor="#6244CD" title="Approved / Pre-Booked" />
+                <SectionHeader dotColor="#F5821F" title="Approved / Pre-Booked" />
                 {approved.map((visitor) => (
                   <GuardQueueRow
                     key={visitor.id}
@@ -202,7 +202,7 @@ export default function GuardGate() {
 
             {checkedIn.length > 0 && (
               <View className="gap-3">
-                <SectionHeader dotColor="#797585" title="Currently On-Site" />
+                <SectionHeader dotColor="#8A8A8A" title="Currently On-Site" />
                 {checkedIn.map((visitor) => (
                   <GuardQueueRow
                     key={visitor.id}

@@ -77,7 +77,7 @@ export default function LoginScreen() {
                     onChangeText={onChange}
                     value={value}
                     error={errors.identifier?.message}
-                    leftElement={<MaterialIcons name="person-outline" size={20} color="#797585" />}
+                    leftElement={<MaterialIcons name="person-outline" size={20} color="#8A8A8A" />}
                   />
                 )}
               />
@@ -95,7 +95,7 @@ export default function LoginScreen() {
                     onChangeText={onChange}
                     value={value}
                     error={errors.password?.message}
-                    leftElement={<MaterialIcons name="lock-outline" size={20} color="#797585" />}
+                    leftElement={<MaterialIcons name="lock-outline" size={20} color="#8A8A8A" />}
                     rightElement={
                       <Pressable
                         accessibilityLabel="Toggle password visibility"
@@ -105,7 +105,7 @@ export default function LoginScreen() {
                         <MaterialIcons
                           name={showPassword ? "visibility" : "visibility-off"}
                           size={20}
-                          color="#797585"
+                          color="#8A8A8A"
                         />
                       </Pressable>
                     }
@@ -126,7 +126,7 @@ export default function LoginScreen() {
               onPress={handleSubmit((values) => loginMutation.mutate(values))}
               disabled={loginMutation.isPending}
               className="mt-2 h-14 flex-row items-center justify-center gap-2 rounded-full"
-              style={{ backgroundColor: "#6244CD" }}
+              style={{ backgroundColor: "#F5821F" }}
               accessibilityLabel="Sign in"
               accessibilityRole="button"
             >

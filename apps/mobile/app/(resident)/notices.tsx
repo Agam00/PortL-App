@@ -114,11 +114,11 @@ export default function ResidentNotices() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FBFAFE" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       {/* Header */}
       <View className="flex-row items-center gap-3 px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
         <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Back" accessibilityRole="button">
-          <MaterialIcons name="arrow-back" size={24} color="#1C1A23" />
+          <MaterialIcons name="arrow-back" size={24} color="#F5F5F5" />
         </Pressable>
         <Text className="text-headline-lg font-extrabold text-on-surface">Notice Board</Text>
       </View>
@@ -218,7 +218,7 @@ function NoticeCard({
         Posted by <Text className="font-bold text-on-surface-variant">{notice.authorName}</Text> · {timeLabel(notice.publishedAt)}
       </Text>
 
-      <View className="my-0.5 h-px" style={{ backgroundColor: "#F0ECF6" }} />
+      <View className="my-0.5 h-px" style={{ backgroundColor: "#2A2A2A" }} />
 
       <View className="flex-row items-center gap-6">
         <Pressable
@@ -227,8 +227,8 @@ function NoticeCard({
           accessibilityRole="button"
           accessibilityLabel={`Like${liked ? ", selected" : ""}`}
         >
-          <MaterialIcons name={liked ? "thumb-up" : "thumb-up-off-alt"} size={18} color={liked ? "#2E7D32" : "#797585"} />
-          <Text className="text-body-sm font-bold" style={{ color: liked ? "#2E7D32" : "#797585" }}>
+          <MaterialIcons name={liked ? "thumb-up" : "thumb-up-off-alt"} size={18} color={liked ? "#2E7D32" : "#8A8A8A"} />
+          <Text className="text-body-sm font-bold" style={{ color: liked ? "#2E7D32" : "#8A8A8A" }}>
             {notice.likeCount}
           </Text>
         </Pressable>
@@ -238,8 +238,8 @@ function NoticeCard({
           accessibilityRole="button"
           accessibilityLabel={`Dislike${disliked ? ", selected" : ""}`}
         >
-          <MaterialIcons name={disliked ? "thumb-down" : "thumb-down-off-alt"} size={18} color={disliked ? "#BA1A1A" : "#797585"} />
-          <Text className="text-body-sm font-bold" style={{ color: disliked ? "#BA1A1A" : "#797585" }}>
+          <MaterialIcons name={disliked ? "thumb-down" : "thumb-down-off-alt"} size={18} color={disliked ? "#BA1A1A" : "#8A8A8A"} />
+          <Text className="text-body-sm font-bold" style={{ color: disliked ? "#BA1A1A" : "#8A8A8A" }}>
             {notice.dislikeCount}
           </Text>
         </Pressable>
@@ -249,7 +249,7 @@ function NoticeCard({
           accessibilityRole="button"
           accessibilityLabel="Comments"
         >
-          <MaterialIcons name="chat-bubble-outline" size={16} color="#797585" />
+          <MaterialIcons name="chat-bubble-outline" size={16} color="#8A8A8A" />
           <Text className="text-body-sm text-text-muted">
             {String(notice.commentCount).padStart(2, "0")} Comments
           </Text>
@@ -259,7 +259,7 @@ function NoticeCard({
       {commentsExpanded && (
         <View className="gap-3 border-t border-outline-variant pt-3">
           {commentsLoading ? (
-            <ActivityIndicator color="#6244CD" />
+            <ActivityIndicator color="#F5821F" />
           ) : comments.length === 0 ? (
             <Text className="text-body-sm text-text-muted">No comments yet. Be the first!</Text>
           ) : (
@@ -333,7 +333,7 @@ function PollCard({
               <View
                 key={option.id}
                 className="overflow-hidden rounded-xl"
-                style={{ backgroundColor: "#EEEAF6" }}
+                style={{ backgroundColor: "#242424" }}
               >
                 <View
                   style={{
@@ -342,11 +342,11 @@ function PollCard({
                     top: 0,
                     bottom: 0,
                     width: `${pct}%`,
-                    backgroundColor: isMine ? "rgba(98,68,205,0.28)" : "rgba(183,121,31,0.18)",
+                    backgroundColor: isMine ? "rgba(245,130,31,0.28)" : "rgba(183,121,31,0.18)",
                   }}
                 />
                 <View className="flex-row items-center justify-between px-4 py-3">
-                  <Text className={`text-body-md ${isMine ? "font-extrabold" : "font-medium text-on-surface"}`} style={isMine ? { color: "#4A27B5" } : undefined}>
+                  <Text className={`text-body-md ${isMine ? "font-extrabold" : "font-medium text-on-surface"}`} style={isMine ? { color: "#FF9A3D" } : undefined}>
                     {option.label}
                   </Text>
                   <Text className="text-body-md font-extrabold text-on-surface">{pct}%</Text>
@@ -365,7 +365,7 @@ function PollCard({
                   key={option.id}
                   onPress={() => onToggleOption(option.id)}
                   className="flex-row items-center gap-3 rounded-xl px-4 py-3.5"
-                  style={{ borderWidth: selected ? 2 : 1, borderColor: selected ? "#6244CD" : "#E4DEEC", backgroundColor: selected ? "#F5F1FB" : "#FFFFFF" }}
+                  style={{ borderWidth: selected ? 2 : 1, borderColor: selected ? "#F5821F" : "#333333", backgroundColor: selected ? "#242424" : "#1A1A1A" }}
                   accessibilityRole={poll.multiSelect ? "checkbox" : "radio"}
                   accessibilityState={{ selected }}
                 >
@@ -380,7 +380,7 @@ function PollCard({
                           : "radio-button-unchecked"
                     }
                     size={20}
-                    color={selected ? "#6244CD" : "#C6BDD4"}
+                    color={selected ? "#F5821F" : "#6E6E6E"}
                   />
                   <Text className="flex-1 text-body-md text-on-surface">{option.label}</Text>
                 </Pressable>
@@ -391,7 +391,7 @@ function PollCard({
             disabled={selection.length === 0 || voting}
             onPress={onVote}
             className="h-12 flex-row items-center justify-center gap-2 rounded-full"
-            style={{ backgroundColor: selection.length === 0 ? "#B9A8F0" : "#6244CD" }}
+            style={{ backgroundColor: selection.length === 0 ? "#7A5320" : "#F5821F" }}
             accessibilityLabel="Vote now"
             accessibilityRole="button"
           >
@@ -401,14 +401,14 @@ function PollCard({
         </>
       )}
 
-      <View className="mt-0.5 h-px" style={{ backgroundColor: "#F0ECF6" }} />
+      <View className="mt-0.5 h-px" style={{ backgroundColor: "#2A2A2A" }} />
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center gap-1.5">
-          <MaterialIcons name={poll.isClosed ? "lock-clock" : "schedule"} size={15} color="#797585" />
+          <MaterialIcons name={poll.isClosed ? "lock-clock" : "schedule"} size={15} color="#8A8A8A" />
           <Text className="text-body-sm text-text-muted">{poll.isClosed ? "Closed" : (closesLabel ?? "Open")}</Text>
         </View>
         <View className="flex-row items-center gap-1.5">
-          <MaterialIcons name="groups" size={16} color="#797585" />
+          <MaterialIcons name="groups" size={16} color="#8A8A8A" />
           <Text className="text-body-sm text-text-muted">{poll.totalVotes} Responded</Text>
         </View>
       </View>

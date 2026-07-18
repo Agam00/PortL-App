@@ -26,9 +26,9 @@ const TYPE_ICON: Record<VisitorOutput["type"], React.ComponentProps<typeof Mater
 // Expired = soft red.
 const PILL: Record<Tone, { label: string; bg: string; fg: string }> = {
   pending: { label: "Pending", bg: "#FEB246", fg: "#3D2E00" },
-  completed: { label: "Completed", bg: "#ECE6F2", fg: "#48454F" },
-  expired: { label: "Expired", bg: "#F8C9C9", fg: "#8C1D18" },
-  cancelled: { label: "Cancelled", bg: "#ECE6F2", fg: "#48454F" },
+  completed: { label: "Completed", bg: "#262626", fg: "#C4C4C4" },
+  expired: { label: "Expired", bg: "#3A1A1A", fg: "#8C1D18" },
+  cancelled: { label: "Cancelled", bg: "#262626", fg: "#C4C4C4" },
 };
 
 function formatWindow(visitor: VisitorOutput) {
@@ -48,7 +48,7 @@ function SectionHeading({ label }: { label: string }) {
   return (
     <View className="gap-2 pt-2">
       <Text className="text-body-lg text-on-surface-variant">{label}</Text>
-      <View style={{ height: 1, backgroundColor: "#E4DEEC" }} />
+      <View style={{ height: 1, backgroundColor: "#333333" }} />
     </View>
   );
 }
@@ -73,9 +73,9 @@ function PreApprovalCard({
         <View className="min-w-0 flex-1 flex-row items-center gap-3">
           <View
             className="items-center justify-center"
-            style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: muted ? "#F1ECF8" : "#E4DAFB" }}
+            style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: muted ? "#242424" : "#2A2320" }}
           >
-            <MaterialIcons name={TYPE_ICON[visitor.type]} size={22} color={muted ? "#797585" : "#4A27B5"} />
+            <MaterialIcons name={TYPE_ICON[visitor.type]} size={22} color={muted ? "#8A8A8A" : "#FF9A3D"} />
           </View>
           <View className="min-w-0 flex-1">
             <Text
@@ -95,13 +95,13 @@ function PreApprovalCard({
       </View>
 
       {tone === "pending" ? (
-        <View className="flex-row items-center gap-2 rounded-lg px-3 py-2.5" style={{ backgroundColor: "#F5F1FB" }}>
-          <MaterialIcons name="calendar-month" size={18} color="#6244CD" />
+        <View className="flex-row items-center gap-2 rounded-lg px-3 py-2.5" style={{ backgroundColor: "#242424" }}>
+          <MaterialIcons name="calendar-month" size={18} color="#F5821F" />
           <Text className="text-body-md font-bold text-on-surface">{formatWindow(visitor)}</Text>
         </View>
       ) : (
         <View className="flex-row items-center gap-2">
-          <MaterialIcons name="history" size={16} color="#797585" />
+          <MaterialIcons name="history" size={16} color="#8A8A8A" />
           <Text className="text-body-sm text-text-muted">{formatWindow(visitor)}</Text>
         </View>
       )}
@@ -158,7 +158,7 @@ export default function MyPreApprovals() {
   const cancelled = all.filter((v) => v.status === "cancelled");
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       <ScreenHeader title="" role="resident" />
       <View className="flex-row items-start justify-between gap-3 px-5 pb-2 pt-5">
         <Text className="flex-1 text-headline-lg font-extrabold text-on-surface">My Pre-approvals</Text>
@@ -166,7 +166,7 @@ export default function MyPreApprovals() {
           scaleTo={0.95}
           onPress={() => router.push("/(resident)/pre-approve")}
           className="flex-row items-center gap-1.5 rounded-full px-4 py-2.5"
-          style={[{ backgroundColor: "#7B5FE8" }, shadowCard]}
+          style={[{ backgroundColor: "#FF9A3D" }, shadowCard]}
           accessibilityLabel="New invite"
           accessibilityRole="button"
         >

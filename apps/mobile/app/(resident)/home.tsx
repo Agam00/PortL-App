@@ -95,11 +95,11 @@ export default function ResidentHome() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FBFAFE" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       {/* Top bar: notifications (left) · brand (center) · profile (right) */}
       <View
         className="flex-row items-center justify-between px-5 pb-3"
-        style={{ paddingTop: insets.top + 10, backgroundColor: "#FBFAFE" }}
+        style={{ paddingTop: insets.top + 10, backgroundColor: "#0D0D0D" }}
       >
         <Pressable
           onPress={() => router.push("/(resident)/notifications")}
@@ -109,7 +109,7 @@ export default function ResidentHome() {
           accessibilityLabel={unreadNotifications > 0 ? `Notifications, ${unreadNotifications} unread` : "Notifications"}
           accessibilityRole="button"
         >
-          <MaterialIcons name="notifications-none" size={24} color="#48454F" />
+          <MaterialIcons name="notifications-none" size={24} color="#C4C4C4" />
           {unreadNotifications > 0 && (
             <View className="absolute right-1 top-1 h-4 min-w-4 items-center justify-center rounded-full bg-status-red-strong px-1">
               <Text className="font-bold text-white" style={{ fontSize: 10, lineHeight: 12 }}>

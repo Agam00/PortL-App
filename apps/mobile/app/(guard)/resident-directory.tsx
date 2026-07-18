@@ -64,7 +64,7 @@ export default function ResidentDirectory() {
     return (
       <View
         className="items-center justify-center"
-        style={{ width: 72, height: 72, borderRadius: 16, backgroundColor: "#ECE6F8" }}
+        style={{ width: 72, height: 72, borderRadius: 16, backgroundColor: "#242424" }}
       >
         <Text className="font-bold uppercase text-text-muted" style={{ fontSize: 11, letterSpacing: 1 }}>
           Flat
@@ -89,12 +89,12 @@ export default function ResidentDirectory() {
           <View className="mb-4 gap-4">
             <View
               className="flex-row items-center gap-3 rounded-full px-5"
-              style={{ backgroundColor: "#E5E0EB" }}
+              style={{ backgroundColor: "#333333" }}
             >
-              <MaterialIcons name="search" size={24} color="#797585" />
+              <MaterialIcons name="search" size={24} color="#8A8A8A" />
               <TextInput
                 placeholder="Search Flat, Name, or Phone..."
-                placeholderTextColor="#797585"
+                placeholderTextColor="#8A8A8A"
                 value={query}
                 onChangeText={setQuery}
                 autoCapitalize="none"
@@ -113,8 +113,8 @@ export default function ResidentDirectory() {
                       className="rounded-full px-5 py-2.5"
                       style={
                         selected
-                          ? { backgroundColor: "#6244CD" }
-                          : { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#CAC4D6" }
+                          ? { backgroundColor: "#F5821F" }
+                          : { backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#6E6E6E" }
                       }
                       accessibilityLabel={`Filter by ${tower ?? "all buildings"}`}
                       accessibilityRole="button"
@@ -122,7 +122,7 @@ export default function ResidentDirectory() {
                     >
                       <Text
                         className="text-body-md font-bold"
-                        style={{ color: selected ? "#FFFFFF" : "#1C1A23" }}
+                        style={{ color: selected ? "#FFFFFF" : "#F5F5F5" }}
                       >
                         {tower ?? "All"}
                       </Text>
@@ -131,7 +131,7 @@ export default function ResidentDirectory() {
                 })}
               </View>
             )}
-            {searchQuery.isFetching && <ActivityIndicator className="py-4" color="#6244CD" />}
+            {searchQuery.isFetching && <ActivityIndicator className="py-4" color="#F5821F" />}
           </View>
         }
         ListEmptyComponent={
@@ -182,7 +182,7 @@ export default function ResidentDirectory() {
                   <MaterialIcons
                     name={revealedIds.has(row.resident.id) ? "visibility-off" : "visibility"}
                     size={18}
-                    color="#797585"
+                    color="#8A8A8A"
                   />
                   <Text className="text-body-md text-text-muted" numberOfLines={1}>
                     {revealedIds.has(row.resident.id) ? row.resident.phone : maskPhone(row.resident.phone)}
@@ -192,7 +192,7 @@ export default function ResidentDirectory() {
               <Pressable
                 onPress={() => Linking.openURL(`tel:${row.resident.phone}`)}
                 className="items-center justify-center"
-                style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#7B5FE8" }}
+                style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: "#FF9A3D" }}
                 accessibilityLabel={`Call ${row.resident.fullName}`}
                 accessibilityRole="button"
               >

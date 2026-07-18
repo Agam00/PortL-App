@@ -27,8 +27,8 @@ export default function RootLayout() {
       <AppProviders>
         <SafeAreaProvider>
           <View className="flex-1 bg-background">
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#FDF8FF" } }} />
+            <StatusBar style="light" />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: "#0D0D0D" } }} />
             <Toast />
             <PushRegistration />
           </View>

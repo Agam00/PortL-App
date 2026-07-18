@@ -31,7 +31,7 @@ export default function AdminSociety() {
     {
       label: "Infrastructure",
       icon: "apartment",
-      accent: "#6244CD",
+      accent: "#F5821F",
       items: [
         { label: "Towers", value: `${towersQuery.data?.length ?? "—"}`, route: "/(admin)/towers" },
         { label: "Flats", value: `${flatsQuery.data?.length ?? "—"}`, route: "/(admin)/flats" },
@@ -58,7 +58,7 @@ export default function AdminSociety() {
     {
       label: "Operations",
       icon: "gavel",
-      accent: "#9F87E8",
+      accent: "#C99A5A",
       items: [
         { label: "Amenities", value: `${amenitiesQuery.data?.length ?? "—"}`, route: "/(admin)/amenities" },
         { label: "Support Staff", value: `${staffQuery.data?.length ?? "—"}`, route: "/(admin)/staff" },
@@ -115,14 +115,14 @@ export default function AdminSociety() {
               >
                 <MaterialIcons name={section.icon} size={24} color={section.accent} />
               </View>
-              <MaterialIcons name="north-east" size={20} color="#CAC4D6" />
+              <MaterialIcons name="north-east" size={20} color="#6E6E6E" />
             </View>
             <Text className="text-headline-md font-extrabold text-on-surface">{section.label}</Text>
 
             <View className="flex-row gap-3">
               {section.items.map((item) => (
                 <PressableScale key={item.label} scaleTo={0.97} className="flex-1" onPress={() => router.push(item.route as never)}>
-                  <View className="gap-1 p-3" style={{ borderRadius: 12, backgroundColor: "#F6F2FB" }}>
+                  <View className="gap-1 p-3" style={{ borderRadius: 12, backgroundColor: "#1F1F1F" }}>
                     <Text className="text-label-sm text-text-muted">{item.label}</Text>
                     <Text className="text-headline-md font-extrabold" style={{ color: section.accent }}>
                       {item.value}

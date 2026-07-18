@@ -15,14 +15,14 @@ import { shadowCard } from "../lib/shadows";
 const TYPE_STYLE: Record<string, { icon: React.ComponentProps<typeof MaterialIcons>["name"]; bg: string; fg: string }> = {
   visitor_request: { icon: "directions-walk", bg: "#F6A83C", fg: "#3D2E00" },
   visitor_decision: { icon: "verified-user", bg: "#F6A83C", fg: "#3D2E00" },
-  notice: { icon: "campaign", bg: "#E4DEEC", fg: "#48454F" },
-  poll: { icon: "poll", bg: "#E4DAFB", fg: "#4A27B5" },
+  notice: { icon: "campaign", bg: "#333333", fg: "#C4C4C4" },
+  poll: { icon: "poll", bg: "#2A2320", fg: "#FF9A3D" },
   complaint_status: { icon: "handyman", bg: "#9A6A00", fg: "#FFFFFF" },
   complaint_comment: { icon: "chat-bubble", bg: "#9A6A00", fg: "#FFFFFF" },
-  booking_confirmed: { icon: "event-available", bg: "#7B5FE8", fg: "#FFFFFF" },
+  booking_confirmed: { icon: "event-available", bg: "#FF9A3D", fg: "#FFFFFF" },
 };
 
-const DEFAULT_STYLE = { icon: "notifications" as const, bg: "#E4DEEC", fg: "#48454F" };
+const DEFAULT_STYLE = { icon: "notifications" as const, bg: "#333333", fg: "#C4C4C4" };
 
 function timeLabel(iso: string | null) {
   if (!iso) return "";
@@ -78,7 +78,7 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       <ScreenHeader title="Notifications" role={role} />
       <ScrollView
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"
@@ -91,16 +91,16 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
             onPress={() => markAllReadMutation.mutate(undefined)}
             disabled={markAllReadMutation.isPending}
             className="flex-row items-center gap-1.5 self-end rounded-full px-4 py-2"
-            style={{ backgroundColor: "#E4DAFB" }}
+            style={{ backgroundColor: "#2A2320" }}
             accessibilityLabel="Mark all as read"
             accessibilityRole="button"
           >
             {markAllReadMutation.isPending ? (
-              <ActivityIndicator size="small" color="#4A27B5" />
+              <ActivityIndicator size="small" color="#FF9A3D" />
             ) : (
-              <MaterialIcons name="done-all" size={16} color="#4A27B5" />
+              <MaterialIcons name="done-all" size={16} color="#FF9A3D" />
             )}
-            <Text className="text-body-sm font-bold" style={{ color: "#4A27B5" }}>
+            <Text className="text-body-sm font-bold" style={{ color: "#FF9A3D" }}>
               Mark all as read
             </Text>
           </Pressable>
@@ -127,7 +127,7 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
                   <PressableScale key={notification.id} scaleTo={0.98} onPress={() => handlePress(notification)}>
                     <View
                       className="flex-row items-start gap-4 rounded-xl p-4"
-                      style={[shadowCard, { backgroundColor: unread ? "#EFEAFB" : "#FFFFFF" }]}
+                      style={[shadowCard, { backgroundColor: unread ? "#242424" : "#1A1A1A" }]}
                     >
                       <View
                         className="items-center justify-center"
@@ -160,7 +160,7 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
                             width: 8,
                             height: 8,
                             borderRadius: 4,
-                            backgroundColor: "#6244CD",
+                            backgroundColor: "#F5821F",
                           }}
                         />
                       )}

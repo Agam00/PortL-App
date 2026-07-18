@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "newArchEnabled": true,
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "ios": {
       "supportsTablet": true
     },
@@ -37,7 +37,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 160,
           "resizeMode": "contain",
-          "backgroundColor": "#FDF8FF"
+          "backgroundColor": "#0D0D0D"
         }
       ],
       [
@@ -52,7 +52,7 @@
         "expo-notifications",
         {
           "icon": "./assets/icon.png",
-          "color": "#6244CD"
+          "color": "#F5821F"
         }
       ]
     ],

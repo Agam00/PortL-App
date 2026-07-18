@@ -5,22 +5,21 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Portl design system — see apps/mobile/DESIGN_SYSTEM.md (source: Stitch export,
-        // "Friendly Community Console"). Light mode, warm off-white + saturated violet accent,
-        // big soft radii, ambient shadows instead of hairline borders.
-        background: "#FDF8FF",
-        surface: "#FFFFFF",
-        "surface-container": "#F1ECF8",
-        "surface-container-high": "#ECE6F2",
-        "on-surface": "#1C1A23",
-        "on-surface-variant": "#48454F",
-        "text-muted": "#797585",
-        outline: "#797585",
-        "outline-variant": "#CAC4D6",
-        primary: "#6244CD",
-        "primary-container": "#7B5FE8",
-        "inverse-primary": "#4A27B5",
-        secondary: "#845400",
+        // Portl design system — "Masterji" dark theme: near-black canvas + saturated
+        // orange accent, dark elevated surfaces, light text.
+        background: "#0D0D0D",
+        surface: "#1A1A1A",
+        "surface-container": "#242424",
+        "surface-container-high": "#2E2E2E",
+        "on-surface": "#F5F5F5",
+        "on-surface-variant": "#C4C4C4",
+        "text-muted": "#8A8A8A",
+        outline: "#8A8A8A",
+        "outline-variant": "#333333",
+        primary: "#F5821F",
+        "primary-container": "#FF9A3D",
+        "inverse-primary": "#D96D0C",
+        secondary: "#FEB246",
         "secondary-container": "#FEB246",
         "status-green": "#27C96D",
         "status-amber": "#FEB246",

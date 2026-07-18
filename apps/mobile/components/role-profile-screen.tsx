@@ -51,7 +51,7 @@ function MenuRow({
           {value}
         </Text>
       ) : (
-        <MaterialIcons name="chevron-right" size={22} color="#797585" />
+        <MaterialIcons name="chevron-right" size={22} color="#8A8A8A" />
       )}
     </>
   );
@@ -94,7 +94,7 @@ export function RoleProfileScreen() {
         <View className="items-center gap-3 bg-surface p-6" style={[{ borderRadius: 20 }, shadowCard]}>
           <View
             className="items-center justify-center bg-surface-container"
-            style={{ width: 104, height: 104, borderRadius: 52, borderWidth: 4, borderColor: "#EDE7F8" }}
+            style={{ width: 104, height: 104, borderRadius: 52, borderWidth: 4, borderColor: "#242424" }}
           >
             <Text className="text-headline-lg font-extrabold text-primary-container">
               {initialsFrom(user.fullName)}
@@ -106,11 +106,11 @@ export function RoleProfileScreen() {
         </View>
 
         <View className="overflow-hidden bg-surface" style={[{ borderRadius: 20 }, shadowCard]}>
-          <MenuRow icon="phone" iconColor="#6244CD" iconBg="#E4DAFB" label="Phone" value={user.phone} />
+          <MenuRow icon="phone" iconColor="#F5821F" iconBg="#2A2320" label="Phone" value={user.phone} />
           <MenuRow
             icon="mail-outline"
             iconColor="#845400"
-            iconBg="#FBE3BD"
+            iconBg="#3A2E12"
             label="Email"
             value={user.email}
             isLast={user.role !== "resident"}
@@ -118,8 +118,8 @@ export function RoleProfileScreen() {
           {user.role === "resident" && (
             <MenuRow
               icon="apartment"
-              iconColor="#48454F"
-              iconBg="#E6E1E9"
+              iconColor="#C4C4C4"
+              iconBg="#333333"
               label="Society Directory"
               onPress={() => router.push("/(resident)/staff-directory")}
               isLast
@@ -138,7 +138,7 @@ export function RoleProfileScreen() {
           }}
           disabled={logoutMutation.isPending}
           className="h-14 flex-row items-center justify-center gap-2 rounded-full"
-          style={{ backgroundColor: "#F9D8D3" }}
+          style={{ backgroundColor: "#3A1A1A" }}
           accessibilityLabel="Log out"
           accessibilityRole="button"
         >

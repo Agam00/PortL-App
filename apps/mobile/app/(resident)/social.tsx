@@ -28,7 +28,7 @@ export default function ResidentSocial() {
       description: unreadNoticesCount > 0 ? `${unreadNoticesCount} unread notice${unreadNoticesCount === 1 ? "" : "s"}` : "You're all caught up",
       icon: "campaign",
       tint: "bg-surface-container",
-      iconColor: "#6244CD",
+      iconColor: "#F5821F",
       route: "/(resident)/notices",
     },
     {
@@ -68,7 +68,7 @@ export default function ResidentSocial() {
                 <Text className="text-body-md font-bold text-on-surface">{tile.label}</Text>
                 <Text className="text-body-sm text-text-muted">{tile.description}</Text>
               </View>
-              <MaterialIcons name="chevron-right" size={22} color="#CAC4D6" />
+              <MaterialIcons name="chevron-right" size={22} color="#6E6E6E" />
             </ListRowCard>
           </PressableScale>
         ))}

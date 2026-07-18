@@ -80,11 +80,11 @@ function UnderlineInput({
   return (
     <View
       className="flex-row items-center"
-      style={{ borderBottomWidth: 1, borderBottomColor: error ? "#BA1A1A" : "#E3DEEA" }}
+      style={{ borderBottomWidth: 1, borderBottomColor: error ? "#BA1A1A" : "#333333" }}
     >
       <TextInput
         placeholder={placeholder}
-        placeholderTextColor="#9A96A3"
+        placeholderTextColor="#7E7E7E"
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
@@ -115,7 +115,7 @@ function Dropdown({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <View style={{ borderBottomWidth: 1, borderBottomColor: error ? "#BA1A1A" : "#E3DEEA" }}>
+    <View style={{ borderBottomWidth: 1, borderBottomColor: error ? "#BA1A1A" : "#333333" }}>
       <Pressable
         onPress={() => setOpen((v) => !v)}
         className="flex-row items-center justify-between py-4"
@@ -127,20 +127,20 @@ function Dropdown({
             <Text className="text-body-lg text-text-muted">{inlineLabel}</Text>
             <View className="flex-row items-center gap-1">
               <Text className="text-body-lg font-bold text-on-surface">{value ?? placeholder}</Text>
-              <MaterialIcons name={open ? "arrow-drop-up" : "arrow-drop-down"} size={24} color="#1C1A23" />
+              <MaterialIcons name={open ? "arrow-drop-up" : "arrow-drop-down"} size={24} color="#F5F5F5" />
             </View>
           </>
         ) : (
           <>
-            <Text className="text-body-lg" style={{ color: value ? "#1C1A23" : "#9A96A3" }}>
+            <Text className="text-body-lg" style={{ color: value ? "#F5F5F5" : "#7E7E7E" }}>
               {value ?? placeholder}
             </Text>
-            <MaterialIcons name={open ? "arrow-drop-up" : "arrow-drop-down"} size={24} color="#1C1A23" />
+            <MaterialIcons name={open ? "arrow-drop-up" : "arrow-drop-down"} size={24} color="#F5F5F5" />
           </>
         )}
       </Pressable>
       {open && (
-        <View className="mb-3 overflow-hidden rounded-xl" style={{ backgroundColor: "#F4F1FA" }}>
+        <View className="mb-3 overflow-hidden rounded-xl" style={{ backgroundColor: "#242424" }}>
           {options.map((opt) => {
             const active = opt === value;
             return (
@@ -156,11 +156,11 @@ function Dropdown({
               >
                 <Text
                   className="text-body-md"
-                  style={{ color: active ? "#6244CD" : "#48454F", fontWeight: active ? "700" : "500" }}
+                  style={{ color: active ? "#F5821F" : "#C4C4C4", fontWeight: active ? "700" : "500" }}
                 >
                   {opt}
                 </Text>
-                {active && <MaterialIcons name="check" size={18} color="#6244CD" />}
+                {active && <MaterialIcons name="check" size={18} color="#F5821F" />}
               </Pressable>
             );
           })}
@@ -185,8 +185,8 @@ function Checkbox({ label, checked, onToggle }: { label: string; checked: boolea
           width: 22,
           height: 22,
           borderWidth: 2,
-          borderColor: checked ? "#6244CD" : "#B9B4C4",
-          backgroundColor: checked ? "#6244CD" : "transparent",
+          borderColor: checked ? "#F5821F" : "#6E6E6E",
+          backgroundColor: checked ? "#F5821F" : "transparent",
         }}
       >
         {checked && <MaterialIcons name="check" size={16} color="#FFFFFF" />}
@@ -285,7 +285,7 @@ export default function PreApproveGuest() {
   const checkboxLabel = CHECKBOX_LABEL[selectedType];
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#15131A" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       <Pressable
         onPress={() => router.back()}
         hitSlop={12}
@@ -304,9 +304,9 @@ export default function PreApproveGuest() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View className="overflow-hidden rounded-3xl bg-white" style={shadowElevated}>
+          <View className="overflow-hidden rounded-3xl bg-surface" style={shadowElevated}>
             {/* Tinted header: title + 3D avatar */}
-            <View className="flex-row items-center justify-between px-6 pt-6 pb-2" style={{ backgroundColor: "#EAF0FB" }}>
+            <View className="flex-row items-center justify-between px-6 pt-6 pb-2" style={{ backgroundColor: "#242424" }}>
               <Text className="flex-1 text-headline-lg font-extrabold text-on-surface">{content.title}</Text>
               <Image source={content.img} style={{ width: 84, height: 84 }} resizeMode="contain" />
             </View>
@@ -366,7 +366,7 @@ export default function PreApproveGuest() {
                       setName(v);
                       setError(null);
                     }}
-                    rightIcon={<MaterialIcons name="contacts" size={22} color="#48454F" />}
+                    rightIcon={<MaterialIcons name="contacts" size={22} color="#C4C4C4" />}
                     error={!!error && !name.trim()}
                   />
                   <UnderlineInput
@@ -404,7 +404,7 @@ export default function PreApproveGuest() {
                 onPress={submit}
                 disabled={preApproveMutation.isPending}
                 className="mt-3 h-14 items-center justify-center rounded-2xl"
-                style={{ backgroundColor: "#141118", opacity: preApproveMutation.isPending ? 0.7 : 1 }}
+                style={{ backgroundColor: "#F5821F", opacity: preApproveMutation.isPending ? 0.7 : 1 }}
                 accessibilityLabel="Submit pre-approval"
                 accessibilityRole="button"
               >
@@ -416,7 +416,7 @@ export default function PreApproveGuest() {
           </View>
 
           <Pressable onPress={() => router.push("/(resident)/pre-approvals")} className="items-center pt-6">
-            <Text className="text-body-md font-bold" style={{ color: "#C9BEF0" }}>
+            <Text className="text-body-md font-bold" style={{ color: "#C99A5A" }}>
               View my pre-approvals
             </Text>
           </Pressable>

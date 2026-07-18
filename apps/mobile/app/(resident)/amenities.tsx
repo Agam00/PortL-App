@@ -97,7 +97,7 @@ export default function ResidentAmenities() {
   const monthLabel = new Date(selectedDate).toLocaleDateString([], { month: "long", year: "numeric" });
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       <ScreenHeader title="Book an Amenity" subtitle="Select a facility to reserve your spot." role="resident" />
       <ScrollView
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"
@@ -135,9 +135,9 @@ export default function ResidentAmenities() {
                     {
                       width: 180,
                       height: 120,
-                      backgroundColor: selected ? "#E4DAFB" : "#EFEAF7",
+                      backgroundColor: selected ? "#2A2320" : "#242424",
                       borderWidth: 2,
-                      borderColor: selected ? "#6244CD" : "transparent",
+                      borderColor: selected ? "#F5821F" : "transparent",
                       opacity: amenity.isActive ? 1 : 0.5,
                     },
                     shadowCard,
@@ -146,7 +146,7 @@ export default function ResidentAmenities() {
                   accessibilityRole="button"
                   accessibilityState={{ selected }}
                 >
-                  <MaterialIcons name={iconFor(amenity.name)} size={32} color="#4A27B5" />
+                  <MaterialIcons name={iconFor(amenity.name)} size={32} color="#FF9A3D" />
                   <View>
                     <Text className="text-body-md font-extrabold text-on-surface" numberOfLines={1}>
                       {amenity.name}
@@ -165,7 +165,7 @@ export default function ResidentAmenities() {
           <View className="gap-4 rounded-xl bg-surface p-5" style={shadowCard}>
             <View className="flex-row items-center justify-between">
               <Text className="text-body-lg font-extrabold text-on-surface">Select Date</Text>
-              <Text className="text-body-md font-bold" style={{ color: "#6244CD" }}>
+              <Text className="text-body-md font-bold" style={{ color: "#F5821F" }}>
                 {monthLabel}
               </Text>
             </View>
@@ -181,16 +181,16 @@ export default function ResidentAmenities() {
                       setSelectedSlot(null);
                     }}
                     className="items-center rounded-xl px-4 py-3"
-                    style={{ backgroundColor: isSelected ? "#6244CD" : "#EFEAF7", minWidth: 64 }}
+                    style={{ backgroundColor: isSelected ? "#F5821F" : "#242424", minWidth: 64 }}
                     accessibilityRole="button"
                     accessibilityState={{ selected: isSelected }}
                   >
-                    <Text className="text-body-sm" style={{ color: isSelected ? "#E4DAFB" : "#797585" }}>
+                    <Text className="text-body-sm" style={{ color: isSelected ? "#2A2320" : "#8A8A8A" }}>
                       {day.toLocaleDateString([], { weekday: "short" })}
                     </Text>
                     <Text
                       className="text-body-lg font-extrabold"
-                      style={{ color: isSelected ? "#FFFFFF" : "#1C1A23" }}
+                      style={{ color: isSelected ? "#FFFFFF" : "#F5F5F5" }}
                     >
                       {day.getDate()}
                     </Text>
@@ -201,7 +201,7 @@ export default function ResidentAmenities() {
 
             <Text className="text-body-lg font-extrabold text-on-surface">Available Times</Text>
             {slotsQuery.isLoading ? (
-              <ActivityIndicator color="#6244CD" />
+              <ActivityIndicator color="#F5821F" />
             ) : (slotsQuery.data ?? []).length === 0 ? (
               <Text className="text-body-sm text-text-muted">No slots for this day.</Text>
             ) : (
@@ -216,17 +216,17 @@ export default function ResidentAmenities() {
                       className="items-center rounded-lg px-4 py-2.5"
                       style={
                         !slot.isAvailable
-                          ? { backgroundColor: "#EFEAF7", opacity: 0.6 }
+                          ? { backgroundColor: "#242424", opacity: 0.6 }
                           : isSelected
-                            ? { backgroundColor: "#6244CD" }
-                            : { backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#D9D3E2" }
+                            ? { backgroundColor: "#F5821F" }
+                            : { backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#3A3A3A" }
                       }
                       accessibilityRole="button"
                       accessibilityState={{ selected: isSelected, disabled: !slot.isAvailable }}
                     >
                       <Text
                         className={`text-body-md ${isSelected ? "font-bold" : ""}`}
-                        style={{ color: !slot.isAvailable ? "#A9A2B4" : isSelected ? "#FFFFFF" : "#1C1A23" }}
+                        style={{ color: !slot.isAvailable ? "#7E7E7E" : isSelected ? "#FFFFFF" : "#F5F5F5" }}
                       >
                         {slot.slotStart.slice(0, 5)}
                       </Text>
@@ -243,7 +243,7 @@ export default function ResidentAmenities() {
                 bookMutation.mutate({ amenityId: selectedAmenity.id, date: selectedDate, slotStart: selectedSlot })
               }
               className="mt-1 h-12 items-center justify-center rounded-full"
-              style={{ backgroundColor: !selectedSlot ? "#B9A8F0" : "#6244CD" }}
+              style={{ backgroundColor: !selectedSlot ? "#7A5320" : "#F5821F" }}
               accessibilityLabel="Confirm booking"
               accessibilityRole="button"
             >
@@ -263,9 +263,9 @@ export default function ResidentAmenities() {
               <View key={booking.id} className="flex-row items-center gap-3 rounded-xl bg-surface p-4" style={shadowCard}>
                 <View
                   className="items-center justify-center"
-                  style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#E4DAFB" }}
+                  style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#2A2320" }}
                 >
-                  <MaterialIcons name={iconFor(booking.amenityName)} size={22} color="#4A27B5" />
+                  <MaterialIcons name={iconFor(booking.amenityName)} size={22} color="#FF9A3D" />
                 </View>
                 <View className="min-w-0 flex-1">
                   <Text className="text-body-md font-extrabold text-on-surface" numberOfLines={1}>

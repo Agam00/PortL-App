@@ -72,30 +72,30 @@ export default function ResidentVisitorHistory() {
               placeholder="Search visitors..."
               value={search}
               onChangeText={setSearch}
-              leftElement={<MaterialIcons name="search" size={20} color="#797585" />}
+              leftElement={<MaterialIcons name="search" size={20} color="#8A8A8A" />}
             />
             <View className="flex-row items-center gap-2">
               <Pressable
                 onPress={() => setShowPicker(true)}
                 className="flex-row items-center gap-2 rounded-lg px-4 py-2.5"
-                style={{ backgroundColor: "#ECE6F2" }}
+                style={{ backgroundColor: "#262626" }}
                 accessibilityRole="button"
                 accessibilityLabel="Filter by date"
               >
-                <MaterialIcons name="calendar-today" size={18} color="#1C1A23" />
+                <MaterialIcons name="calendar-today" size={18} color="#F5F5F5" />
                 <Text className="text-body-md font-bold text-on-surface">{dateLabel(dateFilter)}</Text>
-                <MaterialIcons name="arrow-drop-down" size={20} color="#1C1A23" />
+                <MaterialIcons name="arrow-drop-down" size={20} color="#F5F5F5" />
               </Pressable>
               {dateFilter && (
                 <Pressable
                   onPress={() => setDateFilter(null)}
                   className="flex-row items-center gap-1 rounded-lg px-3 py-2.5"
-                  style={{ backgroundColor: "#E9E4F4" }}
+                  style={{ backgroundColor: "#262626" }}
                   accessibilityRole="button"
                   accessibilityLabel="Show all dates"
                 >
-                  <MaterialIcons name="close" size={16} color="#48454F" />
-                  <Text className="text-body-sm font-bold" style={{ color: "#48454F" }}>
+                  <MaterialIcons name="close" size={16} color="#C4C4C4" />
+                  <Text className="text-body-sm font-bold" style={{ color: "#C4C4C4" }}>
                     All dates
                   </Text>
                 </Pressable>

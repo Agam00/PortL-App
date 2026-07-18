@@ -120,8 +120,8 @@ export default function GuardRegisterVisitor() {
                       borderRadius: 12,
                       width: "47%",
                       borderWidth: isSelected ? 2 : 1,
-                      borderColor: isSelected ? "#6244CD" : "transparent",
-                      backgroundColor: isSelected ? "#F1ECF8" : "#FFFFFF",
+                      borderColor: isSelected ? "#F5821F" : "transparent",
+                      backgroundColor: isSelected ? "#242424" : "#1A1A1A",
                     },
                     shadowCard,
                   ]}
@@ -129,7 +129,7 @@ export default function GuardRegisterVisitor() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: isSelected }}
                 >
-                  <MaterialIcons name={t.icon} size={26} color={isSelected ? "#6244CD" : "#1C1A23"} />
+                  <MaterialIcons name={t.icon} size={26} color={isSelected ? "#F5821F" : "#F5F5F5"} />
                   <Text className={`text-body-sm font-bold ${isSelected ? "text-primary" : "text-on-surface"}`}>
                     {t.label}
                   </Text>
@@ -140,7 +140,7 @@ export default function GuardRegisterVisitor() {
         </View>
 
         {selectedType === "delivery" && (
-          <View className="gap-3 p-4" style={{ borderRadius: 16, backgroundColor: "#F1ECF8" }}>
+          <View className="gap-3 p-4" style={{ borderRadius: 16, backgroundColor: "#242424" }}>
             <Text className="text-body-sm font-bold text-on-surface">Quick Select Provider</Text>
             <View className="flex-row flex-wrap gap-2">
               {QUICK_BRANDS.map((brand) => (
@@ -216,17 +216,17 @@ export default function GuardRegisterVisitor() {
                   borderRadius: 60,
                   borderWidth: 2,
                   borderStyle: "dashed",
-                  borderColor: "#7B5FE8",
-                  backgroundColor: "#F1ECF8",
+                  borderColor: "#FF9A3D",
+                  backgroundColor: "#242424",
                 }}
                 accessibilityLabel="Take a photo of the visitor"
                 accessibilityRole="button"
               >
                 {isCapturing ? (
-                  <ActivityIndicator color="#6244CD" />
+                  <ActivityIndicator color="#F5821F" />
                 ) : (
                   <>
-                    <MaterialIcons name="photo-camera" size={26} color="#6244CD" />
+                    <MaterialIcons name="photo-camera" size={26} color="#F5821F" />
                     <Text className="text-body-sm font-bold text-primary">Take Photo</Text>
                   </>
                 )}
@@ -240,7 +240,7 @@ export default function GuardRegisterVisitor() {
           onPress={handleSubmit((values) => createMutation.mutate(values))}
           disabled={createMutation.isPending}
           className="mt-1 h-14 flex-row items-center justify-center gap-2 rounded-full"
-          style={{ backgroundColor: "#7B5FE8" }}
+          style={{ backgroundColor: "#FF9A3D" }}
           accessibilityLabel="Allow entry"
           accessibilityRole="button"
         >

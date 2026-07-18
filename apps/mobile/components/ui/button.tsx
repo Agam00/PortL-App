@@ -56,7 +56,7 @@ export function Button({
       {...props}
     >
       {loading && (
-        <ActivityIndicator size="small" color={variant === "primary" ? "#fff" : "#7B5FE8"} className="mr-2" />
+        <ActivityIndicator size="small" color={variant === "primary" ? "#fff" : "#FF9A3D"} className="mr-2" />
       )}
       <Text className={`text-label-md font-bold ${styles.text}`}>{children}</Text>
     </PressableScale>

@@ -44,7 +44,7 @@ export function ScreenHeader({ title, subtitle, role }: { title: string; subtitl
         className="px-5 pb-3"
         style={{
           paddingTop: insets.top + 6,
-          backgroundColor: "#6244CD",
+          backgroundColor: "#F5821F",
           borderBottomLeftRadius: 16,
           borderBottomRightRadius: 16,
         }}

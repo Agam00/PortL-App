@@ -104,16 +104,16 @@ export default function GuardHistory() {
             <View className="mt-2 flex-row items-center gap-3">
               <View
                 className="rounded-full px-4 py-1.5"
-                style={{ backgroundColor: item.tinted ? "#C9B8F5" : "#ECE6F2" }}
+                style={{ backgroundColor: item.tinted ? "#C99A5A" : "#262626" }}
               >
                 <Text
                   className="text-body-sm font-bold"
-                  style={{ color: item.tinted ? "#3D1D9E" : "#48454F" }}
+                  style={{ color: item.tinted ? "#C25E0C" : "#C4C4C4" }}
                 >
                   {item.label}
                 </Text>
               </View>
-              <View className="flex-1" style={{ height: 1, backgroundColor: "#E3DEEA" }} />
+              <View className="flex-1" style={{ height: 1, backgroundColor: "#333333" }} />
             </View>
           ) : (
             <GuardHistoryCard visitor={item.visitor} />
@@ -128,24 +128,24 @@ export default function GuardHistory() {
               <Pressable
                 onPress={() => setShowPicker(true)}
                 className="flex-row items-center gap-2 rounded-lg px-4 py-2.5"
-                style={{ backgroundColor: "#ECE6F2" }}
+                style={{ backgroundColor: "#262626" }}
                 accessibilityRole="button"
                 accessibilityLabel="Change date"
               >
-                <MaterialIcons name="calendar-today" size={18} color="#1C1A23" />
+                <MaterialIcons name="calendar-today" size={18} color="#F5F5F5" />
                 <Text className="text-body-md font-bold text-on-surface">{dateLabel(dateFilter)}</Text>
-                <MaterialIcons name="arrow-drop-down" size={20} color="#1C1A23" />
+                <MaterialIcons name="arrow-drop-down" size={20} color="#F5F5F5" />
               </Pressable>
               {dateFilter && (
                 <Pressable
                   onPress={() => setDateFilter(null)}
                   className="flex-row items-center gap-1 rounded-lg px-3 py-2.5"
-                  style={{ backgroundColor: "#E9E4F4" }}
+                  style={{ backgroundColor: "#262626" }}
                   accessibilityRole="button"
                   accessibilityLabel="Show all dates"
                 >
-                  <MaterialIcons name="close" size={16} color="#48454F" />
-                  <Text className="text-body-sm font-bold" style={{ color: "#48454F" }}>
+                  <MaterialIcons name="close" size={16} color="#C4C4C4" />
+                  <Text className="text-body-sm font-bold" style={{ color: "#C4C4C4" }}>
                     All dates
                   </Text>
                 </Pressable>
@@ -169,10 +169,10 @@ export default function GuardHistory() {
                 className="flex-row items-center gap-3 px-4"
                 style={{ borderRadius: 12, backgroundColor: "#ECE9F1" }}
               >
-                <MaterialIcons name="search" size={22} color="#797585" />
+                <MaterialIcons name="search" size={22} color="#8A8A8A" />
                 <TextInput
                   placeholder="Search by name, flat (e.g. 402), or vendor"
-                  placeholderTextColor="#797585"
+                  placeholderTextColor="#8A8A8A"
                   value={search}
                   onChangeText={setSearch}
                   className="flex-1 py-3 text-body-md text-on-surface"
@@ -187,14 +187,14 @@ export default function GuardHistory() {
                       key={f.label}
                       onPress={() => setFilter(f)}
                       className="rounded-full px-4 py-2"
-                      style={{ backgroundColor: selected ? "#6244CD" : "#E9E4F4" }}
+                      style={{ backgroundColor: selected ? "#F5821F" : "#262626" }}
                       accessibilityLabel={`Filter: ${f.label}`}
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
                     >
                       <Text
                         className="text-body-sm font-bold"
-                        style={{ color: selected ? "#FFFFFF" : "#48454F" }}
+                        style={{ color: selected ? "#FFFFFF" : "#C4C4C4" }}
                       >
                         {f.label}
                       </Text>

@@ -52,11 +52,11 @@ export default function PayDue() {
   const dueLabel = dueDate ? new Date(dueDate).toLocaleDateString([], { day: "2-digit", month: "long" }) : null;
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FBFAFE" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       {/* Header */}
       <View className="flex-row items-center gap-3 px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
         <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Back" accessibilityRole="button">
-          <MaterialIcons name="arrow-back" size={24} color="#1C1A23" />
+          <MaterialIcons name="arrow-back" size={24} color="#F5F5F5" />
         </Pressable>
         <Text className="text-headline-lg font-extrabold text-on-surface">Payments</Text>
       </View>
@@ -77,7 +77,7 @@ export default function PayDue() {
           <Text className="text-headline-md font-extrabold text-on-surface">₹{amount ?? "0.00"}</Text>
           {dueLabel && (
             <>
-              <View className="mt-1 h-px" style={{ backgroundColor: "#F0ECF6" }} />
+              <View className="mt-1 h-px" style={{ backgroundColor: "#2A2A2A" }} />
               <Text className="pt-1 text-body-sm text-text-muted">Due date {dueLabel}</Text>
             </>
           )}
@@ -93,7 +93,7 @@ export default function PayDue() {
                 key={m.key}
                 onPress={() => setMethod(m.key)}
                 className="flex-row items-center gap-3 rounded-2xl bg-surface p-3.5"
-                style={[shadowCard, selected ? { borderWidth: 2, borderColor: "#6244CD" } : { borderWidth: 2, borderColor: "transparent" }]}
+                style={[shadowCard, selected ? { borderWidth: 2, borderColor: "#F5821F" } : { borderWidth: 2, borderColor: "transparent" }]}
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
                 accessibilityLabel={m.label}
@@ -103,7 +103,7 @@ export default function PayDue() {
                 <MaterialIcons
                   name={selected ? "radio-button-checked" : "radio-button-unchecked"}
                   size={22}
-                  color={selected ? "#6244CD" : "#C6BDD4"}
+                  color={selected ? "#F5821F" : "#6E6E6E"}
                 />
               </Pressable>
             );
@@ -112,12 +112,12 @@ export default function PayDue() {
       </ScrollView>
 
       {/* Fixed Confirm & Pay */}
-      <View className="absolute inset-x-0 bottom-0 px-4" style={{ paddingBottom: insets.bottom + 12, paddingTop: 8, backgroundColor: "#FBFAFE" }}>
+      <View className="absolute inset-x-0 bottom-0 px-4" style={{ paddingBottom: insets.bottom + 12, paddingTop: 8, backgroundColor: "#0D0D0D" }}>
         <Pressable
           onPress={() => dueId && payMutation.mutate({ dueId })}
           disabled={payMutation.isPending || !dueId}
           className="h-14 items-center justify-center rounded-2xl"
-          style={[{ backgroundColor: "#141118", opacity: payMutation.isPending ? 0.7 : 1 }, shadowElevated]}
+          style={[{ backgroundColor: "#F5821F", opacity: payMutation.isPending ? 0.7 : 1 }, shadowElevated]}
           accessibilityLabel="Confirm and pay"
           accessibilityRole="button"
         >

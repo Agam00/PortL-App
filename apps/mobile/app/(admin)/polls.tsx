@@ -15,7 +15,7 @@ import { ListLoading } from "../../components/ui/list-loading";
 import { shadowCard } from "../../lib/shadows";
 
 // mockup cycles the option progress-bar colors: violet, amber, brown
-const BAR_COLORS = ["#6244CD", "#FEB246", "#AA6700", "#7B5FE8"];
+const BAR_COLORS = ["#F5821F", "#FEB246", "#AA6700", "#FF9A3D"];
 
 export default function AdminPolls() {
   const showToast = useUiStore((s) => s.showToast);
@@ -133,7 +133,7 @@ export default function AdminPolls() {
               <Text className="text-label-caps uppercase text-text-muted">Options</Text>
               {options.map((option, index) => (
                 <View key={index} className="flex-row items-center gap-2">
-                  <MaterialIcons name="drag-indicator" size={18} color="#CAC4D6" />
+                  <MaterialIcons name="drag-indicator" size={18} color="#6E6E6E" />
                   <Input
                     className="flex-1"
                     placeholder={`Option ${index + 1}`}
@@ -150,7 +150,7 @@ export default function AdminPolls() {
                       accessibilityLabel={`Remove option ${index + 1}`}
                       accessibilityRole="button"
                     >
-                      <MaterialIcons name="close" size={18} color="#797585" />
+                      <MaterialIcons name="close" size={18} color="#8A8A8A" />
                     </Pressable>
                   )}
                 </View>
@@ -158,7 +158,7 @@ export default function AdminPolls() {
               {optionsError && <Text className="text-body-sm text-status-red">{optionsError}</Text>}
               {options.length < 10 && (
                 <Pressable onPress={() => setOptions((prev) => [...prev, ""])} className="flex-row items-center gap-1.5 p-1">
-                  <MaterialIcons name="add" size={16} color="#6244CD" />
+                  <MaterialIcons name="add" size={16} color="#F5821F" />
                   <Text className="text-body-sm font-semibold text-primary">Add Option</Text>
                 </Pressable>
               )}
@@ -225,7 +225,7 @@ export default function AdminPolls() {
                             {pct}% ({option.voteCount} votes)
                           </Text>
                         </View>
-                        <View style={{ height: 8, borderRadius: 4, backgroundColor: "#EEE9F4", overflow: "hidden" }}>
+                        <View style={{ height: 8, borderRadius: 4, backgroundColor: "#242424", overflow: "hidden" }}>
                           <View
                             style={{
                               height: 8,

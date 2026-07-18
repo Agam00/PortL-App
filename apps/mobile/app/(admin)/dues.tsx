@@ -113,7 +113,7 @@ export default function AdminDues() {
         {showForm && (
           <FormPanel>
             <View className="flex-row items-center gap-2">
-              <MaterialIcons name="add-circle-outline" size={20} color="#6244CD" />
+              <MaterialIcons name="add-circle-outline" size={20} color="#F5821F" />
               <Text className="text-body-md font-bold text-on-surface">New Due</Text>
             </View>
             <View className="gap-2">

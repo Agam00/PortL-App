@@ -70,21 +70,21 @@ export default function ResidentPolls() {
               <View className="flex-row items-center justify-between">
                 <Text
                   className={`text-body-md ${isMine ? "font-bold" : "text-on-surface"}`}
-                  style={isMine ? { color: "#6244CD" } : undefined}
+                  style={isMine ? { color: "#F5821F" } : undefined}
                 >
                   {option.label}
                 </Text>
                 <Text
                   className={`text-body-sm font-bold ${isMine ? "" : "text-on-surface-variant"}`}
-                  style={isMine ? { color: "#6244CD" } : undefined}
+                  style={isMine ? { color: "#F5821F" } : undefined}
                 >
                   {pct}%
                 </Text>
               </View>
-              <View className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: "#E4DEEC" }}>
+              <View className="h-2 overflow-hidden rounded-full" style={{ backgroundColor: "#333333" }}>
                 <View
                   className="h-full rounded-full"
-                  style={{ width: `${pct}%`, backgroundColor: isMine ? "#6244CD" : "#C6BDD4" }}
+                  style={{ width: `${pct}%`, backgroundColor: isMine ? "#F5821F" : "#6E6E6E" }}
                 />
               </View>
             </View>
@@ -96,23 +96,23 @@ export default function ResidentPolls() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       <ScreenHeader title="Community Polls" subtitle="Have your say in community decisions." role="resident" />
       <ScrollView
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"
         refreshControl={<RefreshControl refreshing={pollsQuery.isRefetching} onRefresh={() => pollsQuery.refetch()} />}
       >
-        <View className="flex-row gap-6" style={{ borderBottomWidth: 1, borderBottomColor: "#E4DEEC" }}>
+        <View className="flex-row gap-6" style={{ borderBottomWidth: 1, borderBottomColor: "#333333" }}>
           {TABS.map((t) => (
             <Pressable
               key={t}
               onPress={() => setTab(t)}
               className="pb-3"
-              style={tab === t ? { borderBottomWidth: 2, borderBottomColor: "#6244CD", marginBottom: -1 } : undefined}
+              style={tab === t ? { borderBottomWidth: 2, borderBottomColor: "#F5821F", marginBottom: -1 } : undefined}
             >
               <Text
                 className={`text-body-md ${tab === t ? "font-bold" : "text-text-muted"}`}
-                style={tab === t ? { color: "#6244CD" } : undefined}
+                style={tab === t ? { color: "#F5821F" } : undefined}
               >
                 {t}
               </Text>
@@ -151,10 +151,10 @@ export default function ResidentPolls() {
                   {tab !== "Active" && (
                     <View
                       className="flex-row items-center gap-1 self-end rounded-full px-3 py-1"
-                      style={{ backgroundColor: "#ECE6F2" }}
+                      style={{ backgroundColor: "#262626" }}
                     >
-                      <MaterialIcons name="check-circle-outline" size={13} color="#48454F" />
-                      <Text className="text-body-sm font-bold" style={{ color: "#48454F" }}>
+                      <MaterialIcons name="check-circle-outline" size={13} color="#C4C4C4" />
+                      <Text className="text-body-sm font-bold" style={{ color: "#C4C4C4" }}>
                         {tab === "Voted" ? "Voted" : "Closed"}
                       </Text>
                     </View>
@@ -173,8 +173,8 @@ export default function ResidentPolls() {
                               className="flex-row items-center gap-3 rounded-xl bg-surface px-4 py-3.5"
                               style={{
                                 borderWidth: selected ? 2 : 1,
-                                borderColor: selected ? "#6244CD" : "#E4DEEC",
-                                backgroundColor: selected ? "#F5F1FB" : "#FFFFFF",
+                                borderColor: selected ? "#F5821F" : "#333333",
+                                backgroundColor: selected ? "#242424" : "#1A1A1A",
                               }}
                               accessibilityRole={poll.multiSelect ? "checkbox" : "radio"}
                               accessibilityState={{ selected }}
@@ -190,7 +190,7 @@ export default function ResidentPolls() {
                                       : "radio-button-unchecked"
                                 }
                                 size={20}
-                                color={selected ? "#6244CD" : "#C6BDD4"}
+                                color={selected ? "#F5821F" : "#6E6E6E"}
                               />
                               <Text className="flex-1 text-body-md text-on-surface">{option.label}</Text>
                             </Pressable>
@@ -201,7 +201,7 @@ export default function ResidentPolls() {
                         disabled={mySelection.length === 0 || voteMutation.isPending}
                         onPress={() => voteMutation.mutate({ pollId: poll.id, optionIds: mySelection })}
                         className="mt-1 h-12 flex-row items-center justify-center gap-2 rounded-full"
-                        style={{ backgroundColor: mySelection.length === 0 ? "#B9A8F0" : "#6244CD" }}
+                        style={{ backgroundColor: mySelection.length === 0 ? "#7A5320" : "#F5821F" }}
                         accessibilityLabel="Vote now"
                         accessibilityRole="button"
                       >

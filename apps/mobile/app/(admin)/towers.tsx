@@ -118,7 +118,7 @@ export default function AdminTowers() {
         {showForm && (
           <FormPanel>
             <View className="flex-row items-center gap-2">
-              <MaterialIcons name="add-circle-outline" size={20} color="#6244CD" />
+              <MaterialIcons name="add-circle-outline" size={20} color="#F5821F" />
               <Text className="text-body-md font-bold text-on-surface">
                 {editingId ? "Edit Tower" : "Quick Add Tower"}
               </Text>
@@ -167,7 +167,7 @@ export default function AdminTowers() {
                     width: 120,
                     height: 120,
                     borderRadius: 60,
-                    backgroundColor: "#F6F2FB",
+                    backgroundColor: "#1F1F1F",
                   }}
                 />
                 <View className="flex-row items-center gap-4">
@@ -175,7 +175,7 @@ export default function AdminTowers() {
                     className="items-center justify-center bg-surface-container"
                     style={{ width: 56, height: 56, borderRadius: 14 }}
                   >
-                    <MaterialIcons name="apartment" size={28} color="#6244CD" />
+                    <MaterialIcons name="apartment" size={28} color="#F5821F" />
                   </View>
                   <View className="min-w-0 flex-1 gap-1.5">
                     <Text className="text-headline-md font-extrabold text-on-surface" numberOfLines={1}>
@@ -195,9 +195,9 @@ export default function AdminTowers() {
                     </View>
                   </View>
                 </View>
-                <View className="border-t border-outline-variant/50" style={{ borderTopWidth: 1, borderColor: "rgba(202,196,214,0.45)" }} />
+                <View className="border-t border-outline-variant/50" style={{ borderTopWidth: 1, borderColor: "rgba(51,51,51,0.45)" }} />
                 <View className="flex-row items-center justify-end gap-4">
-                  <IconButton icon="edit" size={20} color="#48454F" onPress={() => startEdit(tower)} accessibilityLabel={`Edit ${tower.name}`} />
+                  <IconButton icon="edit" size={20} color="#C4C4C4" onPress={() => startEdit(tower)} accessibilityLabel={`Edit ${tower.name}`} />
                   <IconButton
                     icon="delete-outline"
                     size={20}

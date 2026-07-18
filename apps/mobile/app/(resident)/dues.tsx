@@ -68,15 +68,15 @@ export default function ResidentDues() {
   });
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FBFAFE" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       {/* Header */}
       <View className="flex-row items-center gap-3 px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
         <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Back" accessibilityRole="button">
-          <MaterialIcons name="arrow-back" size={24} color="#1C1A23" />
+          <MaterialIcons name="arrow-back" size={24} color="#F5F5F5" />
         </Pressable>
         <Text className="flex-1 text-headline-lg font-extrabold text-on-surface">Payments</Text>
         <Pressable onPress={() => setShowFilter((v) => !v)} hitSlop={8} accessibilityLabel="Filter payments" accessibilityRole="button">
-          <MaterialIcons name="filter-list" size={24} color="#1C1A23" />
+          <MaterialIcons name="filter-list" size={24} color="#F5F5F5" />
         </Pressable>
       </View>
 
@@ -92,11 +92,11 @@ export default function ResidentDues() {
                   setShowFilter(false);
                 }}
                 className="rounded-full px-4 py-2"
-                style={{ backgroundColor: active ? "#6244CD" : "#EFEAF9" }}
+                style={{ backgroundColor: active ? "#F5821F" : "#242424" }}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
               >
-                <Text className="text-body-sm font-bold" style={{ color: active ? "#FFFFFF" : "#6244CD" }}>
+                <Text className="text-body-sm font-bold" style={{ color: active ? "#FFFFFF" : "#F5821F" }}>
                   {f}
                 </Text>
               </Pressable>
@@ -142,7 +142,7 @@ export default function ResidentDues() {
 
                 <Text className="text-headline-md font-extrabold text-on-surface">₹{Number(due.amount).toFixed(2)}</Text>
 
-                <View className="mt-1 h-px" style={{ backgroundColor: "#F0ECF6" }} />
+                <View className="mt-1 h-px" style={{ backgroundColor: "#2A2A2A" }} />
 
                 <View className="flex-row items-center justify-between pt-1">
                   <Text className="text-body-sm text-text-muted">
@@ -183,9 +183,9 @@ export default function ResidentDues() {
       {/* Receipt modal */}
       <Modal visible={!!receipt} animationType="fade" transparent onRequestClose={() => setReceipt(null)}>
         <Pressable className="flex-1 items-center justify-center px-8" style={{ backgroundColor: "rgba(20,17,24,0.5)" }} onPress={() => setReceipt(null)}>
-          <Pressable className="w-full gap-4 rounded-3xl bg-white p-6" style={shadowElevated} onPress={() => {}}>
+          <Pressable className="w-full gap-4 rounded-3xl bg-surface p-6" style={shadowElevated} onPress={() => {}}>
             <View className="items-center gap-2">
-              <View className="items-center justify-center rounded-full" style={{ width: 56, height: 56, backgroundColor: "#E4F5E9" }}>
+              <View className="items-center justify-center rounded-full" style={{ width: 56, height: 56, backgroundColor: "#14301C" }}>
                 <MaterialIcons name="check-circle" size={34} color="#3DBE5D" />
               </View>
               <Text className="text-headline-md font-extrabold text-on-surface">Payment Receipt</Text>
@@ -193,7 +193,7 @@ export default function ResidentDues() {
             </View>
 
             {receipt && (
-              <View className="gap-3 rounded-2xl p-4" style={{ backgroundColor: "#F7F5FC" }}>
+              <View className="gap-3 rounded-2xl p-4" style={{ backgroundColor: "#1F1F1F" }}>
                 <ReceiptRow label="For" value={paymentTitle(receipt.period)} />
                 <ReceiptRow label="Amount" value={`₹${Number(receipt.amount).toFixed(2)}`} />
                 {receipt.paidAt && <ReceiptRow label="Paid on" value={dateTimeLabel(receipt.paidAt)} />}
@@ -205,7 +205,7 @@ export default function ResidentDues() {
             <Pressable
               onPress={() => setReceipt(null)}
               className="h-12 items-center justify-center rounded-full"
-              style={{ backgroundColor: "#6244CD" }}
+              style={{ backgroundColor: "#F5821F" }}
               accessibilityLabel="Close receipt"
               accessibilityRole="button"
             >

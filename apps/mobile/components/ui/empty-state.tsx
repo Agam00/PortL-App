@@ -13,7 +13,7 @@ export function EmptyState({
   return (
     <View className="flex-1 items-center justify-center gap-3 px-8 py-16">
       <View className="h-14 w-14 items-center justify-center rounded-full bg-surface-container">
-        <MaterialIcons name={icon} size={26} color="#6244CD" />
+        <MaterialIcons name={icon} size={26} color="#F5821F" />
       </View>
       <Text className="text-center text-body-md font-bold text-on-surface">{title}</Text>
       {description && (

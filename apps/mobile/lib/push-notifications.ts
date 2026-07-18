@@ -18,7 +18,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
     await Notifications.setNotificationChannelAsync("default", {
       name: "default",
       importance: Notifications.AndroidImportance.DEFAULT,
-      lightColor: "#6244CD",
+      lightColor: "#F5821F",
     });
   }
 

@@ -38,18 +38,18 @@ const STATUS_FILTERS: { label: string; value?: ComplaintStatus }[] = [
 
 // complaints_oversight mockup: each status keeps its own hue on pills and chips
 const FILTER_COLORS: Record<string, { selBg: string; selText: string; bg: string; text: string }> = {
-  All: { selBg: "#6244CD", selText: "#FFFFFF", bg: "#ECE6F2", text: "#48454F" },
+  All: { selBg: "#F5821F", selText: "#FFFFFF", bg: "#262626", text: "#C4C4C4" },
   Open: { selBg: "#BA1A1A", selText: "#FFFFFF", bg: "rgba(186,26,26,0.10)", text: "#BA1A1A" },
   "In Progress": { selBg: "#AA6700", selText: "#FFFFFF", bg: "rgba(254,178,70,0.28)", text: "#845400" },
   Resolved: { selBg: "#1B7A44", selText: "#FFFFFF", bg: "rgba(39,201,109,0.16)", text: "#1B7A44" },
-  Closed: { selBg: "#48454F", selText: "#FFFFFF", bg: "#ECE6F2", text: "#48454F" },
+  Closed: { selBg: "#C4C4C4", selText: "#FFFFFF", bg: "#262626", text: "#C4C4C4" },
 };
 
 const STATUS_CHIP: Record<ComplaintStatus, { bg: string; text: string; label: string }> = {
   open: { bg: "#BA1A1A", text: "#FFFFFF", label: "OPEN" },
   in_progress: { bg: "#AA6700", text: "#FFFFFF", label: "IN PROGRESS" },
   resolved: { bg: "rgba(39,201,109,0.18)", text: "#1B7A44", label: "RESOLVED" },
-  closed: { bg: "#ECE6F2", text: "#48454F", label: "CLOSED" },
+  closed: { bg: "#262626", text: "#C4C4C4", label: "CLOSED" },
 };
 
 const NEXT_STATUS: Record<string, ComplaintStatus> = {
@@ -196,7 +196,7 @@ export default function AdminRequests() {
                       className="items-center justify-center bg-surface-container"
                       style={{ width: 44, height: 44, borderRadius: 14 }}
                     >
-                      <MaterialIcons name={icon} size={22} color="#6244CD" />
+                      <MaterialIcons name={icon} size={22} color="#F5821F" />
                     </View>
                     <View className="rounded-full px-3 py-1.5" style={{ backgroundColor: chip.bg }}>
                       <Text className="text-label-caps font-bold" style={{ color: chip.text }}>
@@ -219,7 +219,7 @@ export default function AdminRequests() {
                         {complaint.raisedByName}
                         {complaint.flatNumber ? ` • ${complaint.flatNumber}` : ""}
                       </Text>
-                      <MaterialIcons name="expand-more" size={20} color="#797585" />
+                      <MaterialIcons name="expand-more" size={20} color="#8A8A8A" />
                     </View>
                   )}
 
@@ -229,7 +229,7 @@ export default function AdminRequests() {
                         <Text className="text-body-sm font-bold text-on-surface">Description</Text>
                         <View
                           className="bg-surface p-3"
-                          style={{ borderRadius: 12, borderWidth: 1, borderColor: "#E3DBF0" }}
+                          style={{ borderRadius: 12, borderWidth: 1, borderColor: "#333333" }}
                         >
                           <Text className="text-body-md text-on-surface-variant">{complaint.description}</Text>
                         </View>
@@ -277,7 +277,7 @@ export default function AdminRequests() {
                       <View className="gap-2 bg-surface-container p-3" style={{ borderRadius: 16 }}>
                         <Text className="text-body-sm font-bold text-on-surface">Activity Log</Text>
                         {commentsQuery.isLoading ? (
-                          <ActivityIndicator color="#6244CD" />
+                          <ActivityIndicator color="#F5821F" />
                         ) : (commentsQuery.data ?? []).length === 0 ? (
                           <Text className="text-body-sm text-text-muted">No replies yet.</Text>
                         ) : (

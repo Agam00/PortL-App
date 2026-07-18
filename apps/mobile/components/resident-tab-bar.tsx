@@ -35,11 +35,11 @@ export function ResidentTabBar({ state, navigation }: TabBarProps) {
       style={{
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#FFFFFF",
+        backgroundColor: "#1A1A1A",
         paddingTop: 10,
         paddingBottom: insets.bottom > 0 ? insets.bottom : 10,
         elevation: 12,
-        shadowColor: "#6244CD",
+        shadowColor: "#F5821F",
         shadowOffset: { width: 0, height: -4 },
         shadowOpacity: 0.08,
         shadowRadius: 12,
@@ -48,7 +48,7 @@ export function ResidentTabBar({ state, navigation }: TabBarProps) {
       <View style={{ flex: 1, flexDirection: "row" }}>
         {TABS.map((tab) => {
           const focused = activeName === tab.name;
-          const color = focused ? "#6244CD" : "#797585";
+          const color = focused ? "#F5821F" : "#8A8A8A";
           return (
             <Pressable
               key={tab.name}
@@ -73,7 +73,7 @@ export function ResidentTabBar({ state, navigation }: TabBarProps) {
               width: 56,
               height: 56,
               borderRadius: 28,
-              backgroundColor: "#6244CD",
+              backgroundColor: "#F5821F",
               alignItems: "center",
               justifyContent: "center",
               transform: [{ translateY: -10 }],

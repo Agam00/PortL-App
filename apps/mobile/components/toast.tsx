@@ -10,9 +10,9 @@ const TONE_STYLES: Record<string, string> = {
 };
 
 const TONE_ICON_BG: Record<string, string> = {
-  error: "bg-white/20",
-  success: "bg-white/20",
-  info: "bg-white/20",
+  error: "bg-surface/20",
+  success: "bg-surface/20",
+  info: "bg-surface/20",
 };
 
 export function Toast() {

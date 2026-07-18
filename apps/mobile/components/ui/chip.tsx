@@ -20,7 +20,7 @@ export function Chip({ label, selected = false, icon, className, ...props }: Chi
       } ${className ?? ""}`}
       {...props}
     >
-      {icon && <MaterialIcons name={icon} size={16} color={selected ? "#fff" : "#48454F"} />}
+      {icon && <MaterialIcons name={icon} size={16} color={selected ? "#fff" : "#C4C4C4"} />}
       <Text className={`text-body-sm font-bold ${selected ? "text-white" : "text-on-surface-variant"}`}>
         {label}
       </Text>

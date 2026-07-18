@@ -40,7 +40,7 @@ export function FlatSearchField({
             {selected.residents[0] ? ` · ${selected.residents[0].fullName}` : ""}
           </Text>
           <Pressable onPress={onClear} hitSlop={8} accessibilityLabel="Clear selected flat">
-            <MaterialIcons name="close" size={18} color="#797585" />
+            <MaterialIcons name="close" size={18} color="#8A8A8A" />
           </Pressable>
         </View>
       </View>
@@ -55,9 +55,9 @@ export function FlatSearchField({
         value={query}
         onChangeText={setQuery}
         error={error}
-        leftElement={<MaterialIcons name="search" size={20} color="#797585" />}
+        leftElement={<MaterialIcons name="search" size={20} color="#8A8A8A" />}
       />
-      {searchQuery.isFetching && <ActivityIndicator size="small" color="#6244CD" />}
+      {searchQuery.isFetching && <ActivityIndicator size="small" color="#F5821F" />}
       {searchQuery.data && searchQuery.data.length > 0 && (
         <View className="overflow-hidden rounded-card bg-surface" style={shadowCard}>
           {searchQuery.data.map((flat, index) => (
@@ -81,7 +81,7 @@ export function FlatSearchField({
                   </Text>
                 )}
               </View>
-              <MaterialIcons name="chevron-right" size={18} color="#797585" />
+              <MaterialIcons name="chevron-right" size={18} color="#8A8A8A" />
             </Pressable>
           ))}
         </View>

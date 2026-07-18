@@ -37,7 +37,7 @@ export default function ResidentStaffDirectory() {
   }
 
   return (
-    <View className="flex-1" style={{ backgroundColor: "#FAF7FD" }}>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       <ScreenHeader title="Directory" subtitle="Find trusted service providers in your community." role="resident" />
       <ScrollView
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"
@@ -48,7 +48,7 @@ export default function ResidentStaffDirectory() {
           placeholder="Search plumbers, electricians..."
           value={search}
           onChangeText={setSearch}
-          leftElement={<MaterialIcons name="search" size={20} color="#797585" />}
+          leftElement={<MaterialIcons name="search" size={20} color="#8A8A8A" />}
         />
 
         {categories.length > 0 && (
@@ -88,10 +88,10 @@ export default function ResidentStaffDirectory() {
                           width: 20,
                           height: 20,
                           borderRadius: 10,
-                          backgroundColor: "#FFFFFF",
+                          backgroundColor: "#1A1A1A",
                         }}
                       >
-                        <MaterialIcons name="verified" size={16} color="#6244CD" />
+                        <MaterialIcons name="verified" size={16} color="#F5821F" />
                       </View>
                     )}
                   </View>
@@ -99,7 +99,7 @@ export default function ResidentStaffDirectory() {
                     <Text className="text-body-lg font-extrabold text-on-surface" numberOfLines={1}>
                       {entry.name}
                     </Text>
-                    <Text className="text-body-sm font-bold" style={{ color: "#6244CD" }} numberOfLines={1}>
+                    <Text className="text-body-sm font-bold" style={{ color: "#F5821F" }} numberOfLines={1}>
                       {entry.category}
                     </Text>
                   </View>
@@ -107,7 +107,7 @@ export default function ResidentStaffDirectory() {
                     onPress={() => Linking.openURL(`tel:${entry.phone}`)}
                     scaleTo={0.9}
                     className="items-center justify-center rounded-full"
-                    style={[{ width: 52, height: 52, backgroundColor: "#6C4DE0" }, shadowCard]}
+                    style={[{ width: 52, height: 52, backgroundColor: "#FF9A3D" }, shadowCard]}
                     accessibilityLabel={`Call ${entry.name}`}
                     accessibilityRole="button"
                   >

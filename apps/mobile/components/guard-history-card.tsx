@@ -13,12 +13,12 @@ const STATUS_CHIP: Record<
   { icon: React.ComponentProps<typeof MaterialIcons>["name"]; bg: string; fg: string }
 > = {
   pending: { icon: "schedule", bg: "rgba(254,178,70,0.25)", fg: "#845400" },
-  approved: { icon: "thumb-up-off-alt", bg: "#E4DAFB", fg: "#4A27B5" },
-  checked_in: { icon: "login", bg: "#D8E6FA", fg: "#2E5AAC" },
-  checked_out: { icon: "logout", bg: "#ECE6F2", fg: "#48454F" },
+  approved: { icon: "thumb-up-off-alt", bg: "#2A2320", fg: "#FF9A3D" },
+  checked_in: { icon: "login", bg: "#242424", fg: "#F5821F" },
+  checked_out: { icon: "logout", bg: "#262626", fg: "#C4C4C4" },
   rejected: { icon: "block", bg: "#BA1A1A", fg: "#FFFFFF" },
-  expired: { icon: "history-toggle-off", bg: "#ECE6F2", fg: "#48454F" },
-  cancelled: { icon: "cancel", bg: "#ECE6F2", fg: "#48454F" },
+  expired: { icon: "history-toggle-off", bg: "#262626", fg: "#C4C4C4" },
+  cancelled: { icon: "cancel", bg: "#262626", fg: "#C4C4C4" },
 };
 
 function formatTime(visitor: VisitorOutput) {
@@ -36,7 +36,7 @@ export function GuardHistoryCard({ visitor }: { visitor: VisitorOutput }) {
       style={[
         { borderRadius: 16 },
         shadowCard,
-        isRejected ? { borderWidth: 1, borderColor: "#F3B8B8" } : null,
+        isRejected ? { borderWidth: 1, borderColor: "#3A1A1A" } : null,
       ]}
     >
       <View className="flex-row items-center gap-3">

@@ -164,7 +164,7 @@ export default function AdminResidents() {
         {showForm && (
           <FormPanel>
             <View className="flex-row items-center gap-2">
-              <MaterialIcons name="person-add-alt" size={20} color="#6244CD" />
+              <MaterialIcons name="person-add-alt" size={20} color="#F5821F" />
               <Text className="text-body-md font-bold text-on-surface">Invite Resident</Text>
             </View>
             <Input
@@ -257,7 +257,7 @@ export default function AdminResidents() {
                       {resident.fullName}
                     </Text>
                     <View className="flex-row items-center gap-1.5">
-                      <MaterialIcons name="door-front" size={14} color="#6244CD" />
+                      <MaterialIcons name="door-front" size={14} color="#F5821F" />
                       <Text className="text-body-sm font-semibold text-primary" numberOfLines={1}>
                         {resident.flatNumber ? `Flat ${resident.flatNumber}${resident.towerName ? ` · ${resident.towerName}` : ""}` : "Unassigned"}
                       </Text>
@@ -276,20 +276,20 @@ export default function AdminResidents() {
 
                 <View className="gap-2">
                   <View className="flex-row items-center gap-3">
-                    <MaterialIcons name="mail-outline" size={18} color="#797585" />
+                    <MaterialIcons name="mail-outline" size={18} color="#8A8A8A" />
                     <Text className="min-w-0 flex-1 text-body-sm text-on-surface-variant" numberOfLines={1}>
                       {resident.email}
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-3">
-                    <MaterialIcons name="phone" size={18} color="#797585" />
+                    <MaterialIcons name="phone" size={18} color="#8A8A8A" />
                     <Text className="min-w-0 flex-1 text-body-sm text-on-surface-variant" numberOfLines={1}>
                       {resident.phone || "--"}
                     </Text>
                   </View>
                 </View>
 
-                <View style={{ height: 1, backgroundColor: "rgba(202,196,214,0.45)" }} />
+                <View style={{ height: 1, backgroundColor: "rgba(51,51,51,0.45)" }} />
 
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-2">
@@ -298,7 +298,7 @@ export default function AdminResidents() {
                         width: 10,
                         height: 10,
                         borderRadius: 5,
-                        backgroundColor: resident.isActive ? "#FEB246" : "#CAC4D6",
+                        backgroundColor: resident.isActive ? "#FEB246" : "#6E6E6E",
                       }}
                     />
                     <Text className="text-body-sm text-on-surface-variant">{resident.isActive ? "Active" : "Inactive"}</Text>
@@ -312,7 +312,7 @@ export default function AdminResidents() {
                         confirmDeactivate(resident.id, resident.fullName);
                       }
                     }}
-                    trackColor={{ false: "#E3DEEB", true: "#6244CD" }}
+                    trackColor={{ false: "#333333", true: "#F5821F" }}
                     thumbColor="#FFFFFF"
                     accessibilityLabel={`${resident.isActive ? "Deactivate" : "Activate"} ${resident.fullName}`}
                   />
@@ -366,7 +366,7 @@ export default function AdminResidents() {
             width: 60,
             height: 60,
             borderRadius: 30,
-            backgroundColor: "#7B5FE8",
+            backgroundColor: "#FF9A3D",
             alignItems: "center",
             justifyContent: "center",
           },

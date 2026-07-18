@@ -116,7 +116,7 @@ export default function AdminGuards() {
         {showForm && (
           <FormPanel>
             <View className="flex-row items-center gap-2">
-              <MaterialIcons name="person-add-alt" size={20} color="#6244CD" />
+              <MaterialIcons name="person-add-alt" size={20} color="#F5821F" />
               <Text className="text-body-md font-bold text-on-surface">Invite Guard</Text>
             </View>
             <Input
@@ -201,19 +201,19 @@ export default function AdminGuards() {
                         confirmDeactivate(guard.id, guard.fullName);
                       }
                     }}
-                    trackColor={{ false: "#E3DEEB", true: "#6244CD" }}
+                    trackColor={{ false: "#333333", true: "#F5821F" }}
                     thumbColor="#FFFFFF"
                     accessibilityLabel={`${guard.isActive ? "Deactivate" : "Activate"} ${guard.fullName}`}
                   />
                 </View>
 
-                <View style={{ height: 1, backgroundColor: "rgba(202,196,214,0.45)" }} />
+                <View style={{ height: 1, backgroundColor: "rgba(51,51,51,0.45)" }} />
 
                 <View className="flex-row">
                   <View className="flex-1 gap-1">
                     <Text className="text-meta-text text-text-muted">Email</Text>
                     <View className="flex-row items-center gap-1.5">
-                      <MaterialIcons name="mail-outline" size={14} color="#6244CD" />
+                      <MaterialIcons name="mail-outline" size={14} color="#F5821F" />
                       <Text className="min-w-0 flex-1 text-body-sm font-semibold text-on-surface" numberOfLines={1}>
                         {guard.email}
                       </Text>
@@ -225,7 +225,7 @@ export default function AdminGuards() {
                       <MaterialIcons
                         name={guard.isActive ? "verified-user" : "do-not-disturb"}
                         size={14}
-                        color={guard.isActive ? "#27C96D" : "#797585"}
+                        color={guard.isActive ? "#27C96D" : "#8A8A8A"}
                       />
                       <Text className="text-body-sm font-semibold text-on-surface">
                         {guard.isActive ? "On Duty Access" : "Access Revoked"}

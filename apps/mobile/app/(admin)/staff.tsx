@@ -141,7 +141,7 @@ export default function AdminStaff() {
         {showForm && (
           <FormPanel>
             <View className="flex-row items-center gap-2">
-              <MaterialIcons name="add-circle-outline" size={20} color="#6244CD" />
+              <MaterialIcons name="add-circle-outline" size={20} color="#F5821F" />
               <Text className="text-body-md font-bold text-on-surface">New Provider</Text>
             </View>
             <Input
@@ -219,7 +219,7 @@ export default function AdminStaff() {
                           <MaterialIcons
                             name="verified"
                             size={18}
-                            color={entry.isVerifiedByAdmin ? "#6244CD" : "#CAC4D6"}
+                            color={entry.isVerifiedByAdmin ? "#F5821F" : "#6E6E6E"}
                           />
                         </Pressable>
                       </View>
@@ -248,7 +248,7 @@ export default function AdminStaff() {
                       className="items-center justify-center bg-surface-container"
                       style={{ width: 48, height: 48, borderRadius: 24 }}
                     >
-                      <MaterialIcons name="call" size={22} color="#6244CD" />
+                      <MaterialIcons name="call" size={22} color="#F5821F" />
                     </PressableScale>
                   </View>
                 </View>

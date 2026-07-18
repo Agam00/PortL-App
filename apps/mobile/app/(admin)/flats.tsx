@@ -177,7 +177,7 @@ export default function AdminFlats() {
         {showForm && (
           <FormPanel>
             <View className="flex-row items-center gap-2">
-              <MaterialIcons name="add-circle-outline" size={20} color="#6244CD" />
+              <MaterialIcons name="add-circle-outline" size={20} color="#F5821F" />
               <Text className="text-body-md font-bold text-on-surface">{editingId ? "Edit Flat" : "Quick Add Flat"}</Text>
             </View>
 
@@ -233,9 +233,9 @@ export default function AdminFlats() {
           Array.from(flatsByTower.entries()).map(([towerName, towerFlats]) => (
             <View key={towerName} className="gap-3">
               <View className="flex-row items-center gap-2 pt-1">
-                <MaterialIcons name="apartment" size={20} color="#6244CD" />
+                <MaterialIcons name="apartment" size={20} color="#F5821F" />
                 <Text className="text-headline-md font-extrabold text-on-surface">{towerName}</Text>
-                <View className="mx-2 flex-1" style={{ height: 1, backgroundColor: "rgba(202,196,214,0.6)" }} />
+                <View className="mx-2 flex-1" style={{ height: 1, backgroundColor: "rgba(51,51,51,0.6)" }} />
                 <Text className="text-meta-text text-text-muted">{towerFlats.length} units</Text>
               </View>
 
@@ -262,7 +262,7 @@ export default function AdminFlats() {
                         top: 0,
                         bottom: 0,
                         width: 5,
-                        backgroundColor: occupied ? "#FEB246" : "#CAC4D6",
+                        backgroundColor: occupied ? "#FEB246" : "#6E6E6E",
                       }}
                     />
                     <View className="gap-3 p-4 pl-5">
@@ -272,15 +272,15 @@ export default function AdminFlats() {
                         </Text>
                         <View
                           className="rounded-full px-3 py-1"
-                          style={{ backgroundColor: occupied ? "rgba(254,178,70,0.22)" : "#ECE6F2" }}
+                          style={{ backgroundColor: occupied ? "rgba(254,178,70,0.22)" : "#262626" }}
                         >
-                          <Text className="text-meta-text font-semibold" style={{ color: occupied ? "#845400" : "#48454F" }}>
+                          <Text className="text-meta-text font-semibold" style={{ color: occupied ? "#845400" : "#C4C4C4" }}>
                             {occupied ? "Occupied" : "Vacant"}
                           </Text>
                         </View>
                       </View>
                       {meta.length > 0 && <Text className="text-body-sm text-text-muted">{meta}</Text>}
-                      <View style={{ height: 1, backgroundColor: "rgba(202,196,214,0.45)" }} />
+                      <View style={{ height: 1, backgroundColor: "rgba(51,51,51,0.45)" }} />
                       <View className="flex-row gap-3">
                         <PressableScale
                           scaleTo={0.97}
@@ -290,7 +290,7 @@ export default function AdminFlats() {
                           accessibilityRole="button"
                           accessibilityLabel={`Edit ${flat.flatNumber}`}
                         >
-                          <MaterialIcons name="edit" size={16} color="#6244CD" />
+                          <MaterialIcons name="edit" size={16} color="#F5821F" />
                           <Text className="text-body-sm font-semibold text-primary">Edit</Text>
                         </PressableScale>
                         <PressableScale

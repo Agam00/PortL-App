@@ -38,11 +38,11 @@ const TYPE_ICON: Record<VisitorOutput["type"], React.ComponentProps<typeof Mater
 };
 
 const TYPE_ICON_COLOR: Record<VisitorOutput["type"], string> = {
-  guest: "#6244CD",
+  guest: "#F5821F",
   delivery: "#FEB246",
   cab: "#AA6700",
   service: "#FEB246",
-  other: "#6244CD",
+  other: "#F5821F",
 };
 
 export default function AdminDashboard() {
@@ -63,7 +63,7 @@ export default function AdminDashboard() {
     iconColor: string;
     dotColor: string;
   }[] = [
-    { label: "OCCUPIED FLATS", value: occupancyPct !== null ? `${occupancyPct}%` : "—", icon: "home", tint: "rgba(98,68,205,0.10)", iconColor: "#6244CD", dotColor: "#22c55e" },
+    { label: "OCCUPIED FLATS", value: occupancyPct !== null ? `${occupancyPct}%` : "—", icon: "home", tint: "rgba(245,130,31,0.10)", iconColor: "#F5821F", dotColor: "#22c55e" },
     { label: "VISITORS TODAY", value: metrics ? `${metrics.todayVisitorCount}` : "—", icon: "groups", tint: "rgba(254,178,70,0.20)", iconColor: "#E19613", dotColor: "#FEB246" },
     { label: "OPEN COMPLAINTS", value: metrics ? `${metrics.openComplaints}` : "—", icon: "warning-amber", tint: "rgba(186,26,26,0.10)", iconColor: "#BA1A1A", dotColor: "#BA1A1A" },
     { label: "DUES PENDING", value: metrics ? `${metrics.pendingDues}` : "—", icon: "payments", tint: "rgba(170,103,0,0.15)", iconColor: "#AA6700", dotColor: "#AA6700" },

@@ -22,7 +22,7 @@ export const Input = forwardRef<TextInput, InputProps>(function Input(
         {leftElement && <View className="absolute left-4 z-10">{leftElement}</View>}
         <TextInput
           ref={ref}
-          placeholderTextColor="#797585"
+          placeholderTextColor="#8A8A8A"
           className={`rounded-md border-2 px-4 py-3 text-body-md text-on-surface ${
             error ? "border-status-red" : "border-outline-variant focus:border-primary-container"
           } bg-surface ${leftElement ? "pl-11" : ""} ${rightElement ? "pr-11" : ""} ${className ?? ""}`}
