@@ -37,7 +37,12 @@ export async function registerForPushNotifications(): Promise<string | null> {
     const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
     return data;
   } catch (err) {
-    console.error("[push] getExpoPushTokenAsync failed:", err);
+    // Non-fatal: the device just won't receive push. Common on emulators without
+    // Google Play Services (FCM SERVICE_NOT_AVAILABLE) or when offline. Warn, don't crash.
+    console.warn(
+      "[push] Skipping push token — device can't register with FCM " +
+        "(usually an emulator without Google Play Services, or no network).",
+    );
     return null;
   }
 }

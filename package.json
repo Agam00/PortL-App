@@ -4,6 +4,7 @@
   "scripts": {
     "build": "dotenv -- turbo build",
     "dev": "dotenv -- turbo dev",
+    "start:all": "docker-compose up -d && dotenv -- turbo dev --filter=@repo/api --filter=mobile",
     "db:generate": "dotenv -- turbo db:generate",
     "db:migrate": "dotenv -- turbo db:migrate",
     "db:seed": "dotenv -- turbo db:seed",

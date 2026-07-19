@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { zodUndefinedModel } from "../../schema";
 import { residentService } from "../../services";
 import { searchResidentsInputSchema, searchResidentsOutputSchema } from "@repo/services/resident/model";
-import { guardProcedure, residentProcedure, router } from "../../trpc";
+import { guardProcedure, protectedProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
 const TAGS = ["Residents"];
@@ -21,8 +21,9 @@ export const residentsRouter = router({
       return residentService.search(ctx.user.societyId, input.query);
     }),
 
-  // Resident-facing phone directory — all residents in the society, grouped by flat.
-  directory: residentProcedure
+  // Phone directory — all residents in the society, grouped by flat. Used by residents
+  // (call list) and guards (pick someone to message).
+  directory: protectedProcedure
     .meta({ openapi: { method: "GET", path: getPath("/directory"), tags: TAGS } })
     .input(zodUndefinedModel)
     .output(searchResidentsOutputSchema)

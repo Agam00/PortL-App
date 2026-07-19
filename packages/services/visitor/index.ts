@@ -123,7 +123,23 @@ class VisitorService {
       .orderBy(desc(visitorsTable.createdAt))
       .limit(50);
 
-    return rows.map((row) => serialize(row.visitor, row.flatNumber));
+    if (rows.length === 0) return [];
+
+    const logRows = await db
+      .select()
+      .from(visitorLogsTable)
+      .where(inArray(visitorLogsTable.visitorId, rows.map((r) => r.visitor.id)));
+
+    const logsByVisitor = new Map<string, { entryAt: string | null; exitAt: string | null }>();
+    for (const log of logRows) {
+      const entry = logsByVisitor.get(log.visitorId) ?? { entryAt: null, exitAt: null };
+      const occurredAt = (log.occurredAt ?? new Date()).toISOString();
+      if (log.action === "entry") entry.entryAt = occurredAt;
+      else entry.exitAt = occurredAt;
+      logsByVisitor.set(log.visitorId, entry);
+    }
+
+    return rows.map((row) => serialize(row.visitor, row.flatNumber, logsByVisitor.get(row.visitor.id)));
   }
 
   private async transitionStatus(

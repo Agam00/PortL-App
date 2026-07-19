@@ -49,6 +49,12 @@
       ],
       "@react-native-community/datetimepicker",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Portl to use the camera to scan visitor gate passes."
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/icon.png",

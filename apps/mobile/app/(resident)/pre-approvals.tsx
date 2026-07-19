@@ -58,12 +58,14 @@ function PreApprovalCard({
   tone,
   muted,
   onCancel,
+  onShare,
   cancelling,
 }: {
   visitor: VisitorOutput;
   tone: Tone;
   muted?: boolean;
   onCancel?: () => void;
+  onShare?: () => void;
   cancelling?: boolean;
 }) {
   const pill = PILL[tone];
@@ -110,6 +112,21 @@ function PreApprovalCard({
                 {visitor.passCode}
               </Text>
             </View>
+          )}
+          {visitor.passCode && onShare && (
+            <PressableScale
+              scaleTo={0.97}
+              onPress={onShare}
+              className="h-11 flex-row items-center justify-center gap-2 rounded-full"
+              style={{ backgroundColor: "#F5821F" }}
+              accessibilityLabel={`Share gate pass for ${visitor.name}`}
+              accessibilityRole="button"
+            >
+              <MaterialIcons name="qr-code-2" size={18} color="#141118" />
+              <Text className="text-body-md font-bold" style={{ color: "#141118" }}>
+                Share Pass
+              </Text>
+            </PressableScale>
           )}
         </View>
       ) : (
@@ -210,6 +227,7 @@ export default function MyPreApprovals() {
                     key={v.id}
                     visitor={v}
                     tone="pending"
+                    onShare={() => router.push(`/(resident)/visitor-pass?visitorId=${v.id}`)}
                     onCancel={() => confirmCancel(v)}
                     cancelling={cancelMutation.isPending && cancelMutation.variables?.visitorId === v.id}
                   />

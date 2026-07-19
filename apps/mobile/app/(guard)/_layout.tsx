@@ -51,7 +51,10 @@ export default function GuardLayout() {
       />
       <Tabs.Screen name="visitors" options={{ href: null }} />
       <Tabs.Screen name="check-preapproved" options={{ href: null }} />
+      <Tabs.Screen name="scan" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
+      <Tabs.Screen name="messages" options={{ href: null }} />
+      <Tabs.Screen name="chat" options={{ href: null }} />
     </Tabs>
   );
 }

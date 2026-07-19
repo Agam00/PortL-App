@@ -8,7 +8,7 @@ import {
   threadOutputSchema,
   conversationsOutputSchema,
 } from "@repo/services/chat/model";
-import { residentProcedure, router } from "../../trpc";
+import { protectedProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
 const TAGS = ["Chat"];
@@ -22,7 +22,7 @@ function requireSocietyId(societyId: string | null): string {
 }
 
 export const chatRouter = router({
-  send: residentProcedure
+  send: protectedProcedure
     .meta({ openapi: { method: "POST", path: getPath("/send"), tags: TAGS } })
     .input(sendMessageInputSchema)
     .output(messageOutputSchema)
@@ -37,13 +37,13 @@ export const chatRouter = router({
       return message;
     }),
 
-  thread: residentProcedure
+  thread: protectedProcedure
     .meta({ openapi: { method: "GET", path: getPath("/thread"), tags: TAGS } })
     .input(threadInputSchema)
     .output(threadOutputSchema)
     .query(async ({ ctx, input }) => chatService.thread(ctx.user.sub, input.peerId)),
 
-  conversations: residentProcedure
+  conversations: protectedProcedure
     .meta({ openapi: { method: "GET", path: getPath("/conversations"), tags: TAGS } })
     .input(zodUndefinedModel)
     .output(conversationsOutputSchema)

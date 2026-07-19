@@ -1,71 +1,191 @@
 import { useState, useEffect } from "react";
-import { View, Text, Image, ScrollView, KeyboardAvoidingView, Platform, Pressable, ActivityIndicator } from "react-native";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useLocalSearchParams } from "expo-router";
+import {
+  View,
+  Text,
+  TextInput,
+  Image,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ActivityIndicator,
+} from "react-native";
+import type { ImageSourcePropType, KeyboardTypeOptions } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
-import { createVisitorInputSchema } from "@repo/services/visitor/model";
 import type { FlatSearchResult } from "@repo/services/resident/model";
-import type { z } from "zod";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { captureVisitorPhoto } from "../../lib/capture-visitor-photo";
-import { VISITOR_TYPES } from "../../lib/visitor-types";
-import { ScreenHeader } from "../../components/ui/screen-header";
-import { Input } from "../../components/ui/input";
-import { Button } from "../../components/ui/button";
+import { VISITOR_TYPES, type VisitorType } from "../../lib/visitor-types";
 import { FlatSearchField } from "../../components/flat-search-field";
-import { PressableScale } from "../../components/ui/pressable-scale";
-import { shadowCard } from "../../lib/shadows";
+import { shadowElevated } from "../../lib/shadows";
 
-type FormValues = z.infer<typeof createVisitorInputSchema>;
+type TypeContent = { title: string; noun: string; img: ImageSourcePropType };
 
-// register_visitor mockup: short provider names on white pill chips.
-const QUICK_BRANDS = ["Amazon", "Zomato", "Swiggy", "Flipkart"];
+const TYPE_CONTENT: Record<VisitorType, TypeContent> = {
+  guest: { title: "New Guest", noun: "Guest", img: require("../../assets/characters/guest.png") },
+  delivery: { title: "New Delivery", noun: "Delivery", img: require("../../assets/characters/delivery.png") },
+  service: { title: "New Service", noun: "Serviceman", img: require("../../assets/characters/service.png") },
+  cab: { title: "New Cab", noun: "Cab", img: require("../../assets/characters/cab.png") },
+  other: { title: "New Visitor", noun: "Visitor", img: require("../../assets/characters/guest.png") },
+};
+
+const DELIVERY_COMPANIES = ["Amazon", "Flipkart", "Zomato", "Swiggy", "Blinkit", "Other"];
+const CAB_COMPANIES = ["Uber", "Ola", "Rapido", "Local Taxi"];
+
+/** Underline text field matching the pre-approve mockups (no box, just a bottom rule). */
+function UnderlineInput({
+  placeholder,
+  value,
+  onChangeText,
+  keyboardType,
+  maxLength,
+  rightIcon,
+  error,
+}: {
+  placeholder: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  keyboardType?: KeyboardTypeOptions;
+  maxLength?: number;
+  rightIcon?: React.ReactNode;
+  error?: boolean;
+}) {
+  return (
+    <View className="flex-row items-center" style={{ borderBottomWidth: 1, borderBottomColor: error ? "#BA1A1A" : "#333333" }}>
+      <TextInput
+        placeholder={placeholder}
+        placeholderTextColor="#7E7E7E"
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        maxLength={maxLength}
+        className="flex-1 py-4 text-body-lg text-on-surface"
+        accessibilityLabel={placeholder}
+      />
+      {rightIcon}
+    </View>
+  );
+}
+
+/** Inline dropdown — full-width (placeholder left) or labeled-row (label left, value right). */
+function Dropdown({
+  placeholder,
+  value,
+  options,
+  onSelect,
+  inlineLabel,
+  error,
+}: {
+  placeholder?: string;
+  value: string | null;
+  options: string[];
+  onSelect: (v: string) => void;
+  inlineLabel?: string;
+  error?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={{ borderBottomWidth: 1, borderBottomColor: error ? "#BA1A1A" : "#333333" }}>
+      <Pressable
+        onPress={() => setOpen((v) => !v)}
+        className="flex-row items-center justify-between py-4"
+        accessibilityRole="button"
+        accessibilityLabel={inlineLabel ? `${inlineLabel}: ${value ?? ""}` : (value ?? placeholder)}
+      >
+        {inlineLabel ? (
+          <>
+            <Text className="text-body-lg text-text-muted">{inlineLabel}</Text>
+            <View className="flex-row items-center gap-1">
+              <Text className="text-body-lg font-bold text-on-surface">{value ?? placeholder}</Text>
+              <MaterialIcons name={open ? "arrow-drop-up" : "arrow-drop-down"} size={24} color="#F5F5F5" />
+            </View>
+          </>
+        ) : (
+          <>
+            <Text className="text-body-lg" style={{ color: value ? "#F5F5F5" : "#7E7E7E" }}>
+              {value ?? placeholder}
+            </Text>
+            <MaterialIcons name={open ? "arrow-drop-up" : "arrow-drop-down"} size={24} color="#F5F5F5" />
+          </>
+        )}
+      </Pressable>
+      {open && (
+        <View className="mb-3 overflow-hidden rounded-xl" style={{ backgroundColor: "#242424" }}>
+          {options.map((opt) => {
+            const active = opt === value;
+            return (
+              <Pressable
+                key={opt}
+                onPress={() => {
+                  onSelect(opt);
+                  setOpen(false);
+                }}
+                className="flex-row items-center justify-between px-4 py-3"
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+              >
+                <Text className="text-body-md" style={{ color: active ? "#F5821F" : "#C4C4C4", fontWeight: active ? "700" : "500" }}>
+                  {opt}
+                </Text>
+                {active && <MaterialIcons name="check" size={18} color="#F5821F" />}
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
 
 export default function GuardRegisterVisitor() {
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { type: typeParam } = useLocalSearchParams<{ type?: string }>();
   const showToast = useUiStore((s) => s.showToast);
   const utils = trpc.useUtils();
+
+  const initialType: VisitorType = VISITOR_TYPES.some((t) => t.value === typeParam)
+    ? (typeParam as VisitorType)
+    : "guest";
+
+  const [selectedType, setSelectedType] = useState<VisitorType>(initialType);
   const [selectedFlat, setSelectedFlat] = useState<FlatSearchResult | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [deliveryCompany, setDeliveryCompany] = useState<string | null>(null);
+  const [deliveryOther, setDeliveryOther] = useState("");
+  const [cabCompany, setCabCompany] = useState<string>("Uber");
+  const [cabLast4, setCabLast4] = useState("");
   const [photo, setPhoto] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const {
-    control,
-    handleSubmit,
-    watch,
-    setValue,
-    reset,
-    formState: { errors },
-  } = useForm<FormValues>({
-    resolver: zodResolver(createVisitorInputSchema),
-    defaultValues: { flatId: "", name: "", phone: "", type: "delivery" },
-  });
+  const content = TYPE_CONTENT[selectedType] ?? TYPE_CONTENT.guest;
+  const nounLower = content.noun.toLowerCase();
 
-  const selectedType = watch("type");
-
-  // Preset the visitor type when opened from a gate "Add New Visitor" card (?type=guest).
-  const { type: typeParam } = useLocalSearchParams<{ type?: string }>();
+  // Screen stays mounted (href: null tab), so sync a later ?type= from a gate card tap.
   useEffect(() => {
     if (VISITOR_TYPES.some((t) => t.value === typeParam)) {
-      setValue("type", typeParam as FormValues["type"]);
+      setSelectedType(typeParam as VisitorType);
+      setError(null);
     }
-  }, [typeParam, setValue]);
+  }, [typeParam]);
 
   const createMutation = trpc.visitors.create.useMutation({
     onSuccess: (visitor) => {
       hapticSuccess();
-      showToast(`Request sent for flat ${visitor.flatNumber ?? ""}`, "success");
-      reset({ flatId: "", name: "", phone: "", type: "delivery", photoBase64: undefined });
-      setSelectedFlat(null);
-      setPhoto(null);
+      showToast(`Request sent to flat ${visitor.flatNumber ?? ""} for approval`, "success");
       utils.visitors.listForGuard.invalidate();
+      router.replace("/(guard)/history");
     },
-    onError: (error) => {
+    onError: (err) => {
       hapticError();
-      showToast(getErrorMessage(error), "error");
+      showToast(getErrorMessage(err), "error");
     },
   });
 
@@ -73,10 +193,7 @@ export default function GuardRegisterVisitor() {
     setIsCapturing(true);
     try {
       const dataUrl = await captureVisitorPhoto();
-      if (dataUrl) {
-        setPhoto(dataUrl);
-        setValue("photoBase64", dataUrl);
-      }
+      if (dataUrl) setPhoto(dataUrl);
     } catch {
       showToast("Couldn't capture photo — camera unavailable.", "error");
     } finally {
@@ -84,187 +201,244 @@ export default function GuardRegisterVisitor() {
     }
   }
 
-  return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-background"
-    >
-      <ScreenHeader title="Register Visitor" subtitle="Log a new entry into the community." role="guard" />
-      <ScrollView contentContainerClassName="gap-5 px-4 pb-8 pt-2" keyboardShouldPersistTaps="handled">
-        <View className="gap-4 rounded-xl bg-surface p-5" style={shadowCard}>
-          <Controller
-            control={control}
-            name="flatId"
-            render={({ field: { onChange } }) => (
-              <FlatSearchField
-                selected={selectedFlat}
-                error={errors.flatId?.message}
-                onSelect={(flat) => {
-                  setSelectedFlat(flat);
-                  onChange(flat.flatId);
-                }}
-                onClear={() => {
-                  setSelectedFlat(null);
-                  onChange("");
-                }}
-              />
-            )}
-          />
-        </View>
+  function submit() {
+    setError(null);
+    if (!selectedFlat) {
+      setError("Select the flat this visitor is here for.");
+      hapticError();
+      return;
+    }
 
-        {/* Mockup: 2-column grid of square type cards, icon above label. */}
-        <View className="gap-3">
-          <Text className="text-body-md font-bold text-on-surface">Visitor Type</Text>
-          <View className="flex-row flex-wrap" style={{ gap: 12 }}>
+    let payloadName = "";
+    let payloadPhone: string | undefined;
+
+    if (selectedType === "delivery") {
+      const company = deliveryCompany === "Other" ? deliveryOther.trim() : deliveryCompany;
+      if (!company) {
+        setError("Please choose a delivery company.");
+        hapticError();
+        return;
+      }
+      payloadName = company;
+    } else if (selectedType === "cab") {
+      if (!/^\d{4}$/.test(cabLast4.trim())) {
+        setError("Enter the last 4 digits of the cab number.");
+        hapticError();
+        return;
+      }
+      payloadName = `${cabCompany} · ${cabLast4.trim()}`;
+    } else {
+      if (!name.trim()) {
+        setError(`Please enter the ${nounLower} name.`);
+        hapticError();
+        return;
+      }
+      payloadName = name.trim();
+      payloadPhone = phone.trim() || undefined;
+    }
+
+    createMutation.mutate({
+      flatId: selectedFlat.flatId,
+      name: payloadName,
+      phone: payloadPhone,
+      type: selectedType,
+      photoBase64: photo ?? undefined,
+    });
+  }
+
+  return (
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
+      <Pressable
+        onPress={() => router.back()}
+        hitSlop={12}
+        className="absolute z-10"
+        style={{ top: insets.top + 8, left: 20 }}
+        accessibilityLabel="Close"
+        accessibilityRole="button"
+      >
+        <MaterialIcons name="close" size={28} color="#FFFFFF" />
+      </Pressable>
+
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
+        <ScrollView
+          contentContainerClassName="flex-grow justify-center px-5"
+          contentContainerStyle={{ paddingTop: insets.top + 64, paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Type switcher — guards can change the visitor type on the fly */}
+          <View className="flex-row flex-wrap gap-2 pb-3.5">
             {VISITOR_TYPES.map((t) => {
-              const isSelected = selectedType === t.value;
+              const active = t.value === selectedType;
               return (
-                <PressableScale
+                <Pressable
                   key={t.value}
-                  scaleTo={0.96}
-                  onPress={() => setValue("type", t.value)}
-                  className="items-center justify-center gap-2 bg-surface p-5"
-                  style={[
-                    {
-                      borderRadius: 12,
-                      width: "47%",
-                      borderWidth: isSelected ? 2 : 1,
-                      borderColor: isSelected ? "#F5821F" : "transparent",
-                      backgroundColor: isSelected ? "#242424" : "#1A1A1A",
-                    },
-                    shadowCard,
-                  ]}
-                  accessibilityLabel={`Visitor type: ${t.label}`}
+                  onPress={() => {
+                    setSelectedType(t.value);
+                    setError(null);
+                  }}
+                  className="flex-row items-center gap-1.5 self-start rounded-full px-4 py-2"
+                  style={{ backgroundColor: active ? "#F5821F" : "#1A1A1A", borderWidth: 1, borderColor: active ? "#F5821F" : "#333333" }}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: isSelected }}
+                  accessibilityState={{ selected: active }}
                 >
-                  <MaterialIcons name={t.icon} size={26} color={isSelected ? "#F5821F" : "#F5F5F5"} />
-                  <Text className={`text-body-sm font-bold ${isSelected ? "text-primary" : "text-on-surface"}`}>
+                  <MaterialIcons name={t.icon} size={16} color={active ? "#141118" : "#C4C4C4"} />
+                  <Text className="text-body-sm font-bold" style={{ color: active ? "#141118" : "#C4C4C4" }}>
                     {t.label}
                   </Text>
-                </PressableScale>
+                </Pressable>
               );
             })}
           </View>
-        </View>
 
-        {selectedType === "delivery" && (
-          <View className="gap-3 p-4" style={{ borderRadius: 16, backgroundColor: "#242424" }}>
-            <Text className="text-body-sm font-bold text-on-surface">Quick Select Provider</Text>
-            <View className="flex-row flex-wrap gap-2">
-              {QUICK_BRANDS.map((brand) => (
-                <Pressable
-                  key={brand}
-                  onPress={() => setValue("name", brand)}
-                  className="rounded-full bg-surface px-5 py-2.5"
-                  style={shadowCard}
-                  accessibilityLabel={`Set name to ${brand}`}
-                  accessibilityRole="button"
-                >
-                  <Text className="text-body-sm font-bold text-on-surface">{brand}</Text>
-                </Pressable>
-              ))}
+          <View className="overflow-hidden rounded-3xl bg-surface" style={shadowElevated}>
+            {/* Tinted header: title + 3D avatar */}
+            <View className="flex-row items-center justify-between px-6 pb-2 pt-6" style={{ backgroundColor: "#242424" }}>
+              <Text className="flex-1 text-headline-lg font-extrabold text-on-surface">{content.title}</Text>
+              <Image source={content.img} style={{ width: 84, height: 84 }} resizeMode="contain" />
             </View>
-          </View>
-        )}
 
-        <View className="gap-4 rounded-xl bg-surface p-5" style={shadowCard}>
-          <View className="border-b border-outline-variant pb-3">
-            <Text className="text-body-lg font-bold text-on-surface">Details</Text>
-          </View>
-          <Controller
-            control={control}
-            name="name"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label="Name"
-                placeholder="Visitor Name"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                error={errors.name?.message}
-              />
-            )}
-          />
+            <View className="gap-1 px-6 pb-6 pt-2">
+              {/* Flat — guard-specific, required */}
+              <View className="pb-2">
+                <FlatSearchField
+                  selected={selectedFlat}
+                  error={!selectedFlat && error ? error : undefined}
+                  onSelect={(flat) => {
+                    setSelectedFlat(flat);
+                    setError(null);
+                  }}
+                  onClear={() => setSelectedFlat(null)}
+                />
+              </View>
 
-          <Controller
-            control={control}
-            name="phone"
-            render={({ field: { onChange, onBlur, value } }) => (
-              <Input
-                label="Phone Number (Optional)"
-                keyboardType="phone-pad"
-                placeholder="+91"
-                onBlur={onBlur}
-                onChangeText={onChange}
-                value={value}
-                error={errors.phone?.message}
-              />
-            )}
-          />
-        </View>
+              {/* DELIVERY: company dropdown */}
+              {selectedType === "delivery" && (
+                <>
+                  <Dropdown
+                    placeholder="Select Delivery company"
+                    value={deliveryCompany}
+                    options={DELIVERY_COMPANIES}
+                    onSelect={(v) => {
+                      setDeliveryCompany(v);
+                      setError(null);
+                    }}
+                    error={!!error && !deliveryCompany}
+                  />
+                  {deliveryCompany === "Other" && (
+                    <UnderlineInput
+                      placeholder="Courier / company name"
+                      value={deliveryOther}
+                      onChangeText={(v) => {
+                        setDeliveryOther(v);
+                        setError(null);
+                      }}
+                    />
+                  )}
+                </>
+              )}
 
-        <View className="items-center gap-3 rounded-xl bg-surface p-6" style={shadowCard}>
-          {photo ? (
-            <>
-              <Image source={{ uri: photo }} style={{ width: 120, height: 120, borderRadius: 60 }} />
-              <Button variant="outline" onPress={() => setPhoto(null)}>
-                Remove Photo
-              </Button>
-            </>
-          ) : (
-            <>
-              <PressableScale
-                onPress={handleCapturePhoto}
-                disabled={isCapturing}
-                scaleTo={0.95}
-                className="items-center justify-center gap-1"
-                style={{
-                  width: 120,
-                  height: 120,
-                  borderRadius: 60,
-                  borderWidth: 2,
-                  borderStyle: "dashed",
-                  borderColor: "#FF9A3D",
-                  backgroundColor: "#242424",
-                }}
-                accessibilityLabel="Take a photo of the visitor"
+              {/* CAB: last 4 digits + company */}
+              {selectedType === "cab" && (
+                <>
+                  <UnderlineInput
+                    placeholder="Last 4 Digit of Cab num"
+                    value={cabLast4}
+                    onChangeText={(v) => {
+                      setCabLast4(v.replace(/[^0-9]/g, ""));
+                      setError(null);
+                    }}
+                    keyboardType="number-pad"
+                    maxLength={4}
+                    error={!!error && !/^\d{4}$/.test(cabLast4.trim())}
+                  />
+                  <Dropdown inlineLabel="Company" value={cabCompany} options={CAB_COMPANIES} onSelect={setCabCompany} />
+                </>
+              )}
+
+              {/* GUEST / SERVICE / OTHER: name + phone */}
+              {(selectedType === "guest" || selectedType === "service" || selectedType === "other") && (
+                <>
+                  <UnderlineInput
+                    placeholder={selectedType === "service" ? "Serviceman / Company Name" : `Enter ${content.noun} Name`}
+                    value={name}
+                    onChangeText={(v) => {
+                      setName(v);
+                      setError(null);
+                    }}
+                    rightIcon={<MaterialIcons name="badge" size={22} color="#C4C4C4" />}
+                    error={!!error && !name.trim()}
+                  />
+                  <UnderlineInput placeholder="Phone Number (optional)" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+                </>
+              )}
+
+              {/* Optional visitor photo — a security record */}
+              <View className="flex-row items-center gap-3 py-4">
+                {photo ? (
+                  <>
+                    <Image source={{ uri: photo }} style={{ width: 52, height: 52, borderRadius: 26 }} />
+                    <Text className="flex-1 text-body-md text-on-surface">Photo captured</Text>
+                    <Pressable onPress={() => setPhoto(null)} hitSlop={8} accessibilityLabel="Remove photo" accessibilityRole="button">
+                      <MaterialIcons name="delete-outline" size={22} color="#FF5F5F" />
+                    </Pressable>
+                  </>
+                ) : (
+                  <Pressable
+                    onPress={handleCapturePhoto}
+                    disabled={isCapturing}
+                    className="flex-row items-center gap-2"
+                    accessibilityLabel="Take a photo of the visitor"
+                    accessibilityRole="button"
+                  >
+                    {isCapturing ? (
+                      <ActivityIndicator size="small" color="#F5821F" />
+                    ) : (
+                      <MaterialIcons name="photo-camera" size={22} color="#F5821F" />
+                    )}
+                    <Text className="text-body-md font-bold text-primary">
+                      {isCapturing ? "Opening camera…" : "Take visitor photo (optional)"}
+                    </Text>
+                  </Pressable>
+                )}
+              </View>
+
+              {error && (
+                <Text className="pt-1 text-body-sm" style={{ color: "#BA1A1A" }}>
+                  {error}
+                </Text>
+              )}
+
+              {/* Submit — creates a pending request the resident approves */}
+              <Pressable
+                onPress={submit}
+                disabled={createMutation.isPending}
+                className="mt-3 h-14 flex-row items-center justify-center gap-2 rounded-2xl"
+                style={{ backgroundColor: "#F5821F", opacity: createMutation.isPending ? 0.7 : 1 }}
+                accessibilityLabel="Send request to resident"
                 accessibilityRole="button"
               >
-                {isCapturing ? (
-                  <ActivityIndicator color="#F5821F" />
+                {createMutation.isPending ? (
+                  <ActivityIndicator color="#141118" />
                 ) : (
                   <>
-                    <MaterialIcons name="photo-camera" size={26} color="#F5821F" />
-                    <Text className="text-body-sm font-bold text-primary">Take Photo</Text>
+                    <MaterialIcons name="send" size={20} color="#141118" />
+                    <Text className="text-body-lg font-bold" style={{ color: "#141118" }}>
+                      Send for Approval
+                    </Text>
                   </>
                 )}
-              </PressableScale>
-              <Text className="text-body-sm text-text-muted">Optional visual record for security.</Text>
-            </>
-          )}
-        </View>
+              </Pressable>
+            </View>
+          </View>
 
-        <Pressable
-          onPress={handleSubmit((values) => createMutation.mutate(values))}
-          disabled={createMutation.isPending}
-          className="mt-1 h-14 flex-row items-center justify-center gap-2 rounded-full"
-          style={{ backgroundColor: "#FF9A3D" }}
-          accessibilityLabel="Allow entry"
-          accessibilityRole="button"
-        >
-          {createMutation.isPending ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <MaterialIcons name="check-circle-outline" size={22} color="#fff" />
-              <Text className="text-body-lg font-bold" style={{ color: "#FFFFFF" }}>
-                Allow Entry
-              </Text>
-            </>
-          )}
-        </Pressable>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          <Pressable onPress={() => router.push("/(guard)/history")} className="items-center pt-6">
+            <Text className="text-body-md font-bold" style={{ color: "#C99A5A" }}>
+              View In-Out
+            </Text>
+          </Pressable>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }

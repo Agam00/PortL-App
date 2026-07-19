@@ -1,228 +1,322 @@
 import { useState } from "react";
-import { View, Text, TextInput, FlatList, Pressable, RefreshControl, Platform } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { View, Text, Image, FlatList, Pressable, TextInput, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
+import { useAuthStore } from "../../stores/auth-store";
+import { useUiStore } from "../../stores/ui-store";
+import { getErrorMessage } from "../../lib/error-message";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { EmptyState } from "../../components/ui/empty-state";
-import { GuardHistoryCard } from "../../components/guard-history-card";
 import { ListLoading } from "../../components/ui/list-loading";
-import { shadowCard } from "../../lib/shadows";
+import { GuardNotificationBell } from "../../components/guard-notification-bell";
 
-const FILTERS: { label: string; status?: VisitorOutput["status"] }[] = [
-  { label: "All" },
-  { label: "Pending", status: "pending" },
-  { label: "Approved", status: "approved" },
-  { label: "Checked In", status: "checked_in" },
-  { label: "Checked Out", status: "checked_out" },
-  { label: "Rejected", status: "rejected" },
-];
+const TYPE_ICON: Record<VisitorOutput["type"], React.ComponentProps<typeof MaterialIcons>["name"]> = {
+  guest: "person",
+  delivery: "local-shipping",
+  cab: "local-taxi",
+  service: "build",
+  other: "more-horiz",
+};
+const TYPE_LABEL: Record<VisitorOutput["type"], string> = {
+  guest: "Guest",
+  delivery: "Delivery",
+  cab: "Cab",
+  service: "Service",
+  other: "Visitor",
+};
 
-type ListItem = { kind: "header"; label: string; tinted: boolean } | { kind: "row"; visitor: VisitorOutput };
+type Tab = "waiting" | "approved" | "inside" | "out";
 
-// entry_exit_history mockup groups rows under "Last Hour" / "Earlier Today" pills
-// with a divider line. Kept as a flat item array so FlatList virtualization stays.
-function groupVisitors(visitors: VisitorOutput[]): ListItem[] {
-  const now = Date.now();
-  const todayKey = new Date().toDateString();
-  const buckets: { label: string; tinted: boolean; rows: VisitorOutput[] }[] = [
-    { label: "Last Hour", tinted: true, rows: [] },
-    { label: "Earlier Today", tinted: false, rows: [] },
-    { label: "Earlier", tinted: false, rows: [] },
-  ];
-  for (const v of visitors) {
-    const at = new Date(v.entryAt ?? v.createdAt);
-    if (now - at.getTime() < 60 * 60 * 1000) buckets[0].rows.push(v);
-    else if (at.toDateString() === todayKey) buckets[1].rows.push(v);
-    else buckets[2].rows.push(v);
-  }
-  return buckets.flatMap((b) =>
-    b.rows.length === 0
-      ? []
-      : [{ kind: "header" as const, label: b.label, tinted: b.tinted }, ...b.rows.map((visitor) => ({ kind: "row" as const, visitor }))],
-  );
+const EMPTY: Record<Tab, { title: string; description: string; icon: React.ComponentProps<typeof MaterialIcons>["name"] }> = {
+  waiting: { title: "No one waiting", description: "New visitors you add wait here for the resident to approve.", icon: "hourglass-empty" },
+  approved: { title: "Nothing approved", description: "Approved visitors appear here — tap IN to check them in.", icon: "how-to-reg" },
+  inside: { title: "Nobody's inside", description: "Visitors you check in appear here until they leave.", icon: "meeting-room" },
+  out: { title: "No exits yet", description: "Visitors who have checked out today appear here.", icon: "logout" },
+};
+
+function timeOf(iso: string | null) {
+  return iso ? new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
 }
 
-function isSameDay(a: Date, b: Date) {
-  return a.toDateString() === b.toDateString();
-}
-function startOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-function endOfDay(d: Date) {
-  const x = new Date(d);
-  x.setHours(23, 59, 59, 999);
-  return x;
-}
-function dateLabel(date: Date | null) {
-  if (!date) return "All dates";
-  if (isSameDay(date, new Date())) {
-    return `Today, ${date.toLocaleDateString([], { day: "numeric", month: "short" })}`;
-  }
-  return date.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+/** The relevant timestamp for each tab: requested / approved / entered / exited. */
+function rowTime(v: VisitorOutput, tab: Tab): string {
+  if (tab === "waiting") return v.createdAt ? `Requested ${timeOf(v.createdAt)}` : "";
+  if (tab === "approved") return v.decidedAt ? `Approved ${timeOf(v.decidedAt)}` : "";
+  if (tab === "inside") return v.entryAt ? `In ${timeOf(v.entryAt)}` : "";
+  return v.exitAt ? `Out ${timeOf(v.exitAt)}` : "";
 }
 
-export default function GuardHistory() {
+export default function GuardInOut() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>(FILTERS[0]);
+  const user = useAuthStore((s) => s.user);
+  const showToast = useUiStore((s) => s.showToast);
+  const utils = trpc.useUtils();
+  const [tab, setTab] = useState<Tab>("waiting");
   const [search, setSearch] = useState("");
-  const [dateFilter, setDateFilter] = useState<Date | null>(new Date());
-  const [showPicker, setShowPicker] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  const query = trpc.visitors.history.useQuery({
-    status: filter.status,
-    fromDate: dateFilter ? startOfDay(dateFilter).toISOString() : undefined,
-    toDate: dateFilter ? endOfDay(dateFilter).toISOString() : undefined,
+  // Poll so a resident's approval (and the push you already receive) flips a Waiting
+  // row into the Approved tab within a few seconds without a manual refresh.
+  const query = trpc.visitors.listForGuard.useQuery(undefined, { refetchInterval: 4000 });
+  const all = query.data ?? [];
+
+  const buckets: Record<Tab, VisitorOutput[]> = {
+    waiting: all.filter((v) => v.source === "guard_initiated" && v.status === "pending"),
+    approved: all.filter((v) => v.source === "guard_initiated" && v.status === "approved"),
+    inside: all.filter((v) => v.status === "checked_in"),
+    out: all.filter((v) => v.status === "checked_out"),
+  };
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: "waiting", label: "Waiting" },
+    { key: "approved", label: "Approved" },
+    { key: "inside", label: "Inside" },
+    { key: "out", label: "Out" },
+  ];
+
+  const matches = (v: VisitorOutput) =>
+    search.trim().length === 0 ||
+    v.name.toLowerCase().includes(search.toLowerCase()) ||
+    (v.flatNumber ?? "").toLowerCase().includes(search.toLowerCase());
+
+  const rows = buckets[tab].filter(matches);
+
+  const markExit = trpc.visitors.markExit.useMutation({
+    onSuccess: (v) => {
+      hapticSuccess();
+      showToast(`${v.name} checked out ✓`, "success");
+      utils.visitors.listForGuard.invalidate();
+    },
+    onError: (e) => {
+      hapticError();
+      showToast(getErrorMessage(e), "error");
+    },
   });
-  const visitors = (query.data ?? []).filter(
-    (v) =>
-      search.trim().length === 0 ||
-      v.name.toLowerCase().includes(search.toLowerCase()) ||
-      v.flatNumber?.toLowerCase().includes(search.toLowerCase()),
-  );
-  // The "Last Hour / Earlier Today" buckets only make sense for today or an all-dates view.
-  // When a specific past day is selected, show a flat list — the date is already in the pill.
-  const showingPastDay = dateFilter !== null && !isSameDay(dateFilter, new Date());
-  const items: ListItem[] = showingPastDay
-    ? visitors.map((visitor) => ({ kind: "row" as const, visitor }))
-    : groupVisitors(visitors);
+  const markEntry = trpc.visitors.markEntry.useMutation({
+    onSuccess: (v) => {
+      hapticSuccess();
+      showToast(`${v.name} checked in ✓`, "success");
+      utils.visitors.listForGuard.invalidate();
+    },
+    onError: (e) => {
+      hapticError();
+      showToast(getErrorMessage(e), "error");
+    },
+  });
 
   return (
-    <View className="flex-1 bg-background">
-      <View className="flex-row items-center gap-3 px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
-        <Pressable onPress={() => router.back()} hitSlop={8} accessibilityLabel="Back" accessibilityRole="button">
-          <MaterialIcons name="arrow-back" size={24} color="#F5F5F5" />
-        </Pressable>
-        <Text className="text-headline-lg font-extrabold text-on-surface">Visitor History</Text>
+    <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
+      {/* Dark header: location + Home / In-Out / Settings */}
+      <View style={{ backgroundColor: "#141118", paddingTop: insets.top + 10, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}>
+        <View style={{ position: "absolute", right: 12, top: insets.top + 4, zIndex: 10, elevation: 10 }}>
+          <GuardNotificationBell color="#B9B4C4" />
+        </View>
+        <Text className="pb-4 text-center text-body-md font-bold" style={{ color: "#B9B4C4" }}>
+          Main Gate · {user?.fullName?.split(" ")[0] ?? "Guard"}
+        </Text>
+        <View className="flex-row justify-around px-6 pb-6">
+          <HeaderTab icon="home-filled" label="Home" onPress={() => router.replace("/(guard)/gate")} />
+          <HeaderTab icon="swap-vert" label="In-Out" active onPress={() => {}} />
+          <HeaderTab icon="settings" label="Settings" onPress={() => router.push("/(guard)/profile")} />
+        </View>
       </View>
-      <FlatList
-        data={items}
-        keyExtractor={(item) => (item.kind === "header" ? `header-${item.label}` : item.visitor.id)}
-        renderItem={({ item }) =>
-          item.kind === "header" ? (
-            <View className="mt-2 flex-row items-center gap-3">
-              <View
-                className="rounded-full px-4 py-1.5"
-                style={{ backgroundColor: item.tinted ? "#C99A5A" : "#262626" }}
-              >
-                <Text
-                  className="text-body-sm font-bold"
-                  style={{ color: item.tinted ? "#C25E0C" : "#C4C4C4" }}
-                >
-                  {item.label}
-                </Text>
-              </View>
-              <View className="flex-1" style={{ height: 1, backgroundColor: "#333333" }} />
-            </View>
-          ) : (
-            <GuardHistoryCard visitor={item.visitor} />
-          )
-        }
-        ItemSeparatorComponent={() => <View className="h-3" />}
-        contentContainerClassName="px-4 pb-8 pt-2"
-        refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
-        ListHeaderComponent={
-          <View className="mb-4 gap-4">
-            <View className="flex-row items-center gap-2">
-              <Pressable
-                onPress={() => setShowPicker(true)}
-                className="flex-row items-center gap-2 rounded-lg px-4 py-2.5"
-                style={{ backgroundColor: "#262626" }}
-                accessibilityRole="button"
-                accessibilityLabel="Change date"
-              >
-                <MaterialIcons name="calendar-today" size={18} color="#F5F5F5" />
-                <Text className="text-body-md font-bold text-on-surface">{dateLabel(dateFilter)}</Text>
-                <MaterialIcons name="arrow-drop-down" size={20} color="#F5F5F5" />
-              </Pressable>
-              {dateFilter && (
-                <Pressable
-                  onPress={() => setDateFilter(null)}
-                  className="flex-row items-center gap-1 rounded-lg px-3 py-2.5"
-                  style={{ backgroundColor: "#262626" }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Show all dates"
-                >
-                  <MaterialIcons name="close" size={16} color="#C4C4C4" />
-                  <Text className="text-body-sm font-bold" style={{ color: "#C4C4C4" }}>
-                    All dates
-                  </Text>
-                </Pressable>
-              )}
-              {showPicker && (
-                <DateTimePicker
-                  value={dateFilter ?? new Date()}
-                  mode="date"
-                  maximumDate={new Date()}
-                  display={Platform.OS === "ios" ? "spinner" : "default"}
-                  onChange={(_, selected) => {
-                    setShowPicker(false);
-                    if (selected) setDateFilter(selected);
-                  }}
-                />
-              )}
-            </View>
 
-            <View className="gap-3 bg-surface p-4" style={[{ borderRadius: 16 }, shadowCard]}>
-              <View
-                className="flex-row items-center gap-3 px-4"
-                style={{ borderRadius: 12, backgroundColor: "#242424" }}
-              >
-                <MaterialIcons name="search" size={22} color="#8A8A8A" />
-                <TextInput
-                  placeholder="Search by name, flat (e.g. 402), or vendor"
-                  placeholderTextColor="#8A8A8A"
-                  value={search}
-                  onChangeText={setSearch}
-                  className="flex-1 py-3 text-body-md text-on-surface"
-                  accessibilityLabel="Search history by name or flat"
-                />
-              </View>
-              <View className="flex-row flex-wrap gap-2">
-                {FILTERS.map((f) => {
-                  const selected = filter.label === f.label;
-                  return (
-                    <Pressable
-                      key={f.label}
-                      onPress={() => setFilter(f)}
-                      className="rounded-full px-4 py-2"
-                      style={{ backgroundColor: selected ? "#F5821F" : "#262626" }}
-                      accessibilityLabel={`Filter: ${f.label}`}
-                      accessibilityRole="button"
-                      accessibilityState={{ selected }}
-                    >
-                      <Text
-                        className="text-body-sm font-bold"
-                        style={{ color: selected ? "#FFFFFF" : "#C4C4C4" }}
-                      >
-                        {f.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            </View>
-          </View>
-        }
+      {/* Tab bar: search · Waiting · Approved · Inside · Out */}
+      <View className="flex-row items-center gap-3 pl-5 pt-4">
+        <Pressable onPress={() => setSearchOpen((o) => !o)} hitSlop={8} accessibilityLabel="Search" accessibilityRole="button">
+          <MaterialIcons name="search" size={24} color={searchOpen ? "#F5821F" : "#8A8A8A"} />
+        </Pressable>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 18, paddingRight: 20 }}>
+          {TABS.map((t) => (
+            <TabButton key={t.key} label={t.label} count={buckets[t.key].length} active={tab === t.key} onPress={() => setTab(t.key)} />
+          ))}
+        </ScrollView>
+      </View>
+
+      {searchOpen && (
+        <View className="mx-5 mt-3 flex-row items-center gap-3 rounded-xl px-4" style={{ backgroundColor: "#242424" }}>
+          <MaterialIcons name="search" size={20} color="#8A8A8A" />
+          <TextInput
+            placeholder="Search by name or flat"
+            placeholderTextColor="#8A8A8A"
+            value={search}
+            onChangeText={setSearch}
+            autoFocus
+            className="flex-1 py-2.5 text-body-md text-on-surface"
+            accessibilityLabel="Search visitors"
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch("")} hitSlop={8} accessibilityLabel="Clear search">
+              <MaterialIcons name="close" size={18} color="#8A8A8A" />
+            </Pressable>
+          )}
+        </View>
+      )}
+
+      <View className="mt-3 h-px" style={{ backgroundColor: "#242424" }} />
+
+      <FlatList
+        data={rows}
+        keyExtractor={(v) => v.id}
+        renderItem={({ item }) => (
+          <VisitorRow
+            visitor={item}
+            tab={tab}
+            busy={
+              (markExit.isPending && markExit.variables?.visitorId === item.id) ||
+              (markEntry.isPending && markEntry.variables?.visitorId === item.id)
+            }
+            onOut={() => markExit.mutate({ visitorId: item.id })}
+            onIn={() => markEntry.mutate({ visitorId: item.id })}
+          />
+        )}
+        contentContainerClassName="pb-8"
+        refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} tintColor="#F5821F" />}
         ListEmptyComponent={
           query.isLoading ? (
-            <ListLoading />
-          ) : query.isError ? (
-            <View className="rounded-xl bg-surface">
-              <EmptyState title="Couldn't load activity" description="Pull down to refresh and try again." icon="error-outline" />
+            <View className="px-4 pt-6">
+              <ListLoading />
             </View>
           ) : (
-            <View className="rounded-xl bg-surface">
-              <EmptyState title="No matching activity" description="Nothing found for this search or filter." icon="history" />
+            <View className="mx-4 mt-6 rounded-xl bg-surface">
+              <EmptyState title={EMPTY[tab].title} description={EMPTY[tab].description} icon={EMPTY[tab].icon} />
             </View>
           )
         }
       />
     </View>
+  );
+}
+
+function VisitorRow({
+  visitor,
+  tab,
+  busy,
+  onOut,
+  onIn,
+}: {
+  visitor: VisitorOutput;
+  tab: Tab;
+  busy: boolean;
+  onOut: () => void;
+  onIn: () => void;
+}) {
+  return (
+    <View className="flex-row items-center gap-3 px-5 py-3.5" style={{ borderBottomWidth: 1, borderColor: "#1C1C1C" }}>
+      {visitor.photoUrl ? (
+        <Image source={{ uri: visitor.photoUrl }} style={{ width: 46, height: 46, borderRadius: 23 }} />
+      ) : (
+        <View className="items-center justify-center" style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: "#2A2320" }}>
+          <MaterialIcons name={TYPE_ICON[visitor.type]} size={22} color="#FF9A3D" />
+        </View>
+      )}
+
+      <View className="min-w-0 flex-1">
+        <Text className="text-body-lg font-extrabold text-on-surface" numberOfLines={1}>
+          {visitor.name}
+        </Text>
+        <Text className="text-body-sm text-text-muted" numberOfLines={1}>
+          {TYPE_LABEL[visitor.type]} · {visitor.flatNumber ?? "—"}
+        </Text>
+        {rowTime(visitor, tab) && (
+          <View className="mt-0.5 flex-row items-center gap-1">
+            <MaterialIcons name="schedule" size={12} color="#6E6E6E" />
+            <Text className="text-body-sm" style={{ color: "#6E6E6E" }}>
+              {rowTime(visitor, tab)}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {tab === "inside" ? (
+        <ActionButton label="OUT" bg="#E5484D" fg="#FFFFFF" busy={busy} onPress={onOut} />
+      ) : tab === "approved" ? (
+        <ActionButton label="IN" bg="#22A559" fg="#FFFFFF" busy={busy} onPress={onIn} />
+      ) : tab === "waiting" ? (
+        <View className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2" style={{ backgroundColor: "#3A2E12" }}>
+          <MaterialIcons name="hourglass-top" size={15} color="#FEB246" />
+          <Text className="text-body-sm font-bold" style={{ color: "#FEB246" }}>
+            Waiting
+          </Text>
+        </View>
+      ) : (
+        <View className="flex-row items-center gap-1.5 rounded-full px-3.5 py-2" style={{ backgroundColor: "#242424" }}>
+          <MaterialIcons name="check" size={15} color="#8A8A8A" />
+          <Text className="text-body-sm font-bold" style={{ color: "#8A8A8A" }}>
+            Left
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function ActionButton({
+  label,
+  bg,
+  fg,
+  busy,
+  onPress,
+}: {
+  label: string;
+  bg: string;
+  fg: string;
+  busy: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      disabled={busy}
+      className="items-center justify-center rounded-xl"
+      style={{ minWidth: 68, height: 40, backgroundColor: bg, opacity: busy ? 0.6 : 1 }}
+      accessibilityLabel={label}
+      accessibilityRole="button"
+    >
+      {busy ? (
+        <ActivityIndicator size="small" color={fg} />
+      ) : (
+        <Text className="text-body-md font-extrabold" style={{ color: fg }}>
+          {label}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
+function TabButton({ label, count, active, onPress }: { label: string; count: number; active: boolean; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} className="items-center gap-1.5" accessibilityRole="tab" accessibilityState={{ selected: active }}>
+      <Text className="text-body-lg font-bold" style={{ color: active ? "#F5F5F5" : "#8A8A8A" }}>
+        {label} ({count})
+      </Text>
+      <View style={{ height: 3, width: 28, borderRadius: 2, backgroundColor: active ? "#F5821F" : "transparent" }} />
+    </Pressable>
+  );
+}
+
+function HeaderTab({
+  icon,
+  label,
+  active,
+  onPress,
+}: {
+  icon: React.ComponentProps<typeof MaterialIcons>["name"];
+  label: string;
+  active?: boolean;
+  onPress: () => void;
+}) {
+  const color = active ? "#F5821F" : "#8A8A8A";
+  return (
+    <Pressable onPress={onPress} className="items-center gap-1" accessibilityRole="button" accessibilityLabel={label}>
+      <MaterialIcons name={icon} size={26} color={color} />
+      <Text className="text-body-sm font-bold" style={{ color }}>
+        {label}
+      </Text>
+    </Pressable>
   );
 }

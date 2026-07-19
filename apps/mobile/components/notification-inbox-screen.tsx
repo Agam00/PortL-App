@@ -15,6 +15,9 @@ import { shadowCard } from "../lib/shadows";
 const TYPE_STYLE: Record<string, { icon: React.ComponentProps<typeof MaterialIcons>["name"]; bg: string; fg: string }> = {
   visitor_request: { icon: "directions-walk", bg: "#F6A83C", fg: "#3D2E00" },
   visitor_decision: { icon: "verified-user", bg: "#F6A83C", fg: "#3D2E00" },
+  // Guard-facing: emergency alerts (threat/fire) and "wants to reach security" messages.
+  alert: { icon: "warning", bg: "#5A1A1A", fg: "#FF5F5F" },
+  message: { icon: "forum", bg: "#1E2A44", fg: "#5B8DEF" },
   notice: { icon: "campaign", bg: "#333333", fg: "#C4C4C4" },
   poll: { icon: "poll", bg: "#2A2320", fg: "#FF9A3D" },
   complaint_status: { icon: "handyman", bg: "#9A6A00", fg: "#FFFFFF" },

@@ -260,6 +260,7 @@ class NotificationService {
 
     const who = `${from?.name ?? "A resident"}${from?.flatNumber ? ` (${from.flatNumber})` : ""}`;
 
+    // fromUserId + fromName let staff acknowledge with a one-tap auto-reply to the sender.
     await this.notify(
       recipients.map((r) => r.id),
       input.emergency
@@ -267,13 +268,13 @@ class NotificationService {
             type: "alert",
             title: `🚨 ${input.label}`,
             body: `${who} raised a "${input.label}" alert. Please respond immediately.`,
-            data: { alert: input.label },
+            data: { alert: input.label, fromUserId, fromName: from?.name ?? "Resident" },
           }
         : {
             type: "message",
             title: `Message from ${who}`,
             body: `${who} wants to reach ${roles.includes("admin") ? "the admin" : "security"}.`,
-            data: {},
+            data: { fromUserId, fromName: from?.name ?? "Resident" },
           },
     );
   }

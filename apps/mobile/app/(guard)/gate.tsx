@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { View, Text, ScrollView, Pressable, Image } from "react-native";
 import type { ImageSourcePropType } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
@@ -10,6 +10,8 @@ import { useAuthStore } from "../../stores/auth-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError, hapticTap } from "../../lib/haptics";
 import { PressableScale } from "../../components/ui/pressable-scale";
+import { GuardNotificationBell } from "../../components/guard-notification-bell";
+import { GuardAlertPopup } from "../../components/guard-alert-popup";
 import { shadowCard } from "../../lib/shadows";
 
 const NEW_VISITOR: { label: string; type: string; img: ImageSourcePropType }[] = [
@@ -26,15 +28,28 @@ export default function GuardGate() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
   const showToast = useUiStore((s) => s.showToast);
+  const utils = trpc.useUtils();
   const [code, setCode] = useState("");
 
+  // A code arriving from the QR scanner (?code=123456) pre-fills the keypad once.
+  const { code: scannedCode } = useLocalSearchParams<{ code?: string }>();
+  useEffect(() => {
+    if (scannedCode && /^\d{6}$/.test(scannedCode)) setCode(scannedCode);
+  }, [scannedCode]);
+
   const lookupQuery = trpc.visitors.lookupByPassCode.useQuery({ code }, { enabled: code.length === 6, retry: false });
+
+  // Walk-ins the resident just approved — surfaced here so the guard can check them
+  // in straight from the dashboard, the same way an OTP lookup does. Polls for live updates.
+  const guardListQuery = trpc.visitors.listForGuard.useQuery(undefined, { refetchInterval: 5000 });
+  const approvedWalkins = (guardListQuery.data ?? []).filter((v) => v.source === "guard_initiated" && v.status === "approved");
 
   const markEntryMutation = trpc.visitors.markEntry.useMutation({
     onSuccess: () => {
       hapticSuccess();
       showToast("Entry marked ✓", "success");
       setCode("");
+      utils.visitors.listForGuard.invalidate();
     },
     onError: (error) => {
       hapticError();
@@ -70,6 +85,9 @@ export default function GuardGate() {
     <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       {/* Dark header: location + Home / In-Out / Settings */}
       <View style={{ backgroundColor: "#141118", paddingTop: insets.top + 10, borderBottomLeftRadius: 24, borderBottomRightRadius: 24 }}>
+        <View style={{ position: "absolute", right: 12, top: insets.top + 4, zIndex: 10, elevation: 10 }}>
+          <GuardNotificationBell color="#B9B4C4" />
+        </View>
         <Text className="pb-4 text-center text-body-md font-bold" style={{ color: "#B9B4C4" }}>
           Main Gate · {user?.fullName?.split(" ")[0] ?? "Guard"}
         </Text>
@@ -104,6 +122,42 @@ export default function GuardGate() {
             ),
           )}
         </View>
+
+        {/* Approved walk-ins — resident said yes, ready to check in from the dashboard */}
+        {approvedWalkins.length > 0 && (
+          <View className="mx-4 gap-2">
+            <Text className="px-1 text-label-caps font-bold uppercase tracking-widest" style={{ color: "#27C96D" }}>
+              Approved · ready to enter
+            </Text>
+            {approvedWalkins.map((v) => (
+              <View key={v.id} className="flex-row items-center gap-3 rounded-2xl bg-surface p-3" style={shadowCard}>
+                <View className="items-center justify-center rounded-full" style={{ width: 44, height: 44, backgroundColor: "#173A28" }}>
+                  <MaterialIcons name="how-to-reg" size={22} color="#27C96D" />
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="text-body-lg font-extrabold text-on-surface" numberOfLines={1}>
+                    {v.name}
+                  </Text>
+                  <Text className="text-body-sm text-text-muted" numberOfLines={1}>
+                    {TYPE_LABEL[v.type] ?? "Visitor"} · Flat {v.flatNumber ?? "—"}
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={() => markEntryMutation.mutate({ visitorId: v.id })}
+                  disabled={markEntryMutation.isPending}
+                  className="items-center justify-center rounded-full px-5 py-2.5"
+                  style={{ backgroundColor: "#F5821F", opacity: markEntryMutation.isPending ? 0.6 : 1 }}
+                  accessibilityLabel={`Mark entry for ${v.name}`}
+                  accessibilityRole="button"
+                >
+                  <Text className="text-body-md font-bold" style={{ color: "#141118" }}>
+                    Mark Entry
+                  </Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        )}
 
         {/* Lookup result / error */}
         {code.length === 6 && (
@@ -185,7 +239,7 @@ export default function GuardGate() {
             </View>
           ))}
           <View className="flex-row justify-around">
-            <Key onPress={() => router.push("/(guard)/check-preapproved")} bg="#F5821F">
+            <Key onPress={() => router.push("/(guard)/scan")} bg="#F5821F">
               <MaterialIcons name="qr-code-scanner" size={28} color="#141118" />
             </Key>
             <Key onPress={() => pressDigit("0")}>
@@ -221,6 +275,9 @@ export default function GuardGate() {
           </ScrollView>
         </View>
       </ScrollView>
+
+      {/* Emergency alert / reach-security popup with one-tap acknowledge + auto-reply */}
+      <GuardAlertPopup />
     </View>
   );
 }

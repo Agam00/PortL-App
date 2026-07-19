@@ -9,11 +9,14 @@ export function getNotificationRoute(type: string, role: Role, data?: Record<str
   const complaintId = typeof data?.complaintId === "string" ? data.complaintId : undefined;
   const complaintParam = complaintId ? `?complaintId=${complaintId}` : "";
 
-  // A direct chat message → open the thread with the sender (residents only).
-  if (type === "message" && role === "resident" && typeof data?.peerId === "string") {
+  // A direct chat message → open the thread with the sender.
+  if (type === "message" && typeof data?.peerId === "string") {
     const peerName = typeof data?.peerName === "string" ? data.peerName : "Resident";
-    return `/(resident)/chat?peerId=${data.peerId}&name=${encodeURIComponent(peerName)}`;
+    if (role === "resident") return `/(resident)/chat?peerId=${data.peerId}&name=${encodeURIComponent(peerName)}`;
+    if (role === "guard") return `/(guard)/chat?peerId=${data.peerId}&name=${encodeURIComponent(peerName)}`;
   }
+  // A "wants to reach security" ping with no peer → the guard's message list.
+  if (type === "message" && role === "guard") return "/(guard)/messages";
 
   switch (type) {
     case "visitor_request":
