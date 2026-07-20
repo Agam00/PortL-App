@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Alert, Switch } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Alert, Switch, Pressable } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
@@ -11,7 +11,9 @@ import { Input } from "../../components/ui/input";
 import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
+import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
+import { InviteQrModal } from "../../components/invite-qr-modal";
 import { shadowCard } from "../../lib/shadows";
 
 export default function AdminGuards() {
@@ -22,6 +24,7 @@ export default function AdminGuards() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [search, setSearch] = useState("");
+  const [invite, setInvite] = useState<{ name: string; code: string } | null>(null);
   const [fullNameError, setFullNameError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -44,7 +47,7 @@ export default function AdminGuards() {
   const inviteMutation = trpc.admin.inviteGuard.useMutation({
     onSuccess: (result) => {
       hapticSuccess();
-      showToast(`Invited — temp password: ${result.tempPassword}`, "success");
+      setInvite({ name: result.user.fullName, code: result.inviteCode });
       resetForm();
       utils.admin.listGuards.invalidate();
     },
@@ -78,11 +81,34 @@ export default function AdminGuards() {
     },
   });
 
+  const deleteMutation = trpc.admin.deleteUser.useMutation({
+    onSuccess: () => {
+      hapticSuccess();
+      showToast("Guard deleted", "success");
+      utils.admin.listGuards.invalidate();
+    },
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
+  });
+
   function confirmDeactivate(userId: string, name: string) {
     Alert.alert("Deactivate guard?", `${name} will lose app access.`, [
       { text: "Cancel", style: "cancel" },
       { text: "Deactivate", style: "destructive", onPress: () => deactivateMutation.mutate({ userId }) },
     ]);
+  }
+
+  function confirmDelete(userId: string, name: string) {
+    Alert.alert(
+      "Delete guard?",
+      `${name}'s account and login are removed for good. Their past gate logs stay in the society records.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => deleteMutation.mutate({ userId }) },
+      ],
+    );
   }
 
   function handleInvite() {
@@ -153,10 +179,10 @@ export default function AdminGuards() {
               error={phoneError ?? undefined}
             />
             <Button onPress={handleInvite} loading={inviteMutation.isPending}>
-              Send Invitation
+              Create & Get QR
             </Button>
             <Text className="text-center text-meta-text text-text-muted">
-              They'll sign in to the Guard app with a temporary password.
+              You'll get an invite QR to share — they scan it and pick their own password.
             </Text>
           </FormPanel>
         )}
@@ -192,6 +218,12 @@ export default function AdminGuards() {
                       {guard.phone}
                     </Text>
                   </View>
+                  <IconButton
+                    icon="delete-outline"
+                    size={20}
+                    onPress={() => confirmDelete(guard.id, guard.fullName)}
+                    accessibilityLabel={`Delete ${guard.fullName}`}
+                  />
                   <Switch
                     value={guard.isActive}
                     onValueChange={(next) => {
@@ -206,6 +238,21 @@ export default function AdminGuards() {
                     accessibilityLabel={`${guard.isActive ? "Deactivate" : "Activate"} ${guard.fullName}`}
                   />
                 </View>
+
+                {guard.inviteCode && (
+                  <Pressable
+                    onPress={() => setInvite({ name: guard.fullName, code: guard.inviteCode! })}
+                    className="flex-row items-center gap-2 self-start rounded-full px-3 py-1.5"
+                    style={{ backgroundColor: "#2A2320" }}
+                    accessibilityLabel={`Show invite QR for ${guard.fullName}`}
+                    accessibilityRole="button"
+                  >
+                    <MaterialIcons name="qr-code-2" size={16} color="#F5821F" />
+                    <Text className="text-body-sm font-bold text-primary-container">
+                      Pending activation — show QR
+                    </Text>
+                  </Pressable>
+                )}
 
                 <View style={{ height: 1, backgroundColor: "rgba(51,51,51,0.45)" }} />
 
@@ -238,6 +285,14 @@ export default function AdminGuards() {
           </View>
         )}
       </ScrollView>
+
+      <InviteQrModal
+        visible={!!invite}
+        name={invite?.name ?? ""}
+        code={invite?.code ?? null}
+        roleLabel="Guard"
+        onClose={() => setInvite(null)}
+      />
     </View>
   );
 }

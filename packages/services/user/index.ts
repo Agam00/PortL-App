@@ -1,14 +1,29 @@
 import { randomBytes } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { TRPCError } from "@trpc/server";
-import { db, eq, and } from "@repo/database";
-import { usersTable, flatsTable, towersTable } from "@repo/database/schema";
+import { db, eq, and, isNull } from "@repo/database";
+import {
+  usersTable,
+  flatsTable,
+  towersTable,
+  refreshTokensTable,
+  pushTokensTable,
+} from "@repo/database/schema";
 import { env } from "../env";
 import { googleOAuth2Client } from "../clients/google-oauth";
 import { GetAuthenticationMethodOutputSchema, AdminUserOutput } from "./model";
 
-function generateTempPassword() {
-  return randomBytes(6).toString("base64url");
+// Crockford-ish alphabet: no O/0, I/1 — codes get read off a screen and typed.
+const INVITE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function generateInviteCode() {
+  const bytes = randomBytes(8);
+  return Array.from(bytes, (b) => INVITE_ALPHABET[b % INVITE_ALPHABET.length]).join("");
+}
+
+/** A hash no password can produce — the account is unusable until it is claimed. */
+async function unusablePasswordHash() {
+  return bcrypt.hash(randomBytes(32).toString("hex"), 10);
 }
 
 function isUniqueConstraintError(err: unknown): boolean {
@@ -49,8 +64,8 @@ class UserService {
       throw new TRPCError({ code: "NOT_FOUND", message: "Flat not found" });
     }
 
-    const tempPassword = generateTempPassword();
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    const inviteCode = generateInviteCode();
+    const passwordHash = await unusablePasswordHash();
 
     try {
       const [user] = await db
@@ -64,6 +79,7 @@ class UserService {
           societyId,
           flatId: input.flatId,
           mustResetPassword: true,
+          inviteCode,
         })
         .returning();
 
@@ -77,7 +93,7 @@ class UserService {
           phone: user.phone,
           role: user.role,
         },
-        tempPassword,
+        inviteCode,
       };
     } catch (err) {
       if (isUniqueConstraintError(err)) {
@@ -91,8 +107,8 @@ class UserService {
     societyId: string,
     input: { fullName: string; email: string; phone: string },
   ) {
-    const tempPassword = generateTempPassword();
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    const inviteCode = generateInviteCode();
+    const passwordHash = await unusablePasswordHash();
 
     try {
       const [user] = await db
@@ -105,6 +121,7 @@ class UserService {
           role: "guard",
           societyId,
           mustResetPassword: true,
+          inviteCode,
         })
         .returning();
 
@@ -118,7 +135,7 @@ class UserService {
           phone: user.phone,
           role: user.role,
         },
-        tempPassword,
+        inviteCode,
       };
     } catch (err) {
       if (isUniqueConstraintError(err)) {
@@ -136,6 +153,43 @@ class UserService {
     await db.update(usersTable).set({ isActive: true }).where(eq(usersTable.id, userId));
   }
 
+  /**
+   * Soft-deletes a resident or guard: the row survives so their posts, complaints
+   * and gate logs keep their author, but the login is dead and the email/phone are
+   * released so the same person (or flat) can be re-added later.
+   */
+  public async deleteUser(societyId: string, userId: string) {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user || user.societyId !== societyId || user.deletedAt) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+    }
+    if (user.role === "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Admin accounts can't be deleted here" });
+    }
+
+    const suffix = user.id.replace(/-/g, "").slice(0, 12);
+
+    await db
+      .update(usersTable)
+      .set({
+        deletedAt: new Date(),
+        isActive: false,
+        inviteCode: null,
+        passwordHash: await unusablePasswordHash(),
+        email: `deleted+${suffix}@deleted.portl`,
+        phone: `deleted-${suffix}`,
+        flatId: null,
+      })
+      .where(eq(usersTable.id, userId));
+
+    // Kill live sessions and stop pushes reaching the device.
+    await db
+      .update(refreshTokensTable)
+      .set({ revokedAt: new Date() })
+      .where(eq(refreshTokensTable.userId, userId));
+    await db.delete(pushTokensTable).where(eq(pushTokensTable.userId, userId));
+  }
+
   public async listResidents(societyId: string): Promise<AdminUserOutput[]> {
     const rows = await db
       .select({
@@ -149,12 +203,19 @@ class UserService {
         flatNumber: flatsTable.flatNumber,
         towerName: towersTable.name,
         mustResetPassword: usersTable.mustResetPassword,
+        inviteCode: usersTable.inviteCode,
         createdAt: usersTable.createdAt,
       })
       .from(usersTable)
       .leftJoin(flatsTable, eq(flatsTable.id, usersTable.flatId))
       .leftJoin(towersTable, eq(towersTable.id, flatsTable.towerId))
-      .where(and(eq(usersTable.societyId, societyId), eq(usersTable.role, "resident")))
+      .where(
+        and(
+          eq(usersTable.societyId, societyId),
+          eq(usersTable.role, "resident"),
+          isNull(usersTable.deletedAt),
+        ),
+      )
       .orderBy(usersTable.fullName);
 
     return rows.map((row) => ({ ...row, createdAt: row.createdAt?.toISOString() ?? null }));
@@ -171,10 +232,17 @@ class UserService {
         isActive: usersTable.isActive,
         flatId: usersTable.flatId,
         mustResetPassword: usersTable.mustResetPassword,
+        inviteCode: usersTable.inviteCode,
         createdAt: usersTable.createdAt,
       })
       .from(usersTable)
-      .where(and(eq(usersTable.societyId, societyId), eq(usersTable.role, "guard")))
+      .where(
+        and(
+          eq(usersTable.societyId, societyId),
+          eq(usersTable.role, "guard"),
+          isNull(usersTable.deletedAt),
+        ),
+      )
       .orderBy(usersTable.fullName);
 
     return rows.map((row) => ({

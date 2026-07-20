@@ -14,6 +14,12 @@ export function getNotificationRoute(type: string, role: Role, data?: Record<str
     const peerName = typeof data?.peerName === "string" ? data.peerName : "Resident";
     if (role === "resident") return `/(resident)/chat?peerId=${data.peerId}&name=${encodeURIComponent(peerName)}`;
     if (role === "guard") return `/(guard)/chat?peerId=${data.peerId}&name=${encodeURIComponent(peerName)}`;
+    if (role === "admin") return `/(admin)/chat?peerId=${data.peerId}&name=${encodeURIComponent(peerName)}`;
+  }
+  // A resident/guard "wants to reach the admin" ping (fromUserId, no peerId) → open a chat with them.
+  if ((type === "message" || type === "alert") && role === "admin" && typeof data?.fromUserId === "string") {
+    const fromName = typeof data?.fromName === "string" ? data.fromName : "Resident";
+    return `/(admin)/chat?peerId=${data.fromUserId}&name=${encodeURIComponent(fromName)}`;
   }
   // A "wants to reach security" ping with no peer → the guard's message list.
   if (type === "message" && role === "guard") return "/(guard)/messages";

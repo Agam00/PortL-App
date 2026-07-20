@@ -7,6 +7,7 @@ import {
   messageOutputSchema,
   threadOutputSchema,
   conversationsOutputSchema,
+  staffContactsOutputSchema,
 } from "@repo/services/chat/model";
 import { protectedProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
@@ -48,4 +49,11 @@ export const chatRouter = router({
     .input(zodUndefinedModel)
     .output(conversationsOutputSchema)
     .query(async ({ ctx }) => chatService.conversations(ctx.user.sub)),
+
+  // Society admin(s) any resident/guard can open a direct chat with.
+  staffContacts: protectedProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/staff-contacts"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(staffContactsOutputSchema)
+    .query(async ({ ctx }) => chatService.staffContacts(requireSocietyId(ctx.user.societyId), ctx.user.sub)),
 });

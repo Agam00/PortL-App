@@ -12,6 +12,7 @@ export const postsTable = pgTable("posts", {
     .references(() => usersTable.id),
   body: text("body").notNull(),
   imageUrl: text("image_url"),
+  pinnedAt: timestamp("pinned_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

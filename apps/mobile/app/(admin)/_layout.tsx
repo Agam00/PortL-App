@@ -1,7 +1,9 @@
+import { Fragment } from "react";
 import { Tabs } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useRoleGuard } from "../../hooks/use-role-guard";
 import { LoadingScreen } from "../../components/ui/loading-screen";
+import { StaffAlertPopup } from "../../components/staff-alert-popup";
 import { tabBarScreenOptions } from "../../lib/tab-bar-options";
 
 export default function AdminLayout() {
@@ -12,6 +14,7 @@ export default function AdminLayout() {
   }
 
   return (
+    <Fragment>
     <Tabs screenOptions={tabBarScreenOptions}>
       <Tabs.Screen
         name="dashboard"
@@ -41,6 +44,15 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
+        name="social"
+        options={{
+          title: "Community",
+          tabBarIcon: ({ color, size }) => (
+            <MaterialIcons name="forum" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="notifications"
         options={{
           title: "Alerts",
@@ -49,6 +61,7 @@ export default function AdminLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="chat" options={{ href: null }} />
       <Tabs.Screen name="more" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="towers" options={{ href: null }} />
@@ -61,5 +74,8 @@ export default function AdminLayout() {
       <Tabs.Screen name="staff" options={{ href: null }} />
       <Tabs.Screen name="dues" options={{ href: null }} />
     </Tabs>
+    {/* Resident emergency alerts + guard reports pop up here; OK auto-replies to the sender. */}
+    <StaffAlertPopup responder="management" />
+    </Fragment>
   );
 }

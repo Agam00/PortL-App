@@ -15,6 +15,7 @@ import { FormPanel } from "../../components/ui/form-panel";
 import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
 import { PressableScale } from "../../components/ui/pressable-scale";
+import { InviteQrModal } from "../../components/invite-qr-modal";
 import { shadowCard } from "../../lib/shadows";
 
 const FILTERS = ["All Residents", "Active", "Inactive"] as const;
@@ -29,6 +30,7 @@ export default function AdminResidents() {
   const [flatId, setFlatId] = useState("");
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All Residents");
+  const [invite, setInvite] = useState<{ name: string; code: string } | null>(null);
   const [reassigningId, setReassigningId] = useState<string | null>(null);
   const [reassignFlatId, setReassignFlatId] = useState("");
   const [fullNameError, setFullNameError] = useState<string | null>(null);
@@ -64,7 +66,7 @@ export default function AdminResidents() {
   const inviteMutation = trpc.admin.inviteResident.useMutation({
     onSuccess: (result) => {
       hapticSuccess();
-      showToast(`Invited — temp password: ${result.tempPassword}`, "success");
+      setInvite({ name: result.user.fullName, code: result.inviteCode });
       resetForm();
       utils.admin.listResidents.invalidate();
       utils.flats.list.invalidate();
@@ -114,11 +116,35 @@ export default function AdminResidents() {
     },
   });
 
+  const deleteMutation = trpc.admin.deleteUser.useMutation({
+    onSuccess: () => {
+      hapticSuccess();
+      showToast("Resident deleted", "success");
+      utils.admin.listResidents.invalidate();
+      utils.flats.list.invalidate();
+    },
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
+  });
+
   function confirmDeactivate(userId: string, name: string) {
     Alert.alert("Deactivate resident?", `${name} will lose app access.`, [
       { text: "Cancel", style: "cancel" },
       { text: "Deactivate", style: "destructive", onPress: () => deactivateMutation.mutate({ userId }) },
     ]);
+  }
+
+  function confirmDelete(userId: string, name: string) {
+    Alert.alert(
+      "Delete resident?",
+      `${name}'s account and login are removed for good, and the flat is freed up. Past posts and gate logs stay in the society records.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete", style: "destructive", onPress: () => deleteMutation.mutate({ userId }) },
+      ],
+    );
   }
 
   function handleInvite() {
@@ -230,9 +256,12 @@ export default function AdminResidents() {
                 Cancel
               </Button>
               <Button className="flex-1" onPress={handleInvite} loading={inviteMutation.isPending}>
-                Send Invitation
+                Create & Get QR
               </Button>
             </View>
+            <Text className="text-center text-meta-text text-text-muted">
+              You'll get an invite QR to share — they scan it and pick their own password.
+            </Text>
           </FormPanel>
         )}
 
@@ -274,6 +303,21 @@ export default function AdminResidents() {
                   />
                 </View>
 
+                {resident.inviteCode && (
+                  <Pressable
+                    onPress={() => setInvite({ name: resident.fullName, code: resident.inviteCode! })}
+                    className="flex-row items-center gap-2 self-start rounded-full px-3 py-1.5"
+                    style={{ backgroundColor: "#2A2320" }}
+                    accessibilityLabel={`Show invite QR for ${resident.fullName}`}
+                    accessibilityRole="button"
+                  >
+                    <MaterialIcons name="qr-code-2" size={16} color="#F5821F" />
+                    <Text className="text-body-sm font-bold text-primary-container">
+                      Pending activation — show QR
+                    </Text>
+                  </Pressable>
+                )}
+
                 <View className="gap-2">
                   <View className="flex-row items-center gap-3">
                     <MaterialIcons name="mail-outline" size={18} color="#8A8A8A" />
@@ -303,19 +347,27 @@ export default function AdminResidents() {
                     />
                     <Text className="text-body-sm text-on-surface-variant">{resident.isActive ? "Active" : "Inactive"}</Text>
                   </View>
-                  <Switch
-                    value={resident.isActive}
-                    onValueChange={(next) => {
-                      if (next) {
-                        activateMutation.mutate({ userId: resident.id });
-                      } else {
-                        confirmDeactivate(resident.id, resident.fullName);
-                      }
-                    }}
-                    trackColor={{ false: "#333333", true: "#F5821F" }}
-                    thumbColor="#FFFFFF"
-                    accessibilityLabel={`${resident.isActive ? "Deactivate" : "Activate"} ${resident.fullName}`}
-                  />
+                  <View className="flex-row items-center gap-2">
+                    <IconButton
+                      icon="delete-outline"
+                      size={20}
+                      onPress={() => confirmDelete(resident.id, resident.fullName)}
+                      accessibilityLabel={`Delete ${resident.fullName}`}
+                    />
+                    <Switch
+                      value={resident.isActive}
+                      onValueChange={(next) => {
+                        if (next) {
+                          activateMutation.mutate({ userId: resident.id });
+                        } else {
+                          confirmDeactivate(resident.id, resident.fullName);
+                        }
+                      }}
+                      trackColor={{ false: "#333333", true: "#F5821F" }}
+                      thumbColor="#FFFFFF"
+                      accessibilityLabel={`${resident.isActive ? "Deactivate" : "Activate"} ${resident.fullName}`}
+                    />
+                  </View>
                 </View>
 
                 {reassigningId === resident.id && (
@@ -375,6 +427,14 @@ export default function AdminResidents() {
       >
         <MaterialIcons name={showForm ? "close" : "person-add-alt"} size={26} color="#FFFFFF" />
       </PressableScale>
+
+      <InviteQrModal
+        visible={!!invite}
+        name={invite?.name ?? ""}
+        code={invite?.code ?? null}
+        roleLabel="Resident"
+        onClose={() => setInvite(null)}
+      />
     </View>
   );
 }

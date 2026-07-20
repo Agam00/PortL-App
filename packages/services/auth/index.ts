@@ -2,8 +2,8 @@ import { randomBytes, createHash } from "node:crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { TRPCError } from "@trpc/server";
-import { db, eq, or } from "@repo/database";
-import { usersTable, refreshTokensTable } from "@repo/database/schema";
+import { db, eq, and, or, isNull } from "@repo/database";
+import { usersTable, refreshTokensTable, flatsTable, societiesTable } from "@repo/database/schema";
 import { env } from "../env";
 import type { AccessTokenPayload, AuthUser } from "./model";
 
@@ -55,11 +55,23 @@ class AuthService {
     const [user] = await db
       .select()
       .from(usersTable)
-      .where(or(eq(usersTable.email, identifier), eq(usersTable.phone, identifier)))
+      .where(
+        and(
+          or(eq(usersTable.email, identifier), eq(usersTable.phone, identifier)),
+          isNull(usersTable.deletedAt),
+        ),
+      )
       .limit(1);
 
     if (!user || !user.isActive) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
+    }
+
+    if (user.inviteCode) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Account not activated yet — use the invite code from your admin to set a password",
+      });
     }
 
     const passwordOk = await bcrypt.compare(password, user.passwordHash);
@@ -122,6 +134,61 @@ class AuthService {
       .update(refreshTokensTable)
       .set({ revokedAt: new Date() })
       .where(eq(refreshTokensTable.tokenHash, tokenHash));
+  }
+
+  /** Looks up an unclaimed invite so the activation screen can confirm who it belongs to. */
+  async lookupInvite(code: string) {
+    const [row] = await db
+      .select({ user: usersTable, flatNumber: flatsTable.flatNumber, societyName: societiesTable.name })
+      .from(usersTable)
+      .leftJoin(flatsTable, eq(flatsTable.id, usersTable.flatId))
+      .leftJoin(societiesTable, eq(societiesTable.id, usersTable.societyId))
+      .where(and(eq(usersTable.inviteCode, code), isNull(usersTable.deletedAt)))
+      .limit(1);
+
+    if (!row) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "That invite code isn't valid" });
+    }
+
+    return {
+      fullName: row.user.fullName,
+      role: row.user.role,
+      phone: row.user.phone,
+      societyName: row.societyName ?? null,
+      flatNumber: row.flatNumber ?? null,
+    };
+  }
+
+  /** Redeems an invite code: the user picks their password and is signed straight in. */
+  async claimAccount(code: string, password: string) {
+    const [user] = await db
+      .select()
+      .from(usersTable)
+      .where(and(eq(usersTable.inviteCode, code), isNull(usersTable.deletedAt)))
+      .limit(1);
+
+    if (!user) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "That invite code isn't valid" });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const [updated] = await db
+      .update(usersTable)
+      .set({ passwordHash, mustResetPassword: false, inviteCode: null, isActive: true })
+      .where(eq(usersTable.id, user.id))
+      .returning();
+
+    if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+    const accessToken = this.signAccessToken({
+      sub: updated.id,
+      role: updated.role,
+      societyId: updated.societyId,
+      flatId: updated.flatId,
+    });
+    const refreshToken = await this.issueRefreshToken(updated.id);
+
+    return { accessToken, refreshToken, user: toAuthUser(updated) };
   }
 
   async setPassword(userId: string, newPassword: string) {

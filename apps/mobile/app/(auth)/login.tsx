@@ -135,6 +135,17 @@ export default function LoginScreen() {
               </Text>
               {!loginMutation.isPending && <MaterialIcons name="arrow-forward" size={20} color="#fff" />}
             </Pressable>
+
+            <Pressable
+              onPress={() => router.push("/(auth)/claim")}
+              className="h-12 flex-row items-center justify-center gap-2 rounded-full"
+              style={{ backgroundColor: "#242424" }}
+              accessibilityLabel="Activate account with invite code"
+              accessibilityRole="button"
+            >
+              <MaterialIcons name="qr-code-scanner" size={18} color="#F5821F" />
+              <Text className="text-body-md font-bold text-primary-container">Activate with invite code</Text>
+            </Pressable>
           </View>
 
           <View className="mt-8 flex-row items-center justify-center gap-1">

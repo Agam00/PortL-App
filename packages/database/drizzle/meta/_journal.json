@@ -78,6 +78,20 @@
       "when": 1784389246135,
       "tag": "0010_cultured_kate_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1784493789739,
+      "tag": "0011_calm_imperial_guard",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1784572401751,
+      "tag": "0012_nosy_corsair",
+      "breakpoints": true
     }
   ]
 }

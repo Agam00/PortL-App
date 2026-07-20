@@ -6,6 +6,7 @@ import {
   inviteGuardInputSchema,
   inviteUserOutputSchema,
   deactivateUserInputSchema,
+  deleteUserInputSchema,
   reassignResidentFlatInputSchema,
   listAdminUsersOutputSchema,
 } from "@repo/services/user/model";
@@ -55,6 +56,15 @@ export const adminRouter = router({
     .output(z.object({ success: z.literal(true) }))
     .mutation(async ({ input }) => {
       await userService.activateUser(input.userId);
+      return { success: true as const };
+    }),
+
+  deleteUser: adminProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/users/delete"), tags: TAGS } })
+    .input(deleteUserInputSchema)
+    .output(z.object({ success: z.literal(true) }))
+    .mutation(async ({ ctx, input }) => {
+      await userService.deleteUser(requireSocietyId(ctx.user.societyId), input.userId);
       return { success: true as const };
     }),
 

@@ -32,3 +32,12 @@ export const conversationOutputSchema = z.object({
 export type ConversationOutput = z.infer<typeof conversationOutputSchema>;
 
 export const conversationsOutputSchema = z.array(conversationOutputSchema);
+
+export const staffContactOutputSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  role: z.literal("admin"),
+});
+export type StaffContactOutput = z.infer<typeof staffContactOutputSchema>;
+
+export const staffContactsOutputSchema = z.array(staffContactOutputSchema);

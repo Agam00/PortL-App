@@ -129,7 +129,13 @@ class NotificationService {
       const rows = await db
         .select({ id: usersTable.id })
         .from(usersTable)
-        .where(and(eq(usersTable.societyId, societyId), eq(usersTable.role, "resident")));
+        .where(
+          and(
+            eq(usersTable.societyId, societyId),
+            eq(usersTable.role, "resident"),
+            isNull(usersTable.deletedAt),
+          ),
+        );
       residentIds = rows.map((r) => r.id);
     } else if (notice.targetScope === "tower" && notice.targetTowerId) {
       const rows = await db
@@ -158,7 +164,13 @@ class NotificationService {
     const rows = await db
       .select({ id: usersTable.id })
       .from(usersTable)
-      .where(and(eq(usersTable.societyId, societyId), eq(usersTable.role, "resident")));
+      .where(
+        and(
+          eq(usersTable.societyId, societyId),
+          eq(usersTable.role, "resident"),
+          isNull(usersTable.deletedAt),
+        ),
+      );
 
     await this.notify(rows.map((r) => r.id), {
       type: "poll",
@@ -256,7 +268,13 @@ class NotificationService {
     const recipients = await db
       .select({ id: usersTable.id })
       .from(usersTable)
-      .where(and(eq(usersTable.societyId, societyId), inArray(usersTable.role, roles)));
+      .where(
+        and(
+          eq(usersTable.societyId, societyId),
+          inArray(usersTable.role, roles),
+          isNull(usersTable.deletedAt),
+        ),
+      );
 
     const who = `${from?.name ?? "A resident"}${from?.flatNumber ? ` (${from.flatNumber})` : ""}`;
 
@@ -275,6 +293,44 @@ class NotificationService {
             title: `Message from ${who}`,
             body: `${who} wants to reach ${roles.includes("admin") ? "the admin" : "security"}.`,
             data: { fromUserId, fromName: from?.name ?? "Resident" },
+          },
+    );
+  }
+
+  /** A guard files a report/incident to the society admin(s). */
+  async notifyGuardReport(
+    societyId: string,
+    fromGuardId: string,
+    input: { label: string; note: string; emergency: boolean },
+  ) {
+    const [guard] = await db
+      .select({ name: usersTable.fullName })
+      .from(usersTable)
+      .where(eq(usersTable.id, fromGuardId))
+      .limit(1);
+
+    const admins = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(and(eq(usersTable.societyId, societyId), eq(usersTable.role, "admin")));
+
+    const who = guard?.name ?? "A guard";
+    const note = input.note.trim();
+
+    await this.notify(
+      admins.map((a) => a.id),
+      input.emergency
+        ? {
+            type: "alert",
+            title: `🚨 Gate report: ${input.label}`,
+            body: `${who} reported "${input.label}"${note ? `: ${note}` : ""}. Please respond immediately.`,
+            data: { alert: input.label, fromUserId: fromGuardId, fromName: who },
+          }
+        : {
+            type: "message",
+            title: `Report from ${who}`,
+            body: `${input.label}${note ? `: ${note}` : ""}`,
+            data: { fromUserId: fromGuardId, fromName: who },
           },
     );
   }

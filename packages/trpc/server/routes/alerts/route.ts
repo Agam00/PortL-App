@@ -2,7 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { zodUndefinedModel } from "../../schema";
 import { notificationService } from "../../services";
-import { residentProcedure, router } from "../../trpc";
+import { residentProcedure, guardProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
 const TAGS = ["Alerts"];
@@ -22,6 +22,20 @@ const raiseAlertInputSchema = z.object({
   type: z.enum(["send_admin", "send_security", "fire", "stuck_lift", "animal_threat", "visitor_threat"]),
 });
 
+// A guard's "report to admin" quick actions → label + whether it's urgent.
+const GUARD_REPORT_TYPES = {
+  incident: { label: "Security Incident", emergency: true },
+  gate_issue: { label: "Gate / Equipment Issue", emergency: false },
+  maintenance: { label: "Maintenance Needed", emergency: false },
+  suspicious: { label: "Suspicious Activity", emergency: true },
+  other: { label: "General Report", emergency: false },
+} as const;
+
+const guardReportInputSchema = z.object({
+  type: z.enum(["incident", "gate_issue", "maintenance", "suspicious", "other"]),
+  note: z.string().max(1000).optional(),
+});
+
 export const alertsRouter = router({
   raise: residentProcedure
     .meta({ openapi: { method: "POST", path: getPath("/raise"), tags: TAGS } })
@@ -35,6 +49,23 @@ export const alertsRouter = router({
       await notificationService.notifyStaffAlert(ctx.user.societyId, ctx.user.sub, [...config.roles], {
         emergency: config.emergency,
         label: config.label,
+      });
+    }),
+
+  // Guard files a report/incident to the society admin(s).
+  guardReport: guardProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/guard-report"), tags: TAGS } })
+    .input(guardReportInputSchema)
+    .output(zodUndefinedModel)
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.user.societyId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No society assigned to this account" });
+      }
+      const config = GUARD_REPORT_TYPES[input.type];
+      await notificationService.notifyGuardReport(ctx.user.societyId, ctx.user.sub, {
+        label: config.label,
+        note: input.note ?? "",
+        emergency: config.emergency,
       });
     }),
 });

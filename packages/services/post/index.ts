@@ -3,6 +3,8 @@ import { db, eq, and, inArray, desc, sql } from "@repo/database";
 import { postsTable, postLikesTable, postCommentsTable, usersTable, flatsTable } from "@repo/database/schema";
 import type { PostOutput, PostCommentOutput } from "./model";
 
+type Role = "resident" | "guard" | "admin";
+
 class PostService {
   async list(societyId: string, userId: string): Promise<PostOutput[]> {
     const rows = await db
@@ -10,16 +12,19 @@ class PostService {
         id: postsTable.id,
         authorId: postsTable.authorId,
         authorName: usersTable.fullName,
+        authorRole: usersTable.role,
         flatNumber: flatsTable.flatNumber,
         body: postsTable.body,
         imageUrl: postsTable.imageUrl,
+        pinnedAt: postsTable.pinnedAt,
         createdAt: postsTable.createdAt,
       })
       .from(postsTable)
       .innerJoin(usersTable, eq(usersTable.id, postsTable.authorId))
       .leftJoin(flatsTable, eq(flatsTable.id, usersTable.flatId))
       .where(eq(postsTable.societyId, societyId))
-      .orderBy(desc(postsTable.createdAt))
+      // Pinned posts float to the top (NULLS LAST so unpinned don't sort first), otherwise newest first.
+      .orderBy(sql`${postsTable.pinnedAt} desc nulls last`, desc(postsTable.createdAt))
       .limit(50);
 
     const ids = rows.map((r) => r.id);
@@ -48,9 +53,11 @@ class PostService {
       id: r.id,
       authorId: r.authorId,
       authorName: r.authorName,
+      authorRole: r.authorRole as Role,
       flatNumber: r.flatNumber ?? null,
       body: r.body,
       imageUrl: r.imageUrl ?? null,
+      isPinned: !!r.pinnedAt,
       createdAt: r.createdAt?.toISOString() ?? null,
       likeCount: likeMap.get(r.id) ?? 0,
       commentCount: commentMap.get(r.id) ?? 0,
@@ -66,7 +73,7 @@ class PostService {
     if (!post) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
     const [author] = await db
-      .select({ fullName: usersTable.fullName, flatNumber: flatsTable.flatNumber })
+      .select({ fullName: usersTable.fullName, role: usersTable.role, flatNumber: flatsTable.flatNumber })
       .from(usersTable)
       .leftJoin(flatsTable, eq(flatsTable.id, usersTable.flatId))
       .where(eq(usersTable.id, userId))
@@ -76,9 +83,11 @@ class PostService {
       id: post.id,
       authorId: post.authorId,
       authorName: author?.fullName ?? "",
+      authorRole: (author?.role ?? "resident") as Role,
       flatNumber: author?.flatNumber ?? null,
       body: post.body,
       imageUrl: post.imageUrl ?? null,
+      isPinned: !!post.pinnedAt,
       createdAt: post.createdAt?.toISOString() ?? null,
       likeCount: 0,
       commentCount: 0,
@@ -112,6 +121,7 @@ class PostService {
         postId: postCommentsTable.postId,
         authorId: postCommentsTable.authorId,
         authorName: usersTable.fullName,
+        authorRole: usersTable.role,
         flatNumber: flatsTable.flatNumber,
         body: postCommentsTable.body,
         createdAt: postCommentsTable.createdAt,
@@ -122,7 +132,12 @@ class PostService {
       .where(eq(postCommentsTable.postId, postId))
       .orderBy(postCommentsTable.createdAt);
 
-    return rows.map((r) => ({ ...r, flatNumber: r.flatNumber ?? null, createdAt: r.createdAt?.toISOString() ?? null }));
+    return rows.map((r) => ({
+      ...r,
+      authorRole: r.authorRole as Role,
+      flatNumber: r.flatNumber ?? null,
+      createdAt: r.createdAt?.toISOString() ?? null,
+    }));
   }
 
   async addComment(postId: string, userId: string, body: string): Promise<PostCommentOutput> {
@@ -133,7 +148,7 @@ class PostService {
     if (!comment) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
 
     const [author] = await db
-      .select({ fullName: usersTable.fullName, flatNumber: flatsTable.flatNumber })
+      .select({ fullName: usersTable.fullName, role: usersTable.role, flatNumber: flatsTable.flatNumber })
       .from(usersTable)
       .leftJoin(flatsTable, eq(flatsTable.id, usersTable.flatId))
       .where(eq(usersTable.id, userId))
@@ -144,10 +159,54 @@ class PostService {
       postId: comment.postId,
       authorId: comment.authorId,
       authorName: author?.fullName ?? "",
+      authorRole: (author?.role ?? "resident") as Role,
       flatNumber: author?.flatNumber ?? null,
       body: comment.body,
       createdAt: comment.createdAt?.toISOString() ?? null,
     };
+  }
+
+  /** Admin moderation — hard-deletes a post (its likes/comments cascade via FK). */
+  async deletePost(societyId: string, postId: string): Promise<void> {
+    const [post] = await db
+      .select({ id: postsTable.id })
+      .from(postsTable)
+      .where(and(eq(postsTable.id, postId), eq(postsTable.societyId, societyId)))
+      .limit(1);
+    if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found" });
+
+    await db.delete(postLikesTable).where(eq(postLikesTable.postId, postId));
+    await db.delete(postCommentsTable).where(eq(postCommentsTable.postId, postId));
+    await db.delete(postsTable).where(eq(postsTable.id, postId));
+  }
+
+  /** Admin moderation — removes a single comment (society-scoped via its post). */
+  async deleteComment(societyId: string, commentId: string): Promise<void> {
+    const [row] = await db
+      .select({ id: postCommentsTable.id })
+      .from(postCommentsTable)
+      .innerJoin(postsTable, eq(postsTable.id, postCommentsTable.postId))
+      .where(and(eq(postCommentsTable.id, commentId), eq(postsTable.societyId, societyId)))
+      .limit(1);
+    if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Comment not found" });
+
+    await db.delete(postCommentsTable).where(eq(postCommentsTable.id, commentId));
+  }
+
+  /** Admin pins/unpins a post to the top of the community feed. */
+  async setPinned(societyId: string, postId: string, pinned: boolean): Promise<{ isPinned: boolean }> {
+    const [post] = await db
+      .select({ id: postsTable.id })
+      .from(postsTable)
+      .where(and(eq(postsTable.id, postId), eq(postsTable.societyId, societyId)))
+      .limit(1);
+    if (!post) throw new TRPCError({ code: "NOT_FOUND", message: "Post not found" });
+
+    await db
+      .update(postsTable)
+      .set({ pinnedAt: pinned ? new Date() : null })
+      .where(eq(postsTable.id, postId));
+    return { isPinned: pinned };
   }
 }
 

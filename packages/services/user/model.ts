@@ -32,10 +32,16 @@ export const inviteUserOutputSchema = z.object({
     phone: z.string(),
     role: userRoleSchema,
   }),
-  tempPassword: z.string().describe("Relay this to the invited user out-of-band; they must reset it on first login."),
+  inviteCode: z
+    .string()
+    .describe("Show as a QR or read out to the invitee; they redeem it to set their own password."),
 });
 
 export const deactivateUserInputSchema = z.object({
+  userId: z.string().uuid(),
+});
+
+export const deleteUserInputSchema = z.object({
   userId: z.string().uuid(),
 });
 
@@ -55,6 +61,7 @@ export const adminUserOutputSchema = z.object({
   flatNumber: z.string().nullable(),
   towerName: z.string().nullable(),
   mustResetPassword: z.boolean(),
+  inviteCode: z.string().nullable().describe("Non-null while the account is still unclaimed."),
   createdAt: z.string().nullable(),
 });
 export type AdminUserOutput = z.infer<typeof adminUserOutputSchema>;

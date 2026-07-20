@@ -50,3 +50,28 @@ export const logoutInputSchema = z.object({
 export const setPasswordInputSchema = z.object({
   newPassword: z.string().min(6),
 });
+
+export const inviteCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .min(8)
+  .max(12)
+  .describe("Invite code from the admin, typed in or scanned off the QR");
+
+export const lookupInviteInputSchema = z.object({
+  code: inviteCodeSchema,
+});
+
+export const lookupInviteOutputSchema = z.object({
+  fullName: z.string(),
+  role: userRoleSchema,
+  phone: z.string(),
+  societyName: z.string().nullable(),
+  flatNumber: z.string().nullable(),
+});
+
+export const claimAccountInputSchema = z.object({
+  code: inviteCodeSchema,
+  password: z.string().min(6),
+});

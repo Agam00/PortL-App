@@ -10,6 +10,9 @@ import {
   logoutInputSchema,
   authUserSchema,
   setPasswordInputSchema,
+  lookupInviteInputSchema,
+  lookupInviteOutputSchema,
+  claimAccountInputSchema,
 } from "@repo/services/auth/model";
 import { publicProcedure, protectedProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
@@ -34,6 +37,18 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       return authService.login(input.identifier, input.password);
     }),
+
+  lookupInvite: publicProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/invite"), tags: TAGS } })
+    .input(lookupInviteInputSchema)
+    .output(lookupInviteOutputSchema)
+    .query(async ({ input }) => authService.lookupInvite(input.code)),
+
+  claimAccount: publicProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/claim"), tags: TAGS } })
+    .input(claimAccountInputSchema)
+    .output(authTokensOutputSchema)
+    .mutation(async ({ input }) => authService.claimAccount(input.code, input.password)),
 
   refresh: publicProcedure
     .meta({ openapi: { method: "POST", path: getPath("/refresh"), tags: TAGS } })

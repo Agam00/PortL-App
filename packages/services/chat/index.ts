@@ -1,9 +1,19 @@
 import { TRPCError } from "@trpc/server";
-import { db, eq, and, or, isNull, desc } from "@repo/database";
+import { db, eq, and, or, isNull, desc, ne } from "@repo/database";
 import { messagesTable, usersTable, flatsTable } from "@repo/database/schema";
-import type { MessageOutput, ConversationOutput } from "./model";
+import type { MessageOutput, ConversationOutput, StaffContactOutput } from "./model";
 
 class ChatService {
+  /** Society admins the caller can start a direct chat with (self excluded). */
+  async staffContacts(societyId: string, userId: string): Promise<StaffContactOutput[]> {
+    const rows = await db
+      .select({ id: usersTable.id, name: usersTable.fullName, role: usersTable.role })
+      .from(usersTable)
+      .where(and(eq(usersTable.societyId, societyId), eq(usersTable.role, "admin"), ne(usersTable.id, userId)));
+
+    return rows.map((r) => ({ id: r.id, name: r.name, role: r.role as "admin" }));
+  }
+
   async send(societyId: string, senderId: string, recipientId: string, body: string): Promise<MessageOutput> {
     if (recipientId === senderId) {
       throw new TRPCError({ code: "BAD_REQUEST", message: "You can't message yourself" });

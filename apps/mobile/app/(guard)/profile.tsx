@@ -98,7 +98,7 @@ export default function GuardProfile() {
           </View>
         </View>
 
-        {/* Messages */}
+        {/* Messages & admin */}
         <View className="overflow-hidden rounded-2xl bg-surface" style={shadowCard}>
           <MenuRow
             icon="mail-outline"
@@ -107,6 +107,13 @@ export default function GuardProfile() {
             label="Messages"
             badge={unreadMessages}
             onPress={() => router.push("/(guard)/messages")}
+          />
+          <MenuRow
+            icon="shield"
+            iconColor="#F5821F"
+            iconBg="#3A2A12"
+            label="Contact Admin / Report"
+            onPress={() => router.push("/(guard)/contact-admin")}
             isLast
           />
         </View>
