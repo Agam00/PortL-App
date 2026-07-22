@@ -5,7 +5,7 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
+import { AdminHeader } from "../../components/ui/admin-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
@@ -13,7 +13,6 @@ import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
 import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
-import { shadowCard } from "../../lib/shadows";
 
 const SCOPES: { value: "all" | "tower" | "flat"; label: string }[] = [
   { value: "all", label: "All Residents" },
@@ -24,7 +23,10 @@ const SCOPES: { value: "all" | "tower" | "flat"; label: string }[] = [
 function formatPublished(iso: string | null) {
   if (!iso) return null;
   const date = new Date(iso);
-  return `${date.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })} • ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  const today = new Date();
+  const sameDay = date.toDateString() === today.toDateString();
+  if (sameDay) return `Today, ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  return date.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 export default function AdminNotices() {
@@ -118,16 +120,18 @@ export default function AdminNotices() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Notices Management" subtitle="Broadcast important updates to the community." role="admin" />
+      <AdminHeader
+        showBack
+        barTitle="Portl"
+        centerBar
+        bigTitle="Notice Board"
+        action={{ label: showForm ? "Close" : "+ Add", onPress: () => (showForm ? resetForm() : setShowForm(true)) }}
+      />
       <ScrollView
-        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 16 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={noticesQuery.isRefetching} onRefresh={() => noticesQuery.refetch()} />}
       >
-        <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
-          {showForm ? "Cancel" : "+ Compose Notice"}
-        </Button>
-
         {showForm && (
           <FormPanel>
             <View className="flex-row items-center gap-2">
@@ -216,68 +220,80 @@ export default function AdminNotices() {
           </FormPanel>
         )}
 
-        <View className="bg-surface p-3" style={[{ borderRadius: 16 }, shadowCard]}>
-          <Input placeholder="Search notices..." value={search} onChangeText={setSearch} />
-        </View>
+        <Input
+          placeholder="Search notices..."
+          value={search}
+          onChangeText={setSearch}
+          leftElement={<MaterialIcons name="search" size={20} color="#8A8A8A" />}
+        />
 
         {noticesQuery.isLoading ? (
           <ListLoading />
         ) : noticesQuery.isError ? (
-          <View className="rounded-card bg-surface">
+          <View style={{ borderRadius: 20, backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}>
             <EmptyState title="Couldn't load notices" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : notices.length === 0 ? (
-          <View className="rounded-card bg-surface">
+          <View style={{ borderRadius: 20, backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}>
             <EmptyState title="No notices yet" description="Publish your first notice above." icon="campaign" />
           </View>
         ) : (
-          <View className="gap-4">
-            {notices.map((notice) => {
+          <View style={{ gap: 16 }}>
+            {notices.map((notice, index) => {
               const published = formatPublished(notice.publishedAt);
+              const featured = index === 0;
               const audience =
                 notice.targetScope === "all"
                   ? "All Residents"
                   : notice.targetScope === "tower"
                     ? `Tower ${notice.targetTowerName ?? "—"}`
                     : `Flat ${notice.targetFlatNumber ?? "—"}`;
+              const audienceIcon =
+                notice.targetScope === "all" ? "groups" : notice.targetScope === "tower" ? "apartment" : "meeting-room";
               return (
-                <View key={notice.id} className="bg-surface" style={[{ borderRadius: 20, overflow: "hidden" }, shadowCard]}>
-                  <View
-                    pointerEvents="none"
-                    style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 5, backgroundColor: "#FEB246" }}
-                  />
-                  <View className="gap-2 p-5">
-                    <View className="flex-row items-center gap-3">
-                      <View
-                        className="flex-row items-center gap-1.5 rounded-full px-2.5 py-1"
-                        style={{ backgroundColor: "rgba(39,201,109,0.14)" }}
-                      >
-                        <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#27C96D" }} />
-                        <Text className="text-label-caps font-bold uppercase" style={{ color: "#1B7A44" }}>
-                          Active
-                        </Text>
-                      </View>
-                      {published && (
-                        <Text className="min-w-0 flex-1 text-meta-text text-text-muted" numberOfLines={1}>
-                          {published}
-                        </Text>
-                      )}
+                <View
+                  key={notice.id}
+                  style={{
+                    backgroundColor: "#1A1A1A",
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: featured ? "rgba(245,130,31,0.35)" : "#333333",
+                    overflow: "hidden",
+                  }}
+                >
+                  {featured && (
+                    <View
+                      pointerEvents="none"
+                      style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, backgroundColor: "#F5821F" }}
+                    />
+                  )}
+                  <View style={{ padding: 20, gap: 10 }}>
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-label-caps font-semibold uppercase text-primary">
+                        {featured ? "Announcement" : "Notice"}
+                      </Text>
                       <IconButton
                         icon="delete-outline"
-                        color="#BA1A1A"
+                        size={20}
                         onPress={() => confirmDelete(notice.id, notice.title)}
                         accessibilityLabel={`Delete ${notice.title}`}
                       />
                     </View>
                     <Text className="text-headline-md font-extrabold text-on-surface">{notice.title}</Text>
-                    <Text className="text-body-md text-on-surface-variant" numberOfLines={2}>
+                    <Text className="text-body-md text-text-muted" numberOfLines={2}>
                       {notice.body}
                     </Text>
-                    <View className="flex-row items-center gap-2 pt-1">
-                      <MaterialIcons name="groups" size={16} color="#8A8A8A" />
-                      <View className="rounded-full bg-surface-container-high px-2.5 py-1">
-                        <Text className="text-meta-text text-on-surface-variant">Audience: {audience}</Text>
+                    <View
+                      className="mt-1 flex-row items-center justify-between pt-3"
+                      style={{ borderTopWidth: 1, borderTopColor: "#333333" }}
+                    >
+                      <View className="min-w-0 flex-1 flex-row items-center gap-1.5">
+                        <MaterialIcons name={audienceIcon} size={16} color="#8A8A8A" />
+                        <Text className="min-w-0 flex-1 text-body-sm text-text-muted" numberOfLines={1}>
+                          {audience}
+                        </Text>
                       </View>
+                      {published && <Text className="text-body-sm text-text-muted">{published}</Text>}
                     </View>
                   </View>
                 </View>

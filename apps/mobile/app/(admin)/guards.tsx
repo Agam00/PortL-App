@@ -1,20 +1,28 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl, Alert, Switch, Pressable } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Alert, Switch } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
+import { AdminHeader } from "../../components/ui/admin-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
 import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
 import { InviteQrModal } from "../../components/invite-qr-modal";
-import { shadowCard } from "../../lib/shadows";
+
+function initials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
 
 export default function AdminGuards() {
   const showToast = useUiStore((s) => s.showToast);
@@ -125,19 +133,24 @@ export default function AdminGuards() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Guards Management" subtitle="Manage active security personnel and gate assignments." role="admin" />
+      <AdminHeader
+        showBack
+        barTitle="Guards"
+        action={{ label: showForm ? "Close" : "+ Add", onPress: () => (showForm ? resetForm() : setShowForm(true)) }}
+      />
       <ScrollView
-        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40, gap: 16 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={guardsQuery.isRefetching} onRefresh={() => guardsQuery.refetch()} />}
       >
-        <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
-          {showForm ? "Cancel" : "+ Invite Guard"}
-        </Button>
+        <Input
+          placeholder="Search guards..."
+          value={search}
+          onChangeText={setSearch}
+          leftElement={<MaterialIcons name="search" size={20} color="#8A8A8A" />}
+        />
 
-        <View className="bg-surface p-3" style={[{ borderRadius: 16 }, shadowCard]}>
-          <Input placeholder="Search guards..." value={search} onChangeText={setSearch} />
-        </View>
+        {!showForm && <Button onPress={() => setShowForm(true)}>+ Add Guard</Button>}
 
         {showForm && (
           <FormPanel>
@@ -190,33 +203,53 @@ export default function AdminGuards() {
         {guardsQuery.isLoading ? (
           <ListLoading />
         ) : guardsQuery.isError ? (
-          <View className="rounded-card bg-surface">
+          <View style={{ borderRadius: 20, backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}>
             <EmptyState title="Couldn't load guards" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : guards.length === 0 ? (
-          <View className="rounded-card bg-surface">
+          <View style={{ borderRadius: 20, backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}>
             <EmptyState title="No guards found" description="Invite a guard to get started." icon="shield" />
           </View>
         ) : (
-          <View className="gap-4">
+          <View style={{ gap: 16 }}>
             {guards.map((guard) => (
               <View
                 key={guard.id}
-                className="gap-3 bg-surface p-5"
-                style={[{ borderRadius: 20, opacity: guard.isActive ? 1 : 0.75 }, shadowCard]}
+                style={{
+                  backgroundColor: "#1A1A1A",
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: "#333333",
+                  padding: 20,
+                  opacity: guard.isActive ? 1 : 0.7,
+                }}
               >
                 <View className="flex-row items-center gap-4">
-                  <Avatar name={guard.fullName} size={52} />
+                  <View
+                    className="items-center justify-center"
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 24,
+                      backgroundColor: "#242424",
+                      borderWidth: 1,
+                      borderColor: "#333333",
+                    }}
+                  >
+                    <Text className="font-bold" style={{ fontSize: 15, color: guard.isActive ? "#F5821F" : "#8A8A8A" }}>
+                      {initials(guard.fullName)}
+                    </Text>
+                  </View>
                   <View className="min-w-0 flex-1">
-                    <Text
-                      className={`text-headline-md font-extrabold ${guard.isActive ? "text-on-surface" : "text-text-muted"}`}
-                      numberOfLines={1}
-                    >
+                    <Text className="text-section-header font-bold text-on-surface" numberOfLines={1}>
                       {guard.fullName}
                     </Text>
-                    <Text className="text-body-sm text-text-muted" numberOfLines={1}>
-                      {guard.phone}
-                    </Text>
+                    <View className="mt-1 flex-row items-center gap-1.5">
+                      <MaterialIcons name="phone-iphone" size={14} color="#8A8A8A" />
+                      <Text className="min-w-0 flex-1 text-body-sm text-text-muted" numberOfLines={1}>
+                        {guard.phone}
+                      </Text>
+                    </View>
                   </View>
                   <IconButton
                     icon="delete-outline"
@@ -240,42 +273,42 @@ export default function AdminGuards() {
                 </View>
 
                 {guard.inviteCode && (
-                  <Pressable
-                    onPress={() => setInvite({ name: guard.fullName, code: guard.inviteCode! })}
-                    className="flex-row items-center gap-2 self-start rounded-full px-3 py-1.5"
-                    style={{ backgroundColor: "#2A2320" }}
-                    accessibilityLabel={`Show invite QR for ${guard.fullName}`}
-                    accessibilityRole="button"
+                  <View
+                    className="mt-3 flex-row items-center gap-1.5 self-start rounded-full px-3 py-1"
+                    style={{ backgroundColor: "#242424", borderWidth: 1, borderColor: "#F5821F" }}
                   >
-                    <MaterialIcons name="qr-code-2" size={16} color="#F5821F" />
-                    <Text className="text-body-sm font-bold text-primary-container">
-                      Pending activation — show QR
+                    <MaterialIcons name="qr-code-2" size={14} color="#F5821F" />
+                    <Text
+                      onPress={() => setInvite({ name: guard.fullName, code: guard.inviteCode! })}
+                      className="text-label-caps font-semibold uppercase text-primary"
+                    >
+                      Pending activation
                     </Text>
-                  </Pressable>
+                  </View>
                 )}
 
-                <View style={{ height: 1, backgroundColor: "rgba(51,51,51,0.45)" }} />
+                <View style={{ height: 1, backgroundColor: "#333333", marginVertical: 16 }} />
 
                 <View className="flex-row">
                   <View className="flex-1 gap-1">
-                    <Text className="text-meta-text text-text-muted">Email</Text>
-                    <View className="flex-row items-center gap-1.5">
-                      <MaterialIcons name="mail-outline" size={14} color="#F5821F" />
-                      <Text className="min-w-0 flex-1 text-body-sm font-semibold text-on-surface" numberOfLines={1}>
-                        {guard.email}
-                      </Text>
-                    </View>
+                    <Text className="text-label-caps uppercase text-text-muted">Email</Text>
+                    <Text className="text-body-sm text-on-surface-variant" numberOfLines={1}>
+                      {guard.email}
+                    </Text>
                   </View>
                   <View className="flex-1 gap-1">
-                    <Text className="text-meta-text text-text-muted">Status</Text>
+                    <Text className="text-label-caps uppercase text-text-muted">Status</Text>
                     <View className="flex-row items-center gap-1.5">
                       <MaterialIcons
-                        name={guard.isActive ? "verified-user" : "do-not-disturb"}
-                        size={14}
-                        color={guard.isActive ? "#27C96D" : "#8A8A8A"}
+                        name={guard.isActive ? "shield" : "gpp-bad"}
+                        size={15}
+                        color={guard.isActive ? "#F5821F" : "#8A8A8A"}
                       />
-                      <Text className="text-body-sm font-semibold text-on-surface">
-                        {guard.isActive ? "On Duty Access" : "Access Revoked"}
+                      <Text
+                        className="text-body-sm font-semibold"
+                        style={{ color: guard.isActive ? "#F5821F" : "#8A8A8A" }}
+                      >
+                        {guard.isActive ? "On Duty Access" : "Off Duty"}
                       </Text>
                     </View>
                   </View>

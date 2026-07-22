@@ -6,7 +6,7 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
+import { AdminHeader } from "../../components/ui/admin-header";
 import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
 import { Avatar } from "../../components/ui/avatar";
@@ -130,7 +130,7 @@ export default function AdminRequests() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Complaints Oversight" subtitle="Manage and resolve resident issues efficiently." role="admin" />
+      <AdminHeader barTitle="Operations" />
       <ScrollView
         contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"

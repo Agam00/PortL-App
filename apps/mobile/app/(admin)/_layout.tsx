@@ -15,7 +15,7 @@ export default function AdminLayout() {
 
   return (
     <Fragment>
-    <Tabs screenOptions={tabBarScreenOptions}>
+    <Tabs screenOptions={{ ...tabBarScreenOptions, tabBarShowLabel: false }}>
       <Tabs.Screen
         name="dashboard"
         options={{
@@ -39,7 +39,7 @@ export default function AdminLayout() {
         options={{
           title: "Operations",
           tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="build" color={color} size={size} />
+            <MaterialIcons name="engineering" color={color} size={size} />
           ),
         }}
       />

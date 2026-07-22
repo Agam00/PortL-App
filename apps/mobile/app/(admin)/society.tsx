@@ -1,11 +1,8 @@
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
-import { ScreenHeader } from "../../components/ui/screen-header";
-import { PressableScale } from "../../components/ui/pressable-scale";
-import { Button } from "../../components/ui/button";
-import { shadowCard } from "../../lib/shadows";
+import { AdminHeader } from "../../components/ui/admin-header";
 
 export default function AdminSociety() {
   const router = useRouter();
@@ -16,69 +13,43 @@ export default function AdminSociety() {
   const residentsQuery = trpc.admin.listResidents.useQuery();
   const guardsQuery = trpc.admin.listGuards.useQuery();
   const staffQuery = trpc.staffDirectory.list.useQuery();
-  const noticesQuery = trpc.notices.list.useQuery();
-  const pollsQuery = trpc.polls.list.useQuery();
   const duesQuery = trpc.dues.list.useQuery();
 
-  // management_hub mockup: white cards, icon squircle, ↗, two lavender stat chips
-  // with the category's accent color on the numbers.
-  const sections: {
+  const count = (n: number | undefined) => (n === undefined ? "—" : `${n}`);
+  const guardsActive = guardsQuery.data ? guardsQuery.data.filter((g) => g.isActive).length : undefined;
+  const duesPending = duesQuery.data ? duesQuery.data.filter((d) => d.status !== "paid").length : undefined;
+
+  // Management-hub launcher: a single card of nav rows, matching the Stitch mockup.
+  const rows: {
     label: string;
+    subtitle: string;
     icon: React.ComponentProps<typeof MaterialIcons>["name"];
-    accent: string;
-    items: { label: string; value: string; route: string }[];
+    route: string;
   }[] = [
-    {
-      label: "Infrastructure",
-      icon: "apartment",
-      accent: "#F5821F",
-      items: [
-        { label: "Towers", value: `${towersQuery.data?.length ?? "—"}`, route: "/(admin)/towers" },
-        { label: "Flats", value: `${flatsQuery.data?.length ?? "—"}`, route: "/(admin)/flats" },
-      ],
-    },
-    {
-      label: "People",
-      icon: "groups",
-      accent: "#E19613",
-      items: [
-        { label: "Residents", value: `${residentsQuery.data?.length ?? "—"}`, route: "/(admin)/residents" },
-        { label: "Guards", value: `${guardsQuery.data?.length ?? "—"}`, route: "/(admin)/guards" },
-      ],
-    },
-    {
-      label: "Communications",
-      icon: "campaign",
-      accent: "#AA6700",
-      items: [
-        { label: "Active Notices", value: `${noticesQuery.data?.length ?? "—"}`, route: "/(admin)/notices" },
-        { label: "Open Polls", value: `${pollsQuery.data?.filter((p) => !p.isClosed).length ?? "—"}`, route: "/(admin)/polls" },
-      ],
-    },
-    {
-      label: "Operations",
-      icon: "gavel",
-      accent: "#C99A5A",
-      items: [
-        { label: "Amenities", value: `${amenitiesQuery.data?.length ?? "—"}`, route: "/(admin)/amenities" },
-        { label: "Support Staff", value: `${staffQuery.data?.length ?? "—"}`, route: "/(admin)/staff" },
-      ],
-    },
-    {
-      label: "Finance",
-      icon: "payments",
-      accent: "#BA1A1A",
-      items: [
-        { label: "Dues Pending", value: `${duesQuery.data?.filter((d) => d.status !== "paid").length ?? "—"}`, route: "/(admin)/dues" },
-      ],
-    },
+    { label: "Towers & Blocks", subtitle: "structure of the society", icon: "apartment", route: "/(admin)/towers" },
+    { label: "Flats", subtitle: `${count(flatsQuery.data?.length)} units and occupancy`, icon: "meeting-room", route: "/(admin)/flats" },
+    { label: "Residents", subtitle: `${count(residentsQuery.data?.length)} members`, icon: "groups", route: "/(admin)/residents" },
+    { label: "Guards", subtitle: `${count(guardsActive)} on the security team`, icon: "shield", route: "/(admin)/guards" },
+    { label: "Staff Directory", subtitle: "maids, plumbers, services", icon: "engineering", route: "/(admin)/staff" },
+    { label: "Amenities", subtitle: `${count(amenitiesQuery.data?.length)} bookable facilities`, icon: "pool", route: "/(admin)/amenities" },
+    { label: "Maintenance Dues", subtitle: `${count(duesPending)} pending · billing`, icon: "receipt-long", route: "/(admin)/dues" },
   ];
+
+  const refetchAll = () => {
+    towersQuery.refetch();
+    flatsQuery.refetch();
+    amenitiesQuery.refetch();
+    residentsQuery.refetch();
+    guardsQuery.refetch();
+    staffQuery.refetch();
+    duesQuery.refetch();
+  };
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Management Hub" subtitle="Oversee and manage all aspects of your community." role="admin" />
+      <AdminHeader barTitle="Portl" centerBar bigTitle="Management" />
       <ScrollView
-        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32 }}
         refreshControl={
           <RefreshControl
             refreshing={
@@ -88,62 +59,59 @@ export default function AdminSociety() {
               residentsQuery.isRefetching ||
               guardsQuery.isRefetching ||
               staffQuery.isRefetching ||
-              noticesQuery.isRefetching ||
-              pollsQuery.isRefetching ||
               duesQuery.isRefetching
             }
-            onRefresh={() => {
-              towersQuery.refetch();
-              flatsQuery.refetch();
-              amenitiesQuery.refetch();
-              residentsQuery.refetch();
-              guardsQuery.refetch();
-              staffQuery.refetch();
-              noticesQuery.refetch();
-              pollsQuery.refetch();
-              duesQuery.refetch();
-            }}
+            onRefresh={refetchAll}
           />
         }
       >
-        {sections.map((section) => (
-          <View key={section.label} className="gap-3 bg-surface p-5" style={[{ borderRadius: 16 }, shadowCard]}>
-            <View className="flex-row items-start justify-between">
+        <View
+          style={{
+            backgroundColor: "#1A1A1A",
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: "#333333",
+            overflow: "hidden",
+          }}
+        >
+          {rows.map((row, index) => (
+            <Pressable
+              key={row.label}
+              onPress={() => router.push(row.route as never)}
+              android_ripple={{ color: "#242424" }}
+              className="flex-row items-center gap-4"
+              style={{
+                padding: 20,
+                borderTopWidth: index > 0 ? 1 : 0,
+                borderTopColor: "#333333",
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={row.label}
+            >
               <View
-                className="h-12 w-12 items-center justify-center bg-surface-container-high"
-                style={{ borderRadius: 12 }}
+                className="items-center justify-center"
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  backgroundColor: "#242424",
+                  borderWidth: 1,
+                  borderColor: "#333333",
+                }}
               >
-                <MaterialIcons name={section.icon} size={24} color={section.accent} />
+                <MaterialIcons name={row.icon} size={22} color="#F5821F" />
               </View>
-              <MaterialIcons name="north-east" size={20} color="#6E6E6E" />
-            </View>
-            <Text className="text-headline-md font-extrabold text-on-surface">{section.label}</Text>
-
-            <View className="flex-row gap-3">
-              {section.items.map((item) => (
-                <PressableScale key={item.label} scaleTo={0.97} className="flex-1" onPress={() => router.push(item.route as never)}>
-                  <View className="gap-1 p-3" style={{ borderRadius: 12, backgroundColor: "#1F1F1F" }}>
-                    <Text className="text-label-sm text-text-muted">{item.label}</Text>
-                    <Text className="text-headline-md font-extrabold" style={{ color: section.accent }}>
-                      {item.value}
-                    </Text>
-                  </View>
-                </PressableScale>
-              ))}
-            </View>
-          </View>
-        ))}
-
-        <View className="gap-2 pt-2">
-          <Text className="text-label-caps uppercase text-text-muted">Quick Actions</Text>
-          <View className="flex-row gap-3">
-            <Button className="flex-1" variant="primary" onPress={() => router.push("/(admin)/notices")}>
-              + New Notice
-            </Button>
-            <Button className="flex-1" variant="outline" onPress={() => router.push("/(admin)/residents")}>
-              Add Resident
-            </Button>
-          </View>
+              <View className="min-w-0 flex-1">
+                <Text className="text-section-header font-bold text-on-surface" numberOfLines={1}>
+                  {row.label}
+                </Text>
+                <Text className="mt-0.5 text-body-sm text-text-muted" numberOfLines={1}>
+                  {row.subtitle}
+                </Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={24} color="#8A8A8A" />
+            </Pressable>
+          ))}
         </View>
       </ScrollView>
     </View>

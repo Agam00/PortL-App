@@ -5,7 +5,7 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
+import { AdminHeader } from "../../components/ui/admin-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { TimeField } from "../../components/ui/time-field";
@@ -14,7 +14,6 @@ import { FormPanel } from "../../components/ui/form-panel";
 import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
 import { PressableScale } from "../../components/ui/pressable-scale";
-import { shadowCard } from "../../lib/shadows";
 
 function timeToDate(time: string): Date {
   const [h, m] = time.split(":").map(Number);
@@ -25,6 +24,16 @@ function timeToDate(time: string): Date {
 
 function dateToTime(date: Date): string {
   return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+}
+
+function amenityIcon(name: string): React.ComponentProps<typeof MaterialIcons>["name"] {
+  const n = name.toLowerCase();
+  if (n.includes("pool") || n.includes("swim")) return "pool";
+  if (n.includes("gym") || n.includes("fitness")) return "fitness-center";
+  if (n.includes("tennis")) return "sports-tennis";
+  if (n.includes("hall") || n.includes("club") || n.includes("party")) return "celebration";
+  if (n.includes("park") || n.includes("garden")) return "park";
+  return "meeting-room";
 }
 
 export default function AdminAmenities() {
@@ -159,18 +168,20 @@ export default function AdminAmenities() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Amenities" subtitle="Manage community facilities, schedules, and capacities." role="admin" />
+      <AdminHeader
+        showBack
+        barTitle="Portl"
+        centerBar
+        bigTitle="Amenities"
+        action={{ label: showForm ? "Close" : "+ Add", onPress: () => (showForm ? resetForm() : setShowForm(true)) }}
+      />
       <ScrollView
-        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 16 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={amenitiesQuery.isRefetching} onRefresh={() => amenitiesQuery.refetch()} />}
       >
-        <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
-          {showForm ? "Cancel" : "+ New Amenity"}
-        </Button>
-
         {showForm && (
-          <FormPanel className="bg-surface" style={{ borderWidth: 1.5, borderColor: "#FF9A3D" }}>
+          <FormPanel style={{ borderWidth: 1.5, borderColor: "#F5821F" }}>
             <View className="flex-row items-center gap-2">
               <MaterialIcons name={editingId ? "edit-note" : "add-circle-outline"} size={22} color="#F5821F" />
               <Text className="text-headline-md font-extrabold text-on-surface">
@@ -208,92 +219,89 @@ export default function AdminAmenities() {
         {amenitiesQuery.isLoading ? (
           <ListLoading />
         ) : amenitiesQuery.isError ? (
-          <View className="rounded-card bg-surface">
+          <View style={{ borderRadius: 20, backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}>
             <EmptyState title="Couldn't load facilities" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : amenities.length === 0 ? (
-          <View className="rounded-card bg-surface">
+          <View style={{ borderRadius: 20, backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}>
             <EmptyState title="No facilities yet" description="Add a facility to get started." icon="pool" />
           </View>
         ) : (
-          <View className="gap-4">
+          <View style={{ gap: 16 }}>
             {amenities.map((amenity) => (
-              <View key={amenity.id} className="gap-3 bg-surface p-5" style={[{ borderRadius: 20 }, shadowCard]}>
-                <View className="flex-row items-center justify-between">
+              <View
+                key={amenity.id}
+                style={{
+                  backgroundColor: "#1A1A1A",
+                  borderRadius: 20,
+                  borderWidth: 1,
+                  borderColor: "#333333",
+                  padding: 20,
+                  gap: 14,
+                }}
+              >
+                <View className="flex-row items-start justify-between">
+                  <View
+                    className="items-center justify-center"
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 14,
+                      backgroundColor: "#242424",
+                      borderWidth: 1,
+                      borderColor: "#333333",
+                    }}
+                  >
+                    <MaterialIcons name={amenityIcon(amenity.name)} size={24} color="#F5821F" />
+                  </View>
                   <Pressable
                     onPress={() => toggleActiveMutation.mutate({ amenityId: amenity.id, isActive: !amenity.isActive })}
                     className="flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
-                    style={{ backgroundColor: amenity.isActive ? "rgba(254,178,70,0.28)" : "rgba(186,26,26,0.10)" }}
+                    style={{ backgroundColor: "#242424", borderWidth: 1, borderColor: "#333333" }}
                     accessibilityRole="button"
                     accessibilityLabel={`${amenity.name} is ${amenity.isActive ? "open — tap to close" : "under maintenance — tap to open"}`}
                   >
-                    {amenity.isActive ? (
-                      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#845400" }} />
-                    ) : (
-                      <MaterialIcons name="warning-amber" size={13} color="#BA1A1A" />
-                    )}
-                    <Text className="text-meta-text font-semibold" style={{ color: amenity.isActive ? "#845400" : "#BA1A1A" }}>
-                      {amenity.isActive ? "Open" : "Maintenance"}
+                    <View
+                      style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: amenity.isActive ? "#27C96D" : "#FF5F5F" }}
+                    />
+                    <Text className="text-body-sm font-semibold text-on-surface">
+                      {amenity.isActive ? "Available" : "Maintenance"}
                     </Text>
                   </Pressable>
+                </View>
+
+                <View className="gap-1">
+                  <Text className="text-headline-md font-extrabold text-on-surface">{amenity.name}</Text>
+                  <Text className="text-body-md text-text-muted" numberOfLines={1}>
+                    Open {amenity.openTime.slice(0, 5)}–{amenity.closeTime.slice(0, 5)} · Capacity {amenity.capacity}
+                    {amenity.description ? ` · ${amenity.description}` : ""}
+                  </Text>
+                </View>
+
+                <View
+                  className="flex-row items-center justify-between pt-3"
+                  style={{ borderTopWidth: 1, borderTopColor: "#333333" }}
+                >
+                  <PressableScale
+                    scaleTo={0.97}
+                    onPress={() => setBookingsAmenityId(bookingsAmenityId === amenity.id ? null : amenity.id)}
+                    className="flex-row items-center gap-2"
+                    accessibilityRole="button"
+                    accessibilityLabel={`${bookingsAmenityId === amenity.id ? "Hide" : "Show"} bookings for ${amenity.name}`}
+                  >
+                    <MaterialIcons name="event-note" size={18} color="#F5821F" />
+                    <Text className="text-body-sm font-semibold text-primary">Booking Oversight</Text>
+                  </PressableScale>
                   <View className="flex-row items-center gap-1">
                     <IconButton icon="edit" size={20} onPress={() => startEdit(amenity)} accessibilityLabel={`Edit ${amenity.name}`} />
                     <IconButton
                       icon="delete-outline"
                       size={20}
-                      color="#BA1A1A"
                       onPress={() => confirmDelete(amenity.id, amenity.name)}
                       accessibilityLabel={`Delete ${amenity.name}`}
                     />
                   </View>
                 </View>
-
-                <View className="gap-1">
-                  <Text className="text-headline-md font-extrabold text-on-surface">{amenity.name}</Text>
-                  {amenity.description ? (
-                    <View className="flex-row items-center gap-1.5">
-                      <MaterialIcons name="place" size={14} color="#8A8A8A" />
-                      <Text className="min-w-0 flex-1 text-body-sm text-text-muted" numberOfLines={1}>
-                        {amenity.description}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-
-                <View className="flex-row gap-3">
-                  <View
-                    className="flex-1 gap-1 p-3"
-                    style={{ borderRadius: 12, borderWidth: 1, borderColor: "#333333", backgroundColor: "#0D0D0D" }}
-                  >
-                    <Text className="text-meta-text text-text-muted">Schedule</Text>
-                    <Text className="text-body-md font-bold text-on-surface">
-                      {amenity.openTime.slice(0, 5)} - {amenity.closeTime.slice(0, 5)}
-                    </Text>
-                    <Text className="text-meta-text text-text-muted">{amenity.slotMinutes}-min slots</Text>
-                  </View>
-                  <View
-                    className="flex-1 gap-1 p-3"
-                    style={{ borderRadius: 12, borderWidth: 1, borderColor: "#333333", backgroundColor: "#0D0D0D" }}
-                  >
-                    <Text className="text-meta-text text-text-muted">Capacity</Text>
-                    <View className="flex-row items-baseline gap-1">
-                      <Text className="text-headline-md font-extrabold text-primary">{amenity.capacity}</Text>
-                      <Text className="text-body-sm text-text-muted">persons</Text>
-                    </View>
-                  </View>
-                </View>
-
-                <PressableScale
-                  scaleTo={0.97}
-                  onPress={() => setBookingsAmenityId(bookingsAmenityId === amenity.id ? null : amenity.id)}
-                  className="flex-row items-center justify-center gap-2 bg-surface-container py-3"
-                  style={{ borderRadius: 12 }}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${bookingsAmenityId === amenity.id ? "Hide" : "Show"} bookings for ${amenity.name}`}
-                >
-                  <MaterialIcons name="event-note" size={18} color="#F5821F" />
-                  <Text className="text-body-sm font-semibold text-primary">Booking Oversight</Text>
-                </PressableScale>
 
                 {bookingsAmenityId === amenity.id && (
                   <View className="gap-2 border-t border-outline-variant pt-3">
@@ -305,8 +313,8 @@ export default function AdminAmenities() {
                       (bookingsQuery.data ?? []).map((booking) => (
                         <View
                           key={booking.id}
-                          className="flex-row items-center justify-between bg-surface-container p-3"
-                          style={{ borderRadius: 12 }}
+                          className="flex-row items-center justify-between p-3"
+                          style={{ borderRadius: 12, backgroundColor: "#242424" }}
                         >
                           <View className="min-w-0 flex-1">
                             <Text className="text-body-sm font-medium text-on-surface" numberOfLines={1}>

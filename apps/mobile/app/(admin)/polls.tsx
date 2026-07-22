@@ -5,17 +5,13 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
+import { AdminHeader } from "../../components/ui/admin-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
 import { IconButton } from "../../components/ui/icon-button";
 import { ListLoading } from "../../components/ui/list-loading";
-import { shadowCard } from "../../lib/shadows";
-
-// mockup cycles the option progress-bar colors: violet, amber, brown
-const BAR_COLORS = ["#F5821F", "#FEB246", "#AA6700", "#FF9A3D"];
 
 export default function AdminPolls() {
   const showToast = useUiStore((s) => s.showToast);
@@ -91,31 +87,27 @@ export default function AdminPolls() {
     createMutation.mutate({ question: question.trim(), options: cleanOptions });
   }
 
-  const polls = pollsQuery.data ?? [];
-  const livePolls = polls.filter((p) => !p.isClosed);
-  const closedPolls = polls.filter((p) => p.isClosed);
+  const polls = [...(pollsQuery.data ?? [])].sort((a, b) => Number(a.isClosed) - Number(b.isClosed));
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader
-        title="Community Polls"
-        subtitle="Manage resident feedback and gauge community sentiment. Active polls appear on resident dashboards."
-        role="admin"
+      <AdminHeader
+        showBack
+        barTitle="Portl"
+        centerBar
+        bigTitle="Polls"
+        action={{ label: showForm ? "Close" : "+ Create", onPress: () => (showForm ? resetForm() : setShowForm(true)) }}
       />
       <ScrollView
-        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 16 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={pollsQuery.isRefetching} onRefresh={() => pollsQuery.refetch()} />}
       >
-        <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
-          {showForm ? "Cancel" : "+ Create New Poll"}
-        </Button>
-
         {showForm && (
-          <FormPanel className="bg-surface">
+          <FormPanel>
             <View className="flex-row items-center gap-3">
               <View className="items-center justify-center bg-primary" style={{ width: 40, height: 40, borderRadius: 12 }}>
-                <MaterialIcons name="ballot" size={22} color="#FFFFFF" />
+                <MaterialIcons name="ballot" size={22} color="#0D0D0D" />
               </View>
               <Text className="text-headline-md font-extrabold text-on-surface">Draft New Poll</Text>
             </View>
@@ -172,113 +164,107 @@ export default function AdminPolls() {
         {pollsQuery.isLoading ? (
           <ListLoading />
         ) : pollsQuery.isError ? (
-          <View className="rounded-card bg-surface">
+          <View style={{ borderRadius: 20, backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}>
             <EmptyState title="Couldn't load polls" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : polls.length === 0 ? (
-          <View className="rounded-card bg-surface">
+          <View style={{ borderRadius: 20, backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}>
             <EmptyState title="No polls yet" description="Create a poll above." icon="poll" />
           </View>
         ) : (
-          <>
-            {livePolls.map((poll) => (
-              <View key={poll.id} className="gap-3 bg-surface p-5" style={[{ borderRadius: 20 }, shadowCard]}>
-                <View className="flex-row items-center justify-between">
-                  <View
-                    className="flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
-                    style={{ backgroundColor: "rgba(254,178,70,0.25)" }}
-                  >
-                    <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#BA1A1A" }} />
-                    <Text className="text-label-caps font-bold" style={{ color: "#845400" }}>
-                      Live Now
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => closeMutation.mutate({ pollId: poll.id })}
-                    className="flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
-                    style={{ backgroundColor: "rgba(186,26,26,0.08)" }}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Close poll: ${poll.question}`}
-                  >
-                    <MaterialIcons name="stop-circle" size={14} color="#BA1A1A" />
-                    <Text className="text-meta-text font-semibold" style={{ color: "#BA1A1A" }}>
-                      Close Early
-                    </Text>
-                  </Pressable>
-                </View>
-
-                <Text className="text-headline-md font-extrabold text-on-surface">{poll.question}</Text>
-                <Text className="text-body-sm text-text-muted">
-                  {poll.totalVotes} resident{poll.totalVotes === 1 ? "" : "s"} voted so far
-                </Text>
-
-                <View className="gap-3">
-                  {poll.options.map((option, index) => {
-                    const pct = poll.totalVotes > 0 ? Math.round((option.voteCount / poll.totalVotes) * 100) : 0;
-                    return (
-                      <View key={option.id} className="gap-1.5">
-                        <View className="flex-row items-center justify-between gap-2">
-                          <Text className="min-w-0 flex-1 text-body-sm font-semibold text-on-surface" numberOfLines={1}>
-                            {option.label}
-                          </Text>
-                          <Text className="text-body-sm font-bold text-on-surface">
-                            {pct}% ({option.voteCount} votes)
-                          </Text>
-                        </View>
-                        <View style={{ height: 8, borderRadius: 4, backgroundColor: "#242424", overflow: "hidden" }}>
-                          <View
-                            style={{
-                              height: 8,
-                              borderRadius: 4,
-                              width: `${pct}%`,
-                              backgroundColor: BAR_COLORS[index % BAR_COLORS.length],
-                            }}
-                          />
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-
-                <View className="flex-row items-center justify-end">
-                  <IconButton
-                    icon="delete-outline"
-                    color="#BA1A1A"
-                    onPress={() => confirmDelete(poll.id, poll.question)}
-                    accessibilityLabel={`Delete poll: ${poll.question}`}
-                  />
-                </View>
-              </View>
-            ))}
-
-            {closedPolls.length > 0 && (
-              <Text className="pt-2 text-headline-md font-extrabold text-on-surface">Recent Polls</Text>
-            )}
-            {closedPolls.map((poll) => {
-              const winner = [...poll.options].sort((a, b) => b.voteCount - a.voteCount)[0];
-              const winnerPct = winner && poll.totalVotes > 0 ? Math.round((winner.voteCount / poll.totalVotes) * 100) : 0;
+          <View style={{ gap: 16 }}>
+            {polls.map((poll) => {
+              const closed = poll.isClosed;
+              const leadingCount = Math.max(0, ...poll.options.map((o) => o.voteCount));
               return (
-                <View key={poll.id} className="gap-2 bg-surface p-5" style={[{ borderRadius: 20 }, shadowCard]}>
-                  <View className="flex-row items-center justify-between">
-                    <View className="rounded-full bg-surface-container-high px-3 py-1">
-                      <Text className="text-meta-text font-semibold text-on-surface-variant">Closed</Text>
+                <View
+                  key={poll.id}
+                  style={{
+                    backgroundColor: "#1A1A1A",
+                    borderRadius: 20,
+                    borderWidth: 1,
+                    borderColor: "#333333",
+                    padding: 20,
+                    gap: 16,
+                  }}
+                >
+                  <View className="flex-row items-start justify-between gap-3">
+                    <Text className="min-w-0 flex-1 text-headline-md font-extrabold text-on-surface">{poll.question}</Text>
+                    <View
+                      className="rounded-full px-3 py-1"
+                      style={{ borderWidth: 1, borderColor: closed ? "#333333" : "#F5821F" }}
+                    >
+                      <Text
+                        className="text-body-sm font-semibold"
+                        style={{ color: closed ? "#8A8A8A" : "#F5821F" }}
+                      >
+                        {closed ? "Closed" : "Active"}
+                      </Text>
                     </View>
-                    <IconButton
-                      icon="delete-outline"
-                      color="#BA1A1A"
-                      onPress={() => confirmDelete(poll.id, poll.question)}
-                      accessibilityLabel={`Delete poll: ${poll.question}`}
-                    />
                   </View>
-                  <Text className="text-body-md font-bold text-on-surface">{poll.question}</Text>
-                  <Text className="text-body-sm text-on-surface-variant">
-                    {winner && poll.totalVotes > 0 ? `Winner: ${winner.label} (${winnerPct}%)` : "No votes were cast"}
-                  </Text>
-                  <Text className="text-meta-text text-text-muted">Total: {poll.totalVotes} votes</Text>
+
+                  <View style={{ gap: 12 }}>
+                    {poll.options.map((option) => {
+                      const pct = poll.totalVotes > 0 ? Math.round((option.voteCount / poll.totalVotes) * 100) : 0;
+                      const leading = option.voteCount === leadingCount && leadingCount > 0;
+                      return (
+                        <View key={option.id} style={{ gap: 8 }}>
+                          <View className="flex-row items-center justify-between gap-2">
+                            <Text className="min-w-0 flex-1 text-body-md text-on-surface" numberOfLines={1}>
+                              {option.label}
+                            </Text>
+                            <Text className="text-body-md font-bold text-on-surface">{pct}%</Text>
+                          </View>
+                          <View style={{ height: 8, borderRadius: 999, backgroundColor: "#242424", overflow: "hidden" }}>
+                            <View
+                              style={{
+                                height: 8,
+                                borderRadius: 999,
+                                width: `${pct}%`,
+                                backgroundColor: leading ? "#F5821F" : "#8A4E12",
+                              }}
+                            />
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+
+                  <View
+                    className="flex-row items-center justify-between pt-3"
+                    style={{ borderTopWidth: 1, borderTopColor: "#333333" }}
+                  >
+                    <View className="flex-row items-center gap-1.5">
+                      <MaterialIcons name="how-to-vote" size={16} color="#8A8A8A" />
+                      <Text className="text-body-sm text-text-muted">
+                        {poll.totalVotes} vote{poll.totalVotes === 1 ? "" : "s"} · {closed ? "Closed" : "Active"}
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center gap-1">
+                      {!closed && (
+                        <Pressable
+                          onPress={() => closeMutation.mutate({ pollId: poll.id })}
+                          className="flex-row items-center gap-1 rounded-full px-3 py-1.5"
+                          style={{ backgroundColor: "#242424", borderWidth: 1, borderColor: "#333333" }}
+                          accessibilityRole="button"
+                          accessibilityLabel={`Close poll: ${poll.question}`}
+                        >
+                          <MaterialIcons name="stop-circle" size={14} color="#C4C4C4" />
+                          <Text className="text-body-sm font-semibold text-on-surface-variant">Close</Text>
+                        </Pressable>
+                      )}
+                      <IconButton
+                        icon="delete-outline"
+                        size={20}
+                        onPress={() => confirmDelete(poll.id, poll.question)}
+                        accessibilityLabel={`Delete poll: ${poll.question}`}
+                      />
+                    </View>
+                  </View>
                 </View>
               );
             })}
-          </>
+          </View>
         )}
       </ScrollView>
     </View>

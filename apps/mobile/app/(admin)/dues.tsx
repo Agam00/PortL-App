@@ -5,19 +5,18 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
+import { AdminHeader } from "../../components/ui/admin-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
 import { DateField } from "../../components/ui/date-field";
 import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
-import { ListRowCard } from "../../components/ui/list-row-card";
 import { ListLoading } from "../../components/ui/list-loading";
 
 function periodLabel(period: string) {
   const [year, month] = period.split("-").map(Number);
-  return new Date(year ?? 2026, (month ?? 1) - 1).toLocaleDateString([], { month: "long", year: "numeric" });
+  return new Date(year ?? 2026, (month ?? 1) - 1).toLocaleDateString([], { month: "short", year: "numeric" });
 }
 
 function toDateString(date: Date): string {
@@ -26,6 +25,12 @@ function toDateString(date: Date): string {
 
 function toPeriodString(date: Date): string {
   return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
+}
+
+function inr(n: number): string {
+  if (n >= 100000) return `₹${(n / 100000).toFixed(n % 100000 === 0 ? 0 : 1)}L`;
+  if (n >= 1000) return `₹${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
+  return `₹${Math.round(n)}`;
 }
 
 export default function AdminDues() {
@@ -80,7 +85,11 @@ export default function AdminDues() {
   }
 
   const flats = flatsQuery.data ?? [];
-  const dues = (duesQuery.data ?? []).filter((d) => {
+  const allDues = duesQuery.data ?? [];
+  const collected = allDues.filter((d) => d.status === "paid").reduce((sum, d) => sum + Number(d.amount), 0);
+  const pending = allDues.filter((d) => d.status !== "paid").reduce((sum, d) => sum + Number(d.amount), 0);
+
+  const dues = allDues.filter((d) => {
     if (statusFilter === "all") return true;
     if (statusFilter === "paid") return d.status === "paid";
     return d.status !== "paid";
@@ -88,13 +97,15 @@ export default function AdminDues() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader
-        title="Dues Management"
-        subtitle="Generate maintenance dues and track payment status across the society."
-        role="admin"
+      <AdminHeader
+        showBack
+        barTitle="Portl"
+        centerBar
+        bigTitle="Maintenance Dues"
+        action={{ label: showForm ? "Close" : "+ Add", onPress: () => (showForm ? resetForm() : setShowForm(true)) }}
       />
       <ScrollView
-        contentContainerClassName="gap-4 px-4 pb-8 pt-2"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 16 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
@@ -106,9 +117,31 @@ export default function AdminDues() {
           />
         }
       >
-        <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
-          {showForm ? "Cancel" : "+ Generate Due"}
-        </Button>
+        {/* Summary tiles */}
+        <View className="flex-row" style={{ gap: 16 }}>
+          {[
+            { label: "Collected", value: inr(collected), color: "#27C96D" },
+            { label: "Pending", value: inr(pending), color: "#F5821F" },
+          ].map((tile) => (
+            <View
+              key={tile.label}
+              className="flex-1"
+              style={{
+                backgroundColor: "#1A1A1A",
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: "#333333",
+                padding: 18,
+                gap: 6,
+              }}
+            >
+              <Text className="text-body-md text-text-muted">{tile.label}</Text>
+              <Text className="font-extrabold" style={{ fontSize: 28, color: tile.color }}>
+                {tile.value}
+              </Text>
+            </View>
+          ))}
+        </View>
 
         {showForm && (
           <FormPanel>
@@ -152,52 +185,71 @@ export default function AdminDues() {
           </FormPanel>
         )}
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-2">
+        <View className="flex-row gap-2">
           {(["all", "pending", "paid"] as const).map((f) => (
             <Chip key={f} label={f === "all" ? "All" : f === "pending" ? "Pending" : "Paid"} selected={statusFilter === f} onPress={() => setStatusFilter(f)} />
           ))}
-        </ScrollView>
+        </View>
 
         {duesQuery.isLoading ? (
           <ListLoading />
         ) : duesQuery.isError ? (
-          <View className="rounded-card bg-surface">
+          <View style={{ borderRadius: 20, backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}>
             <EmptyState title="Couldn't load dues" description="Pull down to refresh and try again." icon="error-outline" />
           </View>
         ) : dues.length === 0 ? (
-          <View className="rounded-card bg-surface">
+          <View style={{ borderRadius: 20, backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#333333" }}>
             <EmptyState title="No dues found" description="Generate a due above to get started." icon="payments" />
           </View>
         ) : (
-          <View className="gap-2">
-            {dues.map((due) => (
-              <ListRowCard key={due.id} className="flex-row items-center justify-between gap-3">
-                <View className="min-w-0 flex-1">
-                  <Text className="text-body-md font-bold text-on-surface" numberOfLines={1}>
-                    {due.flatNumber} · {periodLabel(due.period)}
-                  </Text>
-                  <Text className="text-body-sm text-text-muted">₹{Number(due.amount).toFixed(2)}</Text>
-                </View>
+          <View
+            style={{
+              backgroundColor: "#1A1A1A",
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: "#333333",
+              overflow: "hidden",
+            }}
+          >
+            {dues.map((due, index) => {
+              const paid = due.status === "paid";
+              const overdue = !paid && due.isOverdue;
+              const pillColor = paid ? "#8A8A8A" : overdue ? "#FF5F5F" : "#F5821F";
+              const pillLabel = paid ? "PAID" : overdue ? "OVERDUE" : "DUE";
+              return (
                 <View
-                  className="rounded-full px-3 py-1"
+                  key={due.id}
+                  className="flex-row items-center gap-3"
                   style={{
-                    backgroundColor:
-                      due.status === "paid"
-                        ? "rgba(39,201,109,0.16)"
-                        : due.isOverdue
-                          ? "rgba(186,26,26,0.10)"
-                          : "rgba(254,178,70,0.28)",
+                    padding: 20,
+                    borderTopWidth: index > 0 ? 1 : 0,
+                    borderTopColor: "#333333",
                   }}
                 >
-                  <Text
-                    className="text-meta-text font-semibold uppercase"
-                    style={{ color: due.status === "paid" ? "#1B7A44" : due.isOverdue ? "#BA1A1A" : "#845400" }}
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-section-header font-bold text-on-surface" numberOfLines={1}>
+                      {due.flatNumber}
+                    </Text>
+                    <Text className="mt-0.5 text-body-sm text-text-muted" numberOfLines={1}>
+                      {periodLabel(due.period)}
+                    </Text>
+                  </View>
+                  <Text className="text-body-lg font-bold text-on-surface">₹{Number(due.amount).toLocaleString("en-IN")}</Text>
+                  <View
+                    className="items-center justify-center rounded-full px-3 py-1"
+                    style={
+                      paid
+                        ? { backgroundColor: "#242424" }
+                        : { borderWidth: 1, borderColor: pillColor }
+                    }
                   >
-                    {due.status === "paid" ? "Paid" : due.isOverdue ? "Overdue" : "Pending"}
-                  </Text>
+                    <Text className="text-label-caps font-semibold uppercase" style={{ color: pillColor }}>
+                      {pillLabel}
+                    </Text>
+                  </View>
                 </View>
-              </ListRowCard>
-            ))}
+              );
+            })}
           </View>
         )}
       </ScrollView>

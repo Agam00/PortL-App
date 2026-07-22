@@ -64,7 +64,9 @@ export default function AdminSocial() {
     <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       {/* Top bar */}
       <View className="flex-row items-center justify-between px-5 pb-3" style={{ paddingTop: insets.top + 10 }}>
-        <Text className="text-headline-md font-extrabold text-on-surface">Community</Text>
+        <Text className="font-extrabold text-on-surface" style={{ fontSize: 28, letterSpacing: -0.5 }}>
+          Community
+        </Text>
         <Pressable
           onPress={() => router.push("/(admin)/notifications")}
           hitSlop={8}
