@@ -38,6 +38,8 @@ export default function AdminGuards() {
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const guardsQuery = trpc.admin.listGuards.useQuery();
+  const dutyQuery = trpc.duty.guards.useQuery(undefined, { refetchInterval: 15_000 });
+  const dutyById = new Map((dutyQuery.data ?? []).map((g) => [g.id, g.onDuty]));
   const guards = (guardsQuery.data ?? []).filter(
     (g) => search.trim().length === 0 || g.fullName.toLowerCase().includes(search.toLowerCase()) || g.phone.includes(search),
   );
@@ -241,9 +243,25 @@ export default function AdminGuards() {
                     </Text>
                   </View>
                   <View className="min-w-0 flex-1">
-                    <Text className="text-section-header font-bold text-on-surface" numberOfLines={1}>
-                      {guard.fullName}
-                    </Text>
+                    <View className="flex-row items-center gap-2">
+                      <Text className="min-w-0 flex-shrink text-section-header font-bold text-on-surface" numberOfLines={1}>
+                        {guard.fullName}
+                      </Text>
+                      {(() => {
+                        const onDuty = dutyById.get(guard.id) ?? false;
+                        return (
+                          <View
+                            className="flex-row items-center gap-1 rounded-full px-2 py-0.5"
+                            style={{ backgroundColor: onDuty ? "#153A24" : "#242424" }}
+                          >
+                            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: onDuty ? "#27C96D" : "#8A8A8A" }} />
+                            <Text className="text-label-caps font-bold uppercase" style={{ color: onDuty ? "#27C96D" : "#8A8A8A" }}>
+                              {onDuty ? "On duty" : "Off duty"}
+                            </Text>
+                          </View>
+                        );
+                      })()}
+                    </View>
                     <View className="mt-1 flex-row items-center gap-1.5">
                       <MaterialIcons name="phone-iphone" size={14} color="#8A8A8A" />
                       <Text className="min-w-0 flex-1 text-body-sm text-text-muted" numberOfLines={1}>

@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, varchar, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, uuid, varchar, text, timestamp, boolean } from "drizzle-orm/pg-core";
 import { societiesTable } from "./society";
 import { flatsTable } from "./flat";
 import { usersTable } from "./user";
@@ -50,6 +50,10 @@ export const visitorsTable = pgTable("visitors", {
   // 6-digit gate-pass code for resident pre-approvals — the resident shares it, a guard
   // types it into the gate keypad to look the visitor up and check them in. Unique per society.
   passCode: varchar("pass_code", { length: 6 }),
+
+  // Delivery only: resident chose to have the package held at the gate rather than sent up.
+  // The guard releases it only after the resident reads back the passCode (collection OTP).
+  keepAtGate: boolean("keep_at_gate").notNull().default(false),
 
   validFrom: timestamp("valid_from"),
   validUntil: timestamp("valid_until"),

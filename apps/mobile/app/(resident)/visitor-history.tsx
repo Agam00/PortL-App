@@ -134,11 +134,23 @@ export default function ResidentActivity() {
           )}
         </Pressable>
         <Text className="text-headline-md font-extrabold text-on-surface">Activity</Text>
-        <Pressable onPress={() => router.push("/(resident)/profile")} hitSlop={8} accessibilityLabel="Profile" accessibilityRole="button">
-          <View className="rounded-full" style={shadowCard}>
-            <Avatar name={user?.fullName ?? "Resident"} size={44} />
-          </View>
-        </Pressable>
+        <View className="flex-row items-center gap-2">
+          <Pressable
+            onPress={() => router.push("/(resident)/pre-approvals")}
+            hitSlop={8}
+            className="h-11 w-11 items-center justify-center rounded-full bg-surface"
+            style={shadowCard}
+            accessibilityLabel="My pre-approvals"
+            accessibilityRole="button"
+          >
+            <MaterialIcons name="how-to-reg" size={22} color="#F5821F" />
+          </Pressable>
+          <Pressable onPress={() => router.push("/(resident)/profile")} hitSlop={8} accessibilityLabel="Profile" accessibilityRole="button">
+            <View className="rounded-full" style={shadowCard}>
+              <Avatar name={user?.fullName ?? "Resident"} size={44} />
+            </View>
+          </Pressable>
+        </View>
       </View>
 
       {/* Today / Upcoming toggle */}
@@ -185,6 +197,10 @@ export default function ResidentActivity() {
           shown.map((v) => {
             const status = statusInfo(v);
             const cancellable = isCancellable(v);
+            const hasPass =
+              v.source === "resident_preapproved" &&
+              !!v.passCode &&
+              (v.status === "approved" || v.status === "pending");
             return (
               <View key={v.id} className="rounded-2xl bg-surface p-4" style={shadowCard}>
                 <View className="flex-row items-center gap-3">
@@ -214,7 +230,13 @@ export default function ResidentActivity() {
                     onPress={() => confirmCancel(v)}
                   />
                   <View style={{ width: 1, backgroundColor: "#2A2A2A" }} />
-                  <ActionButton icon="qr-code-2" label="GatePass" color="#8A8A8A" disabled onPress={() => {}} />
+                  <ActionButton
+                    icon="qr-code-2"
+                    label="GatePass"
+                    color="#F5821F"
+                    disabled={!hasPass}
+                    onPress={() => router.push(`/(resident)/visitor-pass?visitorId=${v.id}`)}
+                  />
                 </View>
               </View>
             );

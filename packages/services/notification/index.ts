@@ -1,5 +1,5 @@
 import { Expo } from "expo-server-sdk";
-import { db, eq, and, inArray, isNull, sql } from "@repo/database";
+import { db, eq, and, inArray, isNull, ne, sql } from "@repo/database";
 import { notificationsTable, usersTable, flatsTable, complaintsTable, pushTokensTable } from "@repo/database/schema";
 import type { NotificationOutput } from "./model";
 
@@ -64,7 +64,20 @@ class NotificationService {
     const rows = await db
       .select()
       .from(notificationsTable)
-      .where(eq(notificationsTable.userId, userId))
+      // "alert_log" rows are the sender's own record of alerts they raised — they belong
+      // in the alert history, not the notification inbox.
+      .where(and(eq(notificationsTable.userId, userId), ne(notificationsTable.type, "alert_log")))
+      .orderBy(notificationsTable.createdAt)
+      .limit(50);
+    return rows.reverse().map(serialize);
+  }
+
+  /** A resident's own log of the alerts/messages they raised, most recent first. */
+  async residentAlertHistory(userId: string): Promise<NotificationOutput[]> {
+    const rows = await db
+      .select()
+      .from(notificationsTable)
+      .where(and(eq(notificationsTable.userId, userId), eq(notificationsTable.type, "alert_log")))
       .orderBy(notificationsTable.createdAt)
       .limit(50);
     return rows.reverse().map(serialize);
@@ -295,6 +308,17 @@ class NotificationService {
             data: { fromUserId, fromName: from?.name ?? "Resident" },
           },
     );
+
+    // Record a sender-side log so the resident can review what they sent and when.
+    const target = roles.includes("admin") ? (roles.includes("guard") ? "Admin & Security" : "Admin") : "Security";
+    await db.insert(notificationsTable).values({
+      userId: fromUserId,
+      type: "alert_log",
+      title: input.emergency ? `🚨 ${input.label}` : `Message to ${target}`,
+      body: input.emergency ? `Alert sent to ${target}` : `Sent to ${target}`,
+      data: { label: input.label, emergency: input.emergency, target },
+      readAt: new Date(),
+    });
   }
 
   /** A guard files a report/incident to the society admin(s). */

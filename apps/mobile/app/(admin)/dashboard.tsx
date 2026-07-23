@@ -1,5 +1,7 @@
-import { View, Text, ScrollView, RefreshControl, Pressable } from "react-native";
+import { useState } from "react";
+import { View, Text, ScrollView, RefreshControl, Pressable, Modal } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useAuthStore } from "../../stores/auth-store";
@@ -7,6 +9,7 @@ import { AdminHeader } from "../../components/ui/admin-header";
 import { EmptyState } from "../../components/ui/empty-state";
 import { ListLoading } from "../../components/ui/list-loading";
 import { VISITOR_TYPE_LABEL } from "../../lib/visitor-status";
+import { shadowElevated } from "../../lib/shadows";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 
 function timeAgo(iso: string) {
@@ -66,15 +69,16 @@ const TYPE_ICON: Record<VisitorOutput["type"], React.ComponentProps<typeof Mater
 export default function AdminDashboard() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const [detail, setDetail] = useState<VisitorOutput | null>(null);
   const firstName = user?.fullName.trim().split(/\s+/)[0] ?? "Admin";
   const metricsQuery = trpc.admin.metrics.useQuery();
   const residentsQuery = trpc.admin.listResidents.useQuery();
-  const guardsQuery = trpc.admin.listGuards.useQuery();
+  const dutyQuery = trpc.duty.guards.useQuery(undefined, { refetchInterval: 15_000 });
   const feedQuery = trpc.visitors.history.useQuery({}, { refetchInterval: 5000 });
 
   const metrics = metricsQuery.data;
   const residentCount = residentsQuery.data?.length ?? null;
-  const guardsOnDuty = guardsQuery.data ? guardsQuery.data.filter((g) => g.isActive).length : null;
+  const guardsOnDuty = dutyQuery.data ? dutyQuery.data.filter((g) => g.onDuty).length : null;
   const feed = (feedQuery.data ?? []).slice(0, 6);
 
   const fmt = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n}`);
@@ -117,7 +121,7 @@ export default function AdminDashboard() {
             onRefresh={() => {
               metricsQuery.refetch();
               residentsQuery.refetch();
-              guardsQuery.refetch();
+              dutyQuery.refetch();
               feedQuery.refetch();
             }}
           />
@@ -212,8 +216,9 @@ export default function AdminDashboard() {
               feed.map((visitor, index) => {
                 const pill = PILL[STATUS_PILL[visitor.status]];
                 return (
-                  <View
+                  <Pressable
                     key={visitor.id}
+                    onPress={() => setDetail(visitor)}
                     className="flex-row items-center"
                     style={{
                       padding: 20,
@@ -221,6 +226,8 @@ export default function AdminDashboard() {
                       borderTopWidth: index > 0 ? 1 : 0,
                       borderTopColor: "#333333",
                     }}
+                    accessibilityLabel={`${STATUS_PHRASE[visitor.status]} — ${visitor.name}. Tap for details.`}
+                    accessibilityRole="button"
                   >
                     <View
                       className="items-center justify-center"
@@ -262,13 +269,80 @@ export default function AdminDashboard() {
                         {pill.label}
                       </Text>
                     </View>
-                  </View>
+                  </Pressable>
                 );
               })
             )}
           </View>
         </View>
       </ScrollView>
+
+      <GlanceDetailModal visitor={detail} onClose={() => setDetail(null)} />
     </View>
+  );
+}
+
+function GlanceDetailModal({ visitor, onClose }: { visitor: VisitorOutput | null; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  if (!visitor) return null;
+  const pill = PILL[STATUS_PILL[visitor.status]];
+
+  const fmt = (iso: string | null) =>
+    iso
+      ? `${new Date(iso).toLocaleDateString([], { day: "numeric", month: "short" })}, ${new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+      : "—";
+
+  const rows: { label: string; value: string }[] = [
+    { label: "Visitor", value: visitor.name },
+    { label: "Type", value: VISITOR_TYPE_LABEL[visitor.type] },
+    { label: "Flat", value: visitor.flatNumber ? `Flat ${visitor.flatNumber}` : "—" },
+    { label: "Phone", value: visitor.phone ?? "—" },
+    { label: "Requested", value: fmt(visitor.createdAt) },
+    { label: "Checked in", value: fmt(visitor.entryAt) },
+    { label: "Checked out", value: fmt(visitor.exitAt) },
+  ];
+
+  return (
+    <Modal visible transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable className="flex-1 justify-end" style={{ backgroundColor: "rgba(0,0,0,0.6)" }} onPress={onClose}>
+        <Pressable
+          onPress={() => {}}
+          className="gap-1 rounded-t-3xl px-5 pt-5"
+          style={[{ backgroundColor: "#1A1A1A", paddingBottom: insets.bottom + 20 }, shadowElevated]}
+        >
+          <View className="mb-3 h-1 w-10 self-center rounded-full" style={{ backgroundColor: "#333333" }} />
+          <View className="flex-row items-center justify-between pb-3">
+            <View className="flex-row items-center gap-3">
+              <View
+                className="items-center justify-center"
+                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#242424", borderWidth: 1, borderColor: "#333333" }}
+              >
+                <MaterialIcons name={TYPE_ICON[visitor.type]} size={22} color="#F5821F" />
+              </View>
+              <Text className="text-headline-md font-extrabold text-on-surface">{STATUS_PHRASE[visitor.status]}</Text>
+            </View>
+            <View
+              className="items-center justify-center"
+              style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: "#242424", borderWidth: 1, borderColor: pill.color }}
+            >
+              <Text className="font-semibold" style={{ fontSize: 10, letterSpacing: 1, color: pill.color }}>
+                {pill.label}
+              </Text>
+            </View>
+          </View>
+
+          <View className="gap-px overflow-hidden rounded-2xl" style={{ backgroundColor: "#242424" }}>
+            {rows.map((r) => (
+              <View key={r.label} className="flex-row items-center justify-between px-4 py-3">
+                <Text className="text-body-sm text-text-muted">{r.label}</Text>
+                <Text className="flex-1 text-right text-body-md font-bold text-on-surface" numberOfLines={1}>
+                  {r.value}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }

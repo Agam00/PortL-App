@@ -17,6 +17,7 @@ import PushTokenService from "@repo/services/push-token";
 import PostService from "@repo/services/post";
 import ServiceRequestService from "@repo/services/service-request";
 import ChatService from "@repo/services/chat";
+import DutyService from "@repo/services/duty";
 
 export const userService = new UserService();
 export const authService = new AuthService();
@@ -37,3 +38,4 @@ export const pushTokenService = new PushTokenService();
 export const postService = new PostService();
 export const serviceRequestService = new ServiceRequestService();
 export const chatService = new ChatService();
+export const dutyService = new DutyService();

@@ -34,6 +34,18 @@ export default function GuardProfile() {
   const conversationsQuery = trpc.chat.conversations.useQuery(undefined, { refetchInterval: 15_000 });
   const unreadMessages = (conversationsQuery.data ?? []).reduce((sum, c) => sum + c.unreadCount, 0);
 
+  const utils = trpc.useUtils();
+  const dutyQuery = trpc.duty.myStatus.useQuery();
+  const onDuty = dutyQuery.data?.onDuty ?? false;
+  const setDutyMutation = trpc.duty.setStatus.useMutation({
+    onMutate: () => hapticTap(),
+    onSuccess: (data) => {
+      showToast(data.onDuty ? "You're now On Duty" : "You're now Off Duty", data.onDuty ? "success" : "info");
+      utils.duty.myStatus.invalidate();
+    },
+    onError: (error) => showToast(getErrorMessage(error), "error"),
+  });
+
   const logoutMutation = trpc.auth.logout.useMutation({
     onSettled: () => {
       logout();
@@ -90,12 +102,45 @@ export default function GuardProfile() {
             </Text>
             <Text className="text-body-sm text-text-muted">Security Guard</Text>
           </View>
-          <View className="flex-row items-center gap-1.5 rounded-full px-3 py-1.5" style={{ backgroundColor: "#F5821F" }}>
-            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: "#141118" }} />
-            <Text className="text-body-sm font-bold" style={{ color: "#141118" }}>
-              On Duty
+          <Pressable
+            onPress={() => setDutyMutation.mutate({ onDuty: !onDuty })}
+            disabled={setDutyMutation.isPending || dutyQuery.isLoading}
+            className="flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
+            style={{ backgroundColor: onDuty ? "#F5821F" : "#242424", borderWidth: onDuty ? 0 : 1, borderColor: "#3A3A3A" }}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: onDuty }}
+            accessibilityLabel={onDuty ? "On duty — tap to go off duty" : "Off duty — tap to go on duty"}
+          >
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: onDuty ? "#141118" : "#8A8A8A" }} />
+            <Text className="text-body-sm font-bold" style={{ color: onDuty ? "#141118" : "#8A8A8A" }}>
+              {onDuty ? "On Duty" : "Off Duty"}
             </Text>
+          </Pressable>
+        </View>
+
+        {/* Explicit duty toggle row so the state is unmissable */}
+        <View className="flex-row items-center gap-3 rounded-2xl bg-surface p-4" style={shadowCard}>
+          <View
+            className="items-center justify-center"
+            style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: onDuty ? "#3A2A12" : "#242424" }}
+          >
+            <MaterialIcons name="shield" size={22} color={onDuty ? "#F5821F" : "#8A8A8A"} />
           </View>
+          <View className="min-w-0 flex-1">
+            <Text className="text-body-lg font-bold text-on-surface">Duty Status</Text>
+            <Text className="text-body-sm text-text-muted">Residents and admins see this.</Text>
+          </View>
+          <Pressable
+            onPress={() => setDutyMutation.mutate({ onDuty: !onDuty })}
+            disabled={setDutyMutation.isPending || dutyQuery.isLoading}
+            className="items-center justify-center rounded-full"
+            style={{ width: 52, height: 30, backgroundColor: onDuty ? "#F5821F" : "#3A3A3A", paddingHorizontal: 3, alignItems: onDuty ? "flex-end" : "flex-start" }}
+            accessibilityRole="switch"
+            accessibilityState={{ checked: onDuty }}
+            accessibilityLabel="Toggle duty status"
+          >
+            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: "#FFFFFF" }} />
+          </Pressable>
         </View>
 
         {/* Messages & admin */}

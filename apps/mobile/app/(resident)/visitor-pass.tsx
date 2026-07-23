@@ -90,7 +90,7 @@ export default function VisitorPass() {
                 <Text className="text-body-lg font-extrabold text-on-surface">Portl</Text>
               </View>
               <Text className="text-label-caps font-bold uppercase tracking-widest" style={{ color: "#F5821F" }}>
-                Gate Pass
+                {visitor.keepAtGate ? "Collection Pass" : "Gate Pass"}
               </Text>
             </View>
 
@@ -112,7 +112,9 @@ export default function VisitorPass() {
 
             {/* Code */}
             <View className="items-center gap-1 px-6">
-              <Text className="text-label-caps font-bold uppercase tracking-widest text-text-muted">Gate Code</Text>
+              <Text className="text-label-caps font-bold uppercase tracking-widest text-text-muted">
+                {visitor.keepAtGate ? "Collection Code" : "Gate Code"}
+              </Text>
               <Text className="font-extrabold" style={{ fontSize: 40, letterSpacing: 8, color: "#F5821F" }}>
                 {visitor.passCode}
               </Text>
@@ -120,12 +122,14 @@ export default function VisitorPass() {
 
             {/* Details */}
             <View className="mt-5 gap-px" style={{ borderTopWidth: 1, borderColor: "#242424" }}>
-              <DetailRow icon="apartment" label="Visiting" value={visitor.flatNumber ? `Unit ${visitor.flatNumber}` : "—"} />
+              <DetailRow icon="apartment" label={visitor.keepAtGate ? "Package for" : "Visiting"} value={visitor.flatNumber ? `Unit ${visitor.flatNumber}` : "—"} />
               <DetailRow icon="event" label="Valid" value={formatWindow(visitor)} />
             </View>
 
             <Text className="px-6 pb-6 pt-4 text-center text-body-sm text-text-muted">
-              Scan this QR or enter the gate code at the security desk.
+              {visitor.keepAtGate
+                ? "Read this code to security to collect your package held at the gate."
+                : "Scan this QR or enter the gate code at the security desk."}
             </Text>
           </View>
 

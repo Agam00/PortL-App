@@ -20,6 +20,7 @@ import { postsRouter } from "./routes/posts/route";
 import { alertsRouter } from "./routes/alerts/route";
 import { serviceRequestsRouter } from "./routes/service-requests/route";
 import { chatRouter } from "./routes/chat/route";
+import { dutyRouter } from "./routes/duty/route";
 
 export const serverRouter = router({
   health: healthRouter,
@@ -42,6 +43,7 @@ export const serverRouter = router({
   alerts: alertsRouter,
   serviceRequests: serviceRequestsRouter,
   chat: chatRouter,
+  duty: dutyRouter,
 });
 
 export { createContext } from "./context";

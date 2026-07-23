@@ -95,7 +95,15 @@ export default function ResidentAmenities() {
   }
 
   const amenities = amenitiesQuery.data ?? [];
-  const bookings = (myBookingsQuery.data ?? []).filter((b) => b.status === "confirmed");
+  const allBookings = myBookingsQuery.data ?? [];
+  const now = Date.now();
+  // A booking's slot end datetime — once it passes, the booking becomes read-only history.
+  const bookingEnd = (b: { date: string; slotEnd: string }) =>
+    new Date(`${b.date.slice(0, 10)}T${b.slotEnd.slice(0, 5)}:00`).getTime();
+  const upcoming = allBookings.filter((b) => b.status === "confirmed" && bookingEnd(b) >= now);
+  const history = allBookings
+    .filter((b) => b.status === "cancelled" || (b.status === "confirmed" && bookingEnd(b) < now))
+    .sort((a, b) => bookingEnd(b) - bookingEnd(a));
   const selectedAmenity = amenities.find((a) => a.id === bookingAmenityId);
   const monthLabel = new Date(selectedDate).toLocaleDateString([], { month: "long", year: "numeric" });
 
@@ -221,23 +229,28 @@ export default function ResidentAmenities() {
                       key={slot.slotStart}
                       disabled={!slot.isAvailable}
                       onPress={() => setSelectedSlot(slot.slotStart)}
-                      className="items-center rounded-lg px-4 py-2.5"
+                      className="flex-row items-center gap-1.5 rounded-lg px-4 py-2.5"
                       style={
                         !slot.isAvailable
-                          ? { backgroundColor: "#242424", opacity: 0.6 }
+                          ? { backgroundColor: "#242424", opacity: 0.7 }
                           : isSelected
                             ? { backgroundColor: "#F5821F" }
                             : { backgroundColor: "#1A1A1A", borderWidth: 1, borderColor: "#3A3A3A" }
                       }
                       accessibilityRole="button"
+                      accessibilityLabel={`${slot.slotStart.slice(0, 5)}${!slot.isAvailable ? ", booked" : ""}`}
                       accessibilityState={{ selected: isSelected, disabled: !slot.isAvailable }}
                     >
                       <Text
                         className={`text-body-md ${isSelected ? "font-bold" : ""}`}
-                        style={{ color: !slot.isAvailable ? "#7E7E7E" : isSelected ? "#FFFFFF" : "#F5F5F5" }}
+                        style={{
+                          color: !slot.isAvailable ? "#7E7E7E" : isSelected ? "#FFFFFF" : "#F5F5F5",
+                          textDecorationLine: !slot.isAvailable ? "line-through" : "none",
+                        }}
                       >
                         {slot.slotStart.slice(0, 5)}
                       </Text>
+                      {!slot.isAvailable && <MaterialIcons name="close" size={14} color="#FF5F5F" />}
                     </Pressable>
                   );
                 })}
@@ -263,43 +276,103 @@ export default function ResidentAmenities() {
         )}
 
         <Text className="pt-2 text-headline-lg font-extrabold text-on-surface">My Bookings</Text>
-        {bookings.length === 0 ? (
+        {upcoming.length === 0 ? (
           <Text className="px-1 text-body-sm text-text-muted">No upcoming bookings.</Text>
         ) : (
           <View className="gap-3">
-            {bookings.map((booking) => (
-              <View key={booking.id} className="flex-row items-center gap-3 rounded-xl bg-surface p-4" style={shadowCard}>
-                <View
-                  className="items-center justify-center"
-                  style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#2A2320" }}
-                >
-                  <MaterialIcons name={iconFor(booking.amenityName)} size={22} color="#FF9A3D" />
+            {upcoming.map((booking) => (
+              <View key={booking.id} className="gap-3 rounded-xl bg-surface p-4" style={shadowCard}>
+                <View className="flex-row items-center gap-3">
+                  <View
+                    className="items-center justify-center"
+                    style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#2A2320" }}
+                  >
+                    <MaterialIcons name={iconFor(booking.amenityName)} size={22} color="#FF9A3D" />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-body-md font-extrabold text-on-surface" numberOfLines={1}>
+                      {booking.amenityName}
+                    </Text>
+                    <Text className="text-body-sm text-text-muted">
+                      {new Date(booking.date).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} •{" "}
+                      {booking.slotStart.slice(0, 5)}–{booking.slotEnd.slice(0, 5)}
+                    </Text>
+                  </View>
+                  <View className="rounded-full px-3 py-1" style={{ backgroundColor: "#8A5A00" }}>
+                    <Text className="text-body-sm font-bold" style={{ color: "#FFFFFF" }}>
+                      Upcoming
+                    </Text>
+                  </View>
                 </View>
-                <View className="min-w-0 flex-1">
-                  <Text className="text-body-md font-extrabold text-on-surface" numberOfLines={1}>
-                    {booking.amenityName}
-                  </Text>
-                  <Text className="text-body-sm text-text-muted">
-                    {new Date(booking.date).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} •{" "}
-                    {booking.slotStart.slice(0, 5)}–{booking.slotEnd.slice(0, 5)}
-                  </Text>
+                <View className="flex-row gap-2 border-t pt-2.5" style={{ borderTopColor: "#2A2A2A" }}>
+                  <Pressable
+                    onPress={() =>
+                      router.push(
+                        `/(resident)/amenity-pass?id=${booking.id}&name=${encodeURIComponent(booking.amenityName)}&date=${encodeURIComponent(booking.date)}&start=${encodeURIComponent(booking.slotStart)}&end=${encodeURIComponent(booking.slotEnd)}&flat=${encodeURIComponent(booking.flatNumber)}`,
+                      )
+                    }
+                    className="flex-1 flex-row items-center justify-center gap-1.5 py-1.5"
+                    accessibilityLabel={`View pass for ${booking.amenityName}`}
+                    accessibilityRole="button"
+                  >
+                    <MaterialIcons name="confirmation-number" size={16} color="#F5821F" />
+                    <Text className="text-body-sm font-bold" style={{ color: "#F5821F" }}>
+                      View Pass
+                    </Text>
+                  </Pressable>
+                  <View style={{ width: 1, backgroundColor: "#2A2A2A" }} />
+                  <Pressable
+                    onPress={() => confirmCancel(booking.id)}
+                    disabled={cancelMutation.isPending}
+                    className="flex-1 flex-row items-center justify-center gap-1.5 py-1.5"
+                    accessibilityLabel={`Cancel booking for ${booking.amenityName}`}
+                    accessibilityRole="button"
+                  >
+                    <MaterialIcons name="close" size={16} color="#FF5F5F" />
+                    <Text className="text-body-sm font-bold" style={{ color: "#FF5F5F" }}>
+                      Cancel
+                    </Text>
+                  </Pressable>
                 </View>
-                <View className="rounded-full px-3 py-1" style={{ backgroundColor: "#8A5A00" }}>
-                  <Text className="text-body-sm font-bold" style={{ color: "#FFFFFF" }}>
-                    Upcoming
-                  </Text>
-                </View>
-                <Pressable
-                  onPress={() => confirmCancel(booking.id)}
-                  hitSlop={8}
-                  accessibilityLabel={`Cancel booking for ${booking.amenityName}`}
-                  accessibilityRole="button"
-                >
-                  <MaterialIcons name="close" size={18} color="#FF5F5F" />
-                </Pressable>
               </View>
             ))}
           </View>
+        )}
+
+        {/* History — past & cancelled bookings, read-only. */}
+        {history.length > 0 && (
+          <>
+            <Text className="pt-2 text-headline-md font-extrabold text-on-surface">History</Text>
+            <View className="gap-3">
+              {history.map((booking) => {
+                const cancelled = booking.status === "cancelled";
+                return (
+                  <View key={booking.id} className="flex-row items-center gap-3 rounded-xl bg-surface p-4" style={[shadowCard, { opacity: 0.75 }]}>
+                    <View
+                      className="items-center justify-center"
+                      style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#242424" }}
+                    >
+                      <MaterialIcons name={iconFor(booking.amenityName)} size={22} color="#8A8A8A" />
+                    </View>
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-body-md font-extrabold text-on-surface-variant" numberOfLines={1}>
+                        {booking.amenityName}
+                      </Text>
+                      <Text className="text-body-sm text-text-muted">
+                        {new Date(booking.date).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" })} •{" "}
+                        {booking.slotStart.slice(0, 5)}–{booking.slotEnd.slice(0, 5)}
+                      </Text>
+                    </View>
+                    <View className="rounded-full px-3 py-1" style={{ backgroundColor: "#262626" }}>
+                      <Text className="text-body-sm font-bold" style={{ color: cancelled ? "#FF8A8A" : "#8A8A8A" }}>
+                        {cancelled ? "Cancelled" : "Completed"}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </>
         )}
       </ScrollView>
     </View>

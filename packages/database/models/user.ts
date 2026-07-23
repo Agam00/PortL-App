@@ -35,6 +35,10 @@ export const usersTable = pgTable("users", {
   isActive: boolean("is_active").notNull().default(true),
   profileImageUrl: text("profile_image_url"),
 
+  // Guard duty state — a guard flips this on/off; residents and admins see it.
+  onDuty: boolean("on_duty").notNull().default(false),
+  dutyChangedAt: timestamp("duty_changed_at"),
+
   // Soft delete: the row stays so authored posts, complaints and gate logs keep
   // their attribution, but credentials are wiped and email/phone are released.
   deletedAt: timestamp("deleted_at"),

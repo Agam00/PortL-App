@@ -10,6 +10,7 @@ import {
   Modal,
   Platform,
   KeyboardAvoidingView,
+  Alert,
 } from "react-native";
 import type { ImageSourcePropType } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -62,14 +63,36 @@ export default function ResidentServices() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((s) => s.user);
+  const utils = trpc.useUtils();
+  const showToast = useUiStore((s) => s.showToast);
   const [category, setCategory] = useState<string | null>(null);
 
   const notificationsQuery = trpc.notifications.list.useQuery(undefined, { refetchInterval: 15_000 });
   const unread = (notificationsQuery.data ?? []).filter((n) => !n.readAt).length;
   const bookingsQuery = trpc.serviceRequests.mine.useQuery();
 
+  const cancelMutation = trpc.serviceRequests.cancel.useMutation({
+    onSuccess: () => {
+      hapticSuccess();
+      showToast("Booking cancelled", "success");
+      utils.serviceRequests.mine.invalidate();
+    },
+    onError: (e) => {
+      hapticError();
+      showToast(getErrorMessage(e), "error");
+    },
+  });
+
+  function confirmCancel(id: string, category: string) {
+    Alert.alert("Cancel booking?", `Cancel your ${category} booking?`, [
+      { text: "Keep it", style: "cancel" },
+      { text: "Cancel Booking", style: "destructive", onPress: () => cancelMutation.mutate({ requestId: id }) },
+    ]);
+  }
+
   const bookings = bookingsQuery.data ?? [];
-  const active = bookings.filter((b) => b.status !== "cancelled");
+  // "Active" = still open (requested/confirmed). Cancelled/completed drop into history below.
+  const active = bookings.filter((b) => b.status === "requested" || b.status === "confirmed");
 
   return (
     <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
@@ -140,6 +163,17 @@ export default function ResidentServices() {
                       </View>
                     )}
                   </View>
+                  <Pressable
+                    onPress={() => confirmCancel(b.id, b.category)}
+                    hitSlop={8}
+                    disabled={cancelMutation.isPending}
+                    accessibilityLabel={`Cancel ${b.category} booking`}
+                    accessibilityRole="button"
+                    className="h-8 w-8 items-center justify-center rounded-full"
+                    style={{ backgroundColor: "#242424" }}
+                  >
+                    <MaterialIcons name="close" size={18} color="#FF5F5F" />
+                  </Pressable>
                 </View>
               );
             })

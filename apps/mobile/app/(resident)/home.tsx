@@ -56,6 +56,8 @@ export default function ResidentHome() {
   const pendingQuery = trpc.visitors.listPendingForResident.useQuery(undefined, { refetchInterval: 5000 });
   const notificationsQuery = trpc.notifications.list.useQuery(undefined, { refetchInterval: 15_000 });
   const noticesQuery = trpc.notices.listForResident.useQuery({ limit: 50 });
+  const dutyQuery = trpc.duty.guards.useQuery(undefined, { refetchInterval: 30_000 });
+  const guardsOnDuty = (dutyQuery.data ?? []).filter((g) => g.onDuty);
 
   const unreadNotifications = (notificationsQuery.data ?? []).filter((n) => !n.readAt).length;
   const unreadNotices = (noticesQuery.data ?? []).filter((n) => !n.isRead).length;
@@ -148,6 +150,29 @@ export default function ResidentHome() {
           />
         }
       >
+        {/* Security duty status — residents can see who's guarding the gate. */}
+        {dutyQuery.data && dutyQuery.data.length > 0 && (
+          <View className="mx-5 mt-2 flex-row items-center gap-3 rounded-xl bg-surface p-3.5" style={shadowCard}>
+            <View
+              className="items-center justify-center"
+              style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: guardsOnDuty.length > 0 ? "#153A24" : "#242424" }}
+            >
+              <MaterialIcons name="shield" size={20} color={guardsOnDuty.length > 0 ? "#27C96D" : "#8A8A8A"} />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="text-body-md font-extrabold text-on-surface">
+                {guardsOnDuty.length > 0 ? "Security on duty" : "No security on duty"}
+              </Text>
+              <Text className="text-body-sm text-text-muted" numberOfLines={1}>
+                {guardsOnDuty.length > 0
+                  ? guardsOnDuty.map((g) => g.name.split(" ")[0]).join(", ")
+                  : "Guards are currently off duty"}
+              </Text>
+            </View>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: guardsOnDuty.length > 0 ? "#27C96D" : "#8A8A8A" }} />
+          </View>
+        )}
+
         {/* Pending approvals surface only when there's something to act on. */}
         {pending.length > 0 && (
           <View className="gap-3 px-5 pt-2">

@@ -156,6 +156,22 @@ export function ResidentTabBar({ state, navigation }: TabBarProps) {
               <Text className="text-body-md font-extrabold text-on-surface">Security Alert</Text>
               <View className="flex-row flex-wrap justify-between gap-y-3">{SECURITY_ALERTS.map(tile)}</View>
             </View>
+
+            <Pressable
+              onPress={() => {
+                setMenuOpen(false);
+                router.push("/(resident)/alerts-history");
+              }}
+              className="flex-row items-center justify-center gap-2 rounded-2xl py-3"
+              style={{ backgroundColor: "#242424" }}
+              accessibilityRole="button"
+              accessibilityLabel="View alert history"
+            >
+              <MaterialIcons name="history" size={18} color="#F5821F" />
+              <Text className="text-body-md font-bold" style={{ color: "#F5821F" }}>
+                View alert history
+              </Text>
+            </Pressable>
           </Pressable>
         </Pressable>
       </Modal>

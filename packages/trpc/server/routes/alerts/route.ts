@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { zodUndefinedModel } from "../../schema";
 import { notificationService } from "../../services";
+import { listNotificationsOutputSchema } from "@repo/services/notification/model";
 import { residentProcedure, guardProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
@@ -51,6 +52,13 @@ export const alertsRouter = router({
         label: config.label,
       });
     }),
+
+  // A resident's own history of alerts/messages they've raised, with timestamps.
+  myHistory: residentProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/history"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(listNotificationsOutputSchema)
+    .query(async ({ ctx }) => notificationService.residentAlertHistory(ctx.user.sub)),
 
   // Guard files a report/incident to the society admin(s).
   guardReport: guardProcedure

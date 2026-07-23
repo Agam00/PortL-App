@@ -5,7 +5,7 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
+import { AdminHeader } from "../../components/ui/admin-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Chip } from "../../components/ui/chip";
@@ -133,7 +133,7 @@ export default function AdminFlats() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="" role="admin" />
+      <AdminHeader showBack barTitle="Flats" />
       <ScrollView
         contentContainerClassName="gap-4 p-4 pb-8"
         keyboardShouldPersistTaps="handled"

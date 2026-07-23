@@ -5,7 +5,7 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
+import { AdminHeader } from "../../components/ui/admin-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { EmptyState } from "../../components/ui/empty-state";
@@ -102,7 +102,7 @@ export default function AdminTowers() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Towers" subtitle="Manage residential tower configurations." role="admin" />
+      <AdminHeader showBack barTitle="Towers" />
       <ScrollView
         contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"

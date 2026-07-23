@@ -39,6 +39,12 @@ export const preApproveVisitorInputSchema = z.object({
   type: visitorTypeSchema,
   validFrom: z.string().datetime(),
   validUntil: z.string().datetime(),
+  keepAtGate: z.boolean().optional().describe("Delivery only: hold the package at the gate for OTP collection"),
+});
+
+export const collectPackageInputSchema = z.object({
+  visitorId: z.string().uuid(),
+  code: z.string().regex(/^\d{6}$/, "Enter the resident's 6-digit code"),
 });
 
 export const searchPreApprovedInputSchema = z.object({
@@ -71,6 +77,7 @@ export const visitorOutputSchema = z.object({
   validFrom: z.string().nullable(),
   validUntil: z.string().nullable(),
   passCode: z.string().nullable(),
+  keepAtGate: z.boolean(),
   entryAt: z.string().nullable(),
   exitAt: z.string().nullable(),
   createdAt: z.string(),

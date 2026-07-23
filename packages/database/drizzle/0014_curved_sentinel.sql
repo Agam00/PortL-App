@@ -1,0 +1,1 @@
+ALTER TABLE "visitors" ADD COLUMN "keep_at_gate" boolean DEFAULT false NOT NULL;

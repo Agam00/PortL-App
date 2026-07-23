@@ -5,7 +5,7 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
+import { AdminHeader } from "../../components/ui/admin-header";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Avatar } from "../../components/ui/avatar";
@@ -128,7 +128,7 @@ export default function AdminStaff() {
 
   return (
     <View className="flex-1 bg-background">
-      <ScreenHeader title="Staff Directory" subtitle="Manage verified service providers." role="admin" />
+      <AdminHeader showBack barTitle="Staff Directory" />
       <ScrollView
         contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"

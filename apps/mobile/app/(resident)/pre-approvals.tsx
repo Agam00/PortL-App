@@ -1,16 +1,19 @@
-import { View, Text, ScrollView, RefreshControl, Alert } from "react-native";
+import { useState } from "react";
+import { View, Text, ScrollView, RefreshControl, Alert, Pressable, Modal } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { trpc } from "../../lib/trpc";
+import { useAuthStore } from "../../stores/auth-store";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
-import { hapticSuccess, hapticError } from "../../lib/haptics";
-import { ScreenHeader } from "../../components/ui/screen-header";
+import { hapticSuccess, hapticError, hapticTap } from "../../lib/haptics";
+import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
 import { ListLoading } from "../../components/ui/list-loading";
 import { PressableScale } from "../../components/ui/pressable-scale";
-import { shadowCard } from "../../lib/shadows";
+import { shadowCard, shadowElevated } from "../../lib/shadows";
 
 type Tone = "pending" | "completed" | "expired" | "cancelled";
 
@@ -21,6 +24,14 @@ const TYPE_ICON: Record<VisitorOutput["type"], React.ComponentProps<typeof Mater
   service: "handyman",
   other: "person",
 };
+
+// The "+ New Invite" flow starts by asking WHAT is being pre-approved, then routes to the form.
+const INVITE_TYPES: { type: "guest" | "delivery" | "service" | "cab"; label: string; icon: React.ComponentProps<typeof MaterialIcons>["name"] }[] = [
+  { type: "guest", label: "Guest", icon: "face" },
+  { type: "delivery", label: "Delivery", icon: "local-shipping" },
+  { type: "service", label: "Service", icon: "handyman" },
+  { type: "cab", label: "Cab", icon: "local-taxi" },
+];
 
 // my_pre_approvals mockup pills: Pending = solid amber, Completed = soft gray,
 // Expired = soft red.
@@ -157,8 +168,11 @@ function PreApprovalCard({
 
 export default function MyPreApprovals() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const user = useAuthStore((s) => s.user);
   const showToast = useUiStore((s) => s.showToast);
   const utils = trpc.useUtils();
+  const [pickerOpen, setPickerOpen] = useState(false);
   const query = trpc.visitors.listPreApprovedForResident.useQuery();
   const all = query.data ?? [];
   const now = Date.now();
@@ -189,12 +203,42 @@ export default function MyPreApprovals() {
 
   return (
     <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
-      <ScreenHeader title="" role="resident" />
+      {/* Top bar: notifications (left) · brand (center) · profile (right) — matches Home. */}
+      <View
+        className="flex-row items-center justify-between px-5 pb-3"
+        style={{ paddingTop: insets.top + 10, backgroundColor: "#0D0D0D" }}
+      >
+        <Pressable
+          onPress={() => router.push("/(resident)/notifications")}
+          hitSlop={8}
+          className="h-11 w-11 items-center justify-center rounded-full bg-surface"
+          style={shadowCard}
+          accessibilityLabel="Notifications"
+          accessibilityRole="button"
+        >
+          <MaterialIcons name="notifications-none" size={24} color="#C4C4C4" />
+        </Pressable>
+        <Text className="text-headline-md font-extrabold text-on-surface">Portl</Text>
+        <Pressable
+          onPress={() => router.push("/(resident)/profile")}
+          hitSlop={8}
+          accessibilityLabel="Profile"
+          accessibilityRole="button"
+        >
+          <View className="rounded-full" style={shadowCard}>
+            <Avatar name={user?.fullName ?? "Resident"} size={44} />
+          </View>
+        </Pressable>
+      </View>
+
       <View className="flex-row items-start justify-between gap-3 px-5 pb-2 pt-5">
         <Text className="flex-1 text-headline-lg font-extrabold text-on-surface">My Pre-approvals</Text>
         <PressableScale
           scaleTo={0.95}
-          onPress={() => router.push("/(resident)/pre-approve")}
+          onPress={() => {
+            hapticTap();
+            setPickerOpen(true);
+          }}
           className="flex-row items-center gap-1.5 rounded-full px-4 py-2.5"
           style={[{ backgroundColor: "#FF9A3D" }, shadowCard]}
           accessibilityLabel="New invite"
@@ -206,6 +250,39 @@ export default function MyPreApprovals() {
           </Text>
         </PressableScale>
       </View>
+
+      {/* Type picker — ask what's being pre-approved before opening the form. */}
+      <Modal visible={pickerOpen} transparent animationType="fade" onRequestClose={() => setPickerOpen(false)}>
+        <Pressable className="flex-1 justify-end" style={{ backgroundColor: "rgba(0,0,0,0.55)" }} onPress={() => setPickerOpen(false)}>
+          <Pressable
+            onPress={() => {}}
+            className="gap-1 rounded-t-3xl px-5 pb-8 pt-5"
+            style={[{ backgroundColor: "#1A1A1A" }, shadowElevated]}
+          >
+            <View className="mb-2 h-1 w-10 self-center rounded-full" style={{ backgroundColor: "#333333" }} />
+            <Text className="pb-2 text-headline-md font-extrabold text-on-surface">Who are you expecting?</Text>
+            {INVITE_TYPES.map((t) => (
+              <Pressable
+                key={t.type}
+                onPress={() => {
+                  setPickerOpen(false);
+                  router.push(`/(resident)/pre-approve?type=${t.type}`);
+                }}
+                className="flex-row items-center gap-3 rounded-2xl px-4 py-3.5"
+                style={{ backgroundColor: "#242424" }}
+                accessibilityRole="button"
+                accessibilityLabel={t.label}
+              >
+                <View className="items-center justify-center" style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#2A2320" }}>
+                  <MaterialIcons name={t.icon} size={22} color="#FF9A3D" />
+                </View>
+                <Text className="flex-1 text-body-lg font-bold text-on-surface">{t.label}</Text>
+                <MaterialIcons name="chevron-right" size={22} color="#8A8A8A" />
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <ScrollView
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"

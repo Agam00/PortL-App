@@ -22,14 +22,21 @@ function PreApprovedCard({
   visitor,
   isLoading,
   onConfirm,
+  onCollect,
 }: {
   visitor: VisitorOutput;
   isLoading: boolean;
   onConfirm: () => void;
+  onCollect: (code: string) => void;
 }) {
   const isDelivery = visitor.type === "delivery";
+  const heldAtGate = isDelivery && visitor.keepAtGate;
   const tint = isDelivery ? "rgba(254,178,70,0.18)" : "rgba(245,130,31,0.10)";
   const iconColor = isDelivery ? "#845400" : "#F5821F";
+
+  const [collecting, setCollecting] = useState(false);
+  const [code, setCode] = useState("");
+  const codeReady = /^\d{6}$/.test(code);
 
   return (
     <View className="gap-4 bg-surface p-5" style={[{ borderRadius: 24, overflow: "hidden" }, shadowCard]}>
@@ -54,9 +61,9 @@ function PreApprovedCard({
               {visitor.name}
             </Text>
             {isDelivery && (
-              <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: "#845400" }}>
+              <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: heldAtGate ? "#F5821F" : "#845400" }}>
                 <Text className="font-bold uppercase" style={{ fontSize: 10, letterSpacing: 0.5, color: "#FFFFFF" }}>
-                  Package
+                  {heldAtGate ? "Keep at gate" : "Package"}
                 </Text>
               </View>
             )}
@@ -90,29 +97,86 @@ function PreApprovedCard({
         </View>
       </View>
 
-      <Pressable
-        onPress={onConfirm}
-        disabled={isLoading}
-        className="h-12 flex-row items-center justify-center gap-2 rounded-full"
-        style={{ backgroundColor: isDelivery ? "#262626" : "#F5821F" }}
-        accessibilityLabel={`${isDelivery ? "Log delivery" : "Confirm entry"} for ${visitor.name}`}
-        accessibilityRole="button"
-      >
-        {isLoading ? (
-          <ActivityIndicator size="small" color={isDelivery ? "#F5F5F5" : "#fff"} />
-        ) : (
-          <>
-            <MaterialIcons
-              name={isDelivery ? "fact-check" : "check-circle-outline"}
-              size={20}
-              color={isDelivery ? "#F5F5F5" : "#FFFFFF"}
+      {heldAtGate ? (
+        collecting ? (
+          <View className="gap-3">
+            <View className="flex-row items-start gap-2 rounded-xl px-3 py-2.5" style={{ backgroundColor: "rgba(245,130,31,0.12)" }}>
+              <MaterialIcons name="lock" size={16} color="#F5821F" />
+              <Text className="flex-1 text-body-sm text-on-surface-variant">
+                Ask the resident to read the 6-digit code from their pass, then enter it to release the package.
+              </Text>
+            </View>
+            <TextInput
+              placeholder="6-digit code"
+              placeholderTextColor="#8A8A8A"
+              value={code}
+              onChangeText={(v) => setCode(v.replace(/[^0-9]/g, ""))}
+              keyboardType="number-pad"
+              maxLength={6}
+              className="rounded-xl px-4 py-3 text-center text-headline-md font-extrabold text-on-surface"
+              style={{ backgroundColor: "#242424", letterSpacing: 8 }}
+              accessibilityLabel="Enter the resident's 6-digit collection code"
             />
-            <Text className="text-body-md font-bold" style={{ color: isDelivery ? "#F5F5F5" : "#FFFFFF" }}>
-              {isDelivery ? "Log Delivery" : "Confirm Entry"}
+            <Pressable
+              onPress={() => onCollect(code)}
+              disabled={isLoading || !codeReady}
+              className="h-12 flex-row items-center justify-center gap-2 rounded-full"
+              style={{ backgroundColor: codeReady ? "#F5821F" : "#7A5320" }}
+              accessibilityLabel={`Verify code and release package for ${visitor.name}`}
+              accessibilityRole="button"
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <>
+                  <MaterialIcons name="lock-open" size={20} color="#FFFFFF" />
+                  <Text className="text-body-md font-bold" style={{ color: "#FFFFFF" }}>
+                    Verify &amp; Release
+                  </Text>
+                </>
+              )}
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            onPress={() => setCollecting(true)}
+            disabled={isLoading}
+            className="h-12 flex-row items-center justify-center gap-2 rounded-full"
+            style={{ backgroundColor: "#F5821F" }}
+            accessibilityLabel={`Hand over package for ${visitor.name}`}
+            accessibilityRole="button"
+          >
+            <MaterialIcons name="key" size={20} color="#FFFFFF" />
+            <Text className="text-body-md font-bold" style={{ color: "#FFFFFF" }}>
+              Hand Over Package
             </Text>
-          </>
-        )}
-      </Pressable>
+          </Pressable>
+        )
+      ) : (
+        <Pressable
+          onPress={onConfirm}
+          disabled={isLoading}
+          className="h-12 flex-row items-center justify-center gap-2 rounded-full"
+          style={{ backgroundColor: isDelivery ? "#262626" : "#F5821F" }}
+          accessibilityLabel={`${isDelivery ? "Log delivery" : "Confirm entry"} for ${visitor.name}`}
+          accessibilityRole="button"
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color={isDelivery ? "#F5F5F5" : "#fff"} />
+          ) : (
+            <>
+              <MaterialIcons
+                name={isDelivery ? "fact-check" : "check-circle-outline"}
+                size={20}
+                color={isDelivery ? "#F5F5F5" : "#FFFFFF"}
+              />
+              <Text className="text-body-md font-bold" style={{ color: isDelivery ? "#F5F5F5" : "#FFFFFF" }}>
+                {isDelivery ? "Log Delivery" : "Confirm Entry"}
+              </Text>
+            </>
+          )}
+        </Pressable>
+      )}
     </View>
   );
 }
@@ -139,6 +203,23 @@ export default function CheckPreApproved() {
     onSuccess: (visitor) => {
       hapticSuccess();
       showToast(`${visitor.name} checked in — no call needed`, "success");
+      utils.visitors.listForGuard.invalidate();
+      router.push("/(guard)/gate");
+    },
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
+    onSettled: () => setActingOnId(null),
+  });
+
+  const collectMutation = trpc.visitors.collectPackage.useMutation({
+    onSuccess: (visitor) => {
+      hapticSuccess();
+      showToast(
+        `Package released${visitor.flatNumber ? ` to Unit ${visitor.flatNumber}` : ""}`,
+        "success",
+      );
       utils.visitors.listForGuard.invalidate();
       router.push("/(guard)/gate");
     },
@@ -200,10 +281,16 @@ export default function CheckPreApproved() {
             <PreApprovedCard
               key={visitor.id}
               visitor={visitor}
-              isLoading={actingOnId === visitor.id && markEntryMutation.isPending}
+              isLoading={
+                actingOnId === visitor.id && (markEntryMutation.isPending || collectMutation.isPending)
+              }
               onConfirm={() => {
                 setActingOnId(visitor.id);
                 markEntryMutation.mutate({ visitorId: visitor.id });
+              }}
+              onCollect={(code) => {
+                setActingOnId(visitor.id);
+                collectMutation.mutate({ visitorId: visitor.id, code });
               }}
             />
           ))}

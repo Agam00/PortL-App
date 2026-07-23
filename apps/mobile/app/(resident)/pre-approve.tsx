@@ -32,7 +32,7 @@ const TYPE_CONTENT: Record<VisitorType, TypeContent> = {
 
 const CHECKBOX_LABEL: Partial<Record<VisitorType, string>> = {
   guest: "Send gatepass to guest",
-  delivery: "Keep package at gate.",
+  delivery: "Keep package at gate (collection code required)",
   service: "Send Entry pass to Service Man",
 };
 
@@ -224,10 +224,19 @@ export default function PreApproveGuest() {
   // Screen stays mounted (href: null tab), so sync a later ?type= from a home card tap.
   useEffect(() => {
     if (VISITOR_TYPES.some((t) => t.value === typeParam)) {
-      setSelectedType(typeParam as VisitorType);
+      const next = typeParam as VisitorType;
+      setSelectedType(next);
+      // Deliveries default to "keep at gate" — the gate code is how the package is collected.
+      setCheckbox(next === "delivery");
       setError(null);
     }
   }, [typeParam]);
+
+  // Deliveries default to "keep at gate" on first mount too.
+  useEffect(() => {
+    if (initialType === "delivery") setCheckbox(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const preApproveMutation = trpc.visitors.preApprove.useMutation({
     onSuccess: () => {
@@ -279,6 +288,9 @@ export default function PreApproveGuest() {
       type: selectedType,
       validFrom: validFrom.toISOString(),
       validUntil: validUntil.toISOString(),
+      // Delivery only: checked = hold the package at the gate (collect with the code);
+      // unchecked = send the delivery person up like a normal gate pass.
+      keepAtGate: selectedType === "delivery" ? checkbox : undefined,
     });
   }
 
@@ -391,6 +403,18 @@ export default function PreApproveGuest() {
               {/* Per-type checkbox */}
               {checkboxLabel && (
                 <Checkbox label={checkboxLabel} checked={checkbox} onToggle={() => setCheckbox((v) => !v)} />
+              )}
+
+              {/* Delivery: explain what each branch does — hold at gate vs. send up. */}
+              {selectedType === "delivery" && (
+                <View className="flex-row items-start gap-2 rounded-xl px-3 py-2.5" style={{ backgroundColor: "rgba(245,130,31,0.12)" }}>
+                  <MaterialIcons name={checkbox ? "pin" : "login"} size={16} color="#F5821F" />
+                  <Text className="flex-1 text-body-sm text-on-surface-variant">
+                    {checkbox
+                      ? "The package is kept at the gate. A 6-digit code is generated — read it to security to collect your package. Find it under My Pre-approvals."
+                      : "The delivery person is sent up to your flat with a normal gate pass."}
+                  </Text>
+                </View>
               )}
 
               {error && (

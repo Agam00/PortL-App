@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import type { VisitorOutput } from "@repo/services/visitor/model";
 import { Avatar } from "./ui/avatar";
+import { PhotoViewerModal } from "./photo-viewer-modal";
 import { VISITOR_TYPE_LABEL } from "../lib/visitor-status";
 import { shadowCard } from "../lib/shadows";
 
@@ -27,10 +29,32 @@ export function VisitorRequestCard({
   onReject: () => void;
   isDeciding: boolean;
 }) {
+  const [photoOpen, setPhotoOpen] = useState(false);
   return (
     <View className="gap-4 rounded-xl bg-surface p-4" style={shadowCard}>
+      <PhotoViewerModal
+        uri={photoOpen ? visitor.photoUrl : null}
+        title={visitor.name}
+        subtitle={VISITOR_TYPE_LABEL[visitor.type]}
+        onClose={() => setPhotoOpen(false)}
+      />
       <View className="flex-row items-center gap-4">
-        <Avatar name={visitor.name} imageUrl={visitor.photoUrl} size={64} />
+        <Pressable
+          onPress={() => visitor.photoUrl && setPhotoOpen(true)}
+          disabled={!visitor.photoUrl}
+          accessibilityLabel={visitor.photoUrl ? `View photo of ${visitor.name}` : undefined}
+          accessibilityRole="imagebutton"
+        >
+          <Avatar name={visitor.name} imageUrl={visitor.photoUrl} size={64} />
+          {visitor.photoUrl && (
+            <View
+              className="absolute bottom-0 right-0 items-center justify-center rounded-full"
+              style={{ width: 22, height: 22, backgroundColor: "#141118", borderWidth: 1, borderColor: "#2A2320" }}
+            >
+              <MaterialIcons name="zoom-in" size={14} color="#FF9A3D" />
+            </View>
+          )}
+        </Pressable>
         <View className="min-w-0 flex-1">
           <View className="flex-row items-center gap-2">
             <Text className="text-body-lg font-bold text-on-surface" numberOfLines={1}>

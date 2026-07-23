@@ -25,6 +25,7 @@ function serialize(
     validFrom: row.validFrom ? row.validFrom.toISOString() : null,
     validUntil: row.validUntil ? row.validUntil.toISOString() : null,
     passCode: row.passCode ?? null,
+    keepAtGate: row.keepAtGate ?? false,
     entryAt: logs?.entryAt ?? null,
     exitAt: logs?.exitAt ?? null,
     createdAt: (row.createdAt ?? new Date()).toISOString(),
@@ -207,6 +208,55 @@ class VisitorService {
     });
   }
 
+  /**
+   * Release a package held at the gate. The resident reads back their 6-digit pass code
+   * (the collection OTP); the guard types it here. On a match the package is logged as
+   * handed over and the pre-approval is closed out.
+   */
+  async collectPackage(
+    societyId: string,
+    guardId: string,
+    visitorId: string,
+    code: string,
+  ): Promise<VisitorOutput> {
+    const [row] = await db
+      .select({ visitor: visitorsTable, flatNumber: flatsTable.flatNumber })
+      .from(visitorsTable)
+      .innerJoin(flatsTable, eq(visitorsTable.flatId, flatsTable.id))
+      .where(and(eq(visitorsTable.id, visitorId), eq(visitorsTable.societyId, societyId)))
+      .limit(1);
+
+    if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Pre-approval not found" });
+    const v = row.visitor;
+    if (v.type !== "delivery" || !v.keepAtGate) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "This pass isn't a package held at the gate" });
+    }
+    if (v.status !== "approved") {
+      throw new TRPCError({ code: "CONFLICT", message: `This package is already "${v.status}"` });
+    }
+    if (!v.passCode || v.passCode !== code) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Incorrect code — ask the resident to read it from My Pre-approvals",
+      });
+    }
+
+    const [log] = await db
+      .insert(visitorLogsTable)
+      .values({ visitorId, guardId, action: "exit" })
+      .returning();
+
+    const [updated] = await db
+      .update(visitorsTable)
+      .set({ status: "checked_out" })
+      .where(eq(visitorsTable.id, visitorId))
+      .returning();
+
+    if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    const occurredAt = (log?.occurredAt ?? new Date()).toISOString();
+    return serialize(updated, row.flatNumber, { entryAt: null, exitAt: occurredAt });
+  }
+
   /** A 6-digit gate-pass code, unique among this society's visitors. */
   private async generatePassCode(societyId: string): Promise<string> {
     for (let attempt = 0; attempt < 12; attempt++) {
@@ -225,7 +275,14 @@ class VisitorService {
     societyId: string,
     flatId: string,
     userId: string,
-    input: { name: string; phone?: string; type: VisitorRow["type"]; validFrom: string; validUntil: string },
+    input: {
+      name: string;
+      phone?: string;
+      type: VisitorRow["type"];
+      validFrom: string;
+      validUntil: string;
+      keepAtGate?: boolean;
+    },
   ): Promise<VisitorOutput> {
     const validFrom = new Date(input.validFrom);
     const validUntil = new Date(input.validUntil);
@@ -234,6 +291,8 @@ class VisitorService {
     }
 
     const passCode = await this.generatePassCode(societyId);
+    // Only a delivery can be held at the gate; any other type always enters.
+    const keepAtGate = input.type === "delivery" && input.keepAtGate === true;
 
     const [visitor] = await db
       .insert(visitorsTable)
@@ -250,6 +309,7 @@ class VisitorService {
         validFrom,
         validUntil,
         passCode,
+        keepAtGate,
       })
       .returning();
 

@@ -22,7 +22,7 @@ import { useAuthStore } from "../../stores/auth-store";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError, hapticTap } from "../../lib/haptics";
-import { captureVisitorPhoto } from "../../lib/capture-visitor-photo";
+import { captureVisitorPhoto, pickImageFromGallery } from "../../lib/capture-visitor-photo";
 import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
 import { ListLoading } from "../../components/ui/list-loading";
@@ -394,13 +394,13 @@ function ComposeModal({ open, onClose, adminName }: { open: boolean; onClose: ()
     },
   });
 
-  async function attach() {
+  async function attach(source: "camera" | "gallery") {
     setCapturing(true);
     try {
-      const url = await captureVisitorPhoto();
+      const url = source === "camera" ? await captureVisitorPhoto() : await pickImageFromGallery();
       if (url) setPhoto(url);
     } catch {
-      showToast("Couldn't add photo — camera unavailable.", "error");
+      showToast(source === "camera" ? "Couldn't open the camera." : "Couldn't open the gallery.", "error");
     } finally {
       setCapturing(false);
     }
@@ -439,23 +439,38 @@ function ComposeModal({ open, onClose, adminName }: { open: boolean; onClose: ()
                 </Pressable>
               </View>
             ) : (
-              <Pressable
-                onPress={attach}
-                disabled={capturing}
-                className="flex-row items-center gap-2 self-start rounded-full px-4 py-2.5"
-                style={{ backgroundColor: "#242424" }}
-                accessibilityLabel="Add photo"
-                accessibilityRole="button"
-              >
-                {capturing ? (
-                  <ActivityIndicator size="small" color="#F5821F" />
-                ) : (
-                  <MaterialIcons name="add-photo-alternate" size={20} color="#F5821F" />
-                )}
-                <Text className="text-body-md font-bold" style={{ color: "#F5821F" }}>
-                  Add photo
-                </Text>
-              </Pressable>
+              <View className="flex-row items-center gap-2.5">
+                <Pressable
+                  onPress={() => attach("gallery")}
+                  disabled={capturing}
+                  className="flex-row items-center gap-2 self-start rounded-full px-4 py-2.5"
+                  style={{ backgroundColor: "#242424" }}
+                  accessibilityLabel="Choose from gallery"
+                  accessibilityRole="button"
+                >
+                  {capturing ? (
+                    <ActivityIndicator size="small" color="#F5821F" />
+                  ) : (
+                    <MaterialIcons name="photo-library" size={20} color="#F5821F" />
+                  )}
+                  <Text className="text-body-md font-bold" style={{ color: "#F5821F" }}>
+                    Gallery
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => attach("camera")}
+                  disabled={capturing}
+                  className="flex-row items-center gap-2 self-start rounded-full px-4 py-2.5"
+                  style={{ backgroundColor: "#242424" }}
+                  accessibilityLabel="Take a photo"
+                  accessibilityRole="button"
+                >
+                  <MaterialIcons name="photo-camera" size={20} color="#F5821F" />
+                  <Text className="text-body-md font-bold" style={{ color: "#F5821F" }}>
+                    Camera
+                  </Text>
+                </Pressable>
+              </View>
             )}
 
             <Pressable
