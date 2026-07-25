@@ -1,0 +1,16 @@
+# Keep the build context small and reproducible.
+# NOTE: do NOT ignore workspace package.json files — pnpm needs the full graph.
+**/node_modules
+**/dist
+**/.expo
+**/.turbo
+.git
+.github
+*.log
+**/*.log
+**/.env
+**/.env.*
+!**/.env.example
+apps/mobile/android
+apps/mobile/ios
+apps/mobile/assets/**/*.mp4
