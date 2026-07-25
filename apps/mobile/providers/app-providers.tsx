@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { trpc } from "../lib/trpc";
 import { createTRPCClient } from "../lib/trpc-client";
 import { resolveApiBase } from "../lib/runtime-config";
-import { LoadingScreen } from "../components/ui/loading-screen";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,21 +15,15 @@ const queryClient = new QueryClient({
 });
 
 export function AppProviders({ children }: { children: ReactNode }) {
-  // Resolve the backend URL (remote config → cache → build default) BEFORE creating
-  // the tRPC client, so moving the backend never requires a new APK.
-  const [trpcClient, setTrpcClient] = useState<ReturnType<typeof createTRPCClient> | null>(null);
+  // Create the client immediately (using the build-time default / last-known base) so the
+  // app never blocks on startup. Then resolve the remote config in the background — the
+  // tRPC fetch reads the current base at call time, so a changed URL applies without a
+  // new APK, and a slow/failed config fetch can never freeze the app.
+  const [trpcClient] = useState(() => createTRPCClient());
 
   useEffect(() => {
-    let mounted = true;
-    resolveApiBase().finally(() => {
-      if (mounted) setTrpcClient(createTRPCClient());
-    });
-    return () => {
-      mounted = false;
-    };
+    resolveApiBase().catch(() => {});
   }, []);
-
-  if (!trpcClient) return <LoadingScreen />;
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -59,9 +59,20 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshPromise;
 }
 
+/** Rewrites a request's origin to the currently-resolved API base, so a remote
+ *  backend-URL change takes effect without recreating the client (or a new APK). */
+function toCurrentBase(input: RequestInfo | URL): RequestInfo | URL {
+  const base = getApiBase();
+  const swap = (u: string) => u.replace(/^https?:\/\/[^/]+/i, base);
+  if (typeof input === "string") return swap(input);
+  if (input instanceof URL) return swap(input.toString());
+  return new Request(swap(input.url), input);
+}
+
 /** Attaches the current access token; on a 401, refreshes once and retries. */
 async function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const accessToken = useAuthStore.getState().accessToken;
+  const target = toCurrentBase(input);
 
   const withAuth = (token: string | null): RequestInit => ({
     ...init,
@@ -71,12 +82,12 @@ async function authFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
     },
   });
 
-  let response = await fetchWithTimeout(input, withAuth(accessToken));
+  let response = await fetchWithTimeout(target, withAuth(accessToken));
 
   if (response.status === 401 && accessToken) {
     const newToken = await refreshAccessToken();
     if (newToken) {
-      response = await fetchWithTimeout(input, withAuth(newToken));
+      response = await fetchWithTimeout(target, withAuth(newToken));
     }
   }
 
