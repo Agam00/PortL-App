@@ -94,4 +94,13 @@ export const authRouter = router({
       await authService.setPassword(ctx.user.sub, input.newPassword);
       return { success: true as const };
     }),
+
+  deleteAccount: protectedProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/delete-account"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(z.object({ success: z.literal(true) }))
+    .mutation(async ({ ctx }) => {
+      await userService.deleteSelf(ctx.user.sub);
+      return { success: true as const };
+    }),
 });

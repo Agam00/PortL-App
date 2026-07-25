@@ -190,6 +190,35 @@ class UserService {
     await db.delete(pushTokensTable).where(eq(pushTokensTable.userId, userId));
   }
 
+  /** A signed-in user deletes their OWN account (any role). Credentials wiped, sessions killed. */
+  public async deleteSelf(userId: string) {
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
+    if (!user || user.deletedAt) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Account not found" });
+    }
+
+    const suffix = user.id.replace(/-/g, "").slice(0, 12);
+
+    await db
+      .update(usersTable)
+      .set({
+        deletedAt: new Date(),
+        isActive: false,
+        inviteCode: null,
+        passwordHash: await unusablePasswordHash(),
+        email: `deleted+${suffix}@deleted.portl`,
+        phone: `deleted-${suffix}`,
+        flatId: null,
+      })
+      .where(eq(usersTable.id, userId));
+
+    await db
+      .update(refreshTokensTable)
+      .set({ revokedAt: new Date() })
+      .where(eq(refreshTokensTable.userId, userId));
+    await db.delete(pushTokensTable).where(eq(pushTokensTable.userId, userId));
+  }
+
   public async listResidents(societyId: string): Promise<AdminUserOutput[]> {
     const rows = await db
       .select({

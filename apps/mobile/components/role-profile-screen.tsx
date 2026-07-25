@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable, ActivityIndicator, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -86,6 +86,25 @@ export function RoleProfileScreen() {
     onError: (error) => showToast(getErrorMessage(error), "error"),
   });
 
+  const deleteMutation = trpc.auth.deleteAccount.useMutation({
+    onSuccess: () => {
+      logout();
+      router.replace("/(auth)/login");
+    },
+    onError: (error) => showToast(getErrorMessage(error), "error"),
+  });
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      "Delete your account?",
+      "This permanently deletes your account and signs you out. This can't be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Delete Account", style: "destructive", onPress: () => deleteMutation.mutate() },
+      ],
+    );
+  }
+
   if (!user) return null;
 
   return (
@@ -164,6 +183,25 @@ export function RoleProfileScreen() {
               <MaterialIcons name="logout" size={20} color="#A50E0E" />
               <Text className="text-body-lg font-bold" style={{ color: "#A50E0E" }}>
                 Logout
+              </Text>
+            </>
+          )}
+        </Pressable>
+
+        <Pressable
+          onPress={confirmDeleteAccount}
+          disabled={deleteMutation.isPending}
+          className="h-12 flex-row items-center justify-center gap-2"
+          accessibilityLabel="Delete account"
+          accessibilityRole="button"
+        >
+          {deleteMutation.isPending ? (
+            <ActivityIndicator size="small" color="#8A5050" />
+          ) : (
+            <>
+              <MaterialIcons name="delete-outline" size={18} color="#8A5050" />
+              <Text className="text-body-md font-bold" style={{ color: "#8A5050" }}>
+                Delete account
               </Text>
             </>
           )}
