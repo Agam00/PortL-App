@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { View, Text, ScrollView, RefreshControl } from "react-native";
+import { View, Text, ScrollView, RefreshControl, Pressable, Modal, Image, ActivityIndicator } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
@@ -13,6 +14,7 @@ import { DateField } from "../../components/ui/date-field";
 import { EmptyState } from "../../components/ui/empty-state";
 import { FormPanel } from "../../components/ui/form-panel";
 import { ListLoading } from "../../components/ui/list-loading";
+import { shadowElevated } from "../../lib/shadows";
 
 function periodLabel(period: string) {
   const [year, month] = period.split("-").map(Number);
@@ -21,10 +23,6 @@ function periodLabel(period: string) {
 
 function toDateString(date: Date): string {
   return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
-}
-
-function toPeriodString(date: Date): string {
-  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}`;
 }
 
 function inr(n: number): string {
@@ -36,20 +34,36 @@ function inr(n: number): string {
 export default function AdminDues() {
   const showToast = useUiStore((s) => s.showToast);
   const utils = trpc.useUtils();
+
   const [showForm, setShowForm] = useState(false);
+  const [target, setTarget] = useState<"flat" | "all">("flat");
   const [flatId, setFlatId] = useState<string | null>(null);
+  const [title, setTitle] = useState("");
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState(new Date());
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "paid">("all");
   const [flatError, setFlatError] = useState<string | null>(null);
   const [amountError, setAmountError] = useState<string | null>(null);
 
+  // UPI collection settings
+  const [showUpiForm, setShowUpiForm] = useState(false);
+  const [upiIdInput, setUpiIdInput] = useState("");
+  const [upiNameInput, setUpiNameInput] = useState("");
+  const [upiError, setUpiError] = useState<string | null>(null);
+
+  // Proof viewer
+  const [proofDueId, setProofDueId] = useState<string | null>(null);
+
   const flatsQuery = trpc.flats.list.useQuery({});
   const duesQuery = trpc.dues.list.useQuery();
+  const upiQuery = trpc.dues.paymentSettings.useQuery();
+  const proofQuery = trpc.dues.proof.useQuery({ dueId: proofDueId ?? "" }, { enabled: !!proofDueId });
 
   function resetForm() {
     setShowForm(false);
+    setTarget("flat");
     setFlatId(null);
+    setTitle("");
     setAmount("");
     setDueDate(new Date());
     setFlatError(null);
@@ -57,9 +71,9 @@ export default function AdminDues() {
   }
 
   const createMutation = trpc.dues.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (res) => {
       hapticSuccess();
-      showToast("Due generated", "success");
+      showToast(res.count > 1 ? `Due sent to ${res.count} flats` : "Due generated", "success");
       resetForm();
       utils.dues.list.invalidate();
     },
@@ -69,25 +83,47 @@ export default function AdminDues() {
     },
   });
 
+  const setUpiMutation = trpc.dues.setPaymentSettings.useMutation({
+    onSuccess: () => {
+      hapticSuccess();
+      showToast("UPI collection details saved", "success");
+      setShowUpiForm(false);
+      setUpiError(null);
+      utils.dues.paymentSettings.invalidate();
+    },
+    onError: (error) => {
+      hapticError();
+      setUpiError(getErrorMessage(error));
+    },
+  });
+
   function handleSubmit() {
-    const flatMissing = !flatId;
+    const flatMissing = target === "flat" && !flatId;
     const amountMissing = !amount.trim();
     setFlatError(flatMissing ? "Select a flat" : null);
     setAmountError(amountMissing ? "Amount is required" : null);
     if (flatMissing || amountMissing) return;
 
     createMutation.mutate({
-      flatId,
-      period: toPeriodString(dueDate),
+      title: title.trim() || undefined,
       amount: Number.parseFloat(amount),
       dueDate: toDateString(dueDate),
+      ...(target === "all" ? { applyToAll: true } : { flatId: flatId! }),
     });
+  }
+
+  function openUpiForm() {
+    setUpiIdInput(upiQuery.data?.upiId ?? "");
+    setUpiNameInput(upiQuery.data?.upiName ?? "");
+    setUpiError(null);
+    setShowUpiForm(true);
   }
 
   const flats = flatsQuery.data ?? [];
   const allDues = duesQuery.data ?? [];
   const collected = allDues.filter((d) => d.status === "paid").reduce((sum, d) => sum + Number(d.amount), 0);
   const pending = allDues.filter((d) => d.status !== "paid").reduce((sum, d) => sum + Number(d.amount), 0);
+  const upiId = upiQuery.data?.upiId ?? null;
 
   const dues = allDues.filter((d) => {
     if (statusFilter === "all") return true;
@@ -108,15 +144,77 @@ export default function AdminDues() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 16 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
+          <RefreshControl
+            tintColor="#F5821F"
+            colors={["#F5821F"]}
+            progressBackgroundColor="#1A1A1A"
             refreshing={duesQuery.isRefetching || flatsQuery.isRefetching}
             onRefresh={() => {
               duesQuery.refetch();
               flatsQuery.refetch();
+              upiQuery.refetch();
             }}
           />
         }
       >
+        {/* Collection UPI card */}
+        <View style={{ backgroundColor: "#1A1A1A", borderRadius: 20, borderWidth: 1, borderColor: "#333333", padding: 18, gap: 12 }}>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2">
+              <MaterialIcons name="account-balance-wallet" size={18} color="#F5821F" />
+              <Text className="text-body-md font-bold text-on-surface">Collection UPI</Text>
+            </View>
+            <Pressable onPress={openUpiForm} hitSlop={8} accessibilityLabel="Edit UPI details">
+              <Text className="text-body-sm font-bold text-primary">{upiId ? "Edit" : "Set up"}</Text>
+            </Pressable>
+          </View>
+          <Text className="text-body-sm text-text-muted">
+            {upiId ? (
+              <>
+                Residents pay to <Text className="font-bold text-on-surface">{upiId}</Text>
+                {upiQuery.data?.upiName ? ` (${upiQuery.data.upiName})` : ""}
+              </>
+            ) : (
+              "Add the UPI ID residents should pay to — their UPI app opens straight to it."
+            )}
+          </Text>
+
+          {showUpiForm && (
+            <View className="gap-3 border-t pt-3" style={{ borderTopColor: "#333333" }}>
+              <Input
+                label="UPI ID"
+                placeholder="e.g. society@okhdfcbank or 9876543210@ybl"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={upiIdInput}
+                onChangeText={(v) => {
+                  setUpiIdInput(v);
+                  if (upiError) setUpiError(null);
+                }}
+                error={upiError ?? undefined}
+              />
+              <Input
+                label="Payee name (optional)"
+                placeholder="e.g. Palm Meadows Society"
+                value={upiNameInput}
+                onChangeText={setUpiNameInput}
+              />
+              <View className="flex-row gap-3">
+                <Button variant="outline" className="flex-1" onPress={() => setShowUpiForm(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  loading={setUpiMutation.isPending}
+                  onPress={() => setUpiMutation.mutate({ upiId: upiIdInput.trim(), upiName: upiNameInput.trim() || undefined })}
+                >
+                  Save
+                </Button>
+              </View>
+            </View>
+          )}
+        </View>
+
         {/* Summary tiles */}
         <View className="flex-row" style={{ gap: 16 }}>
           {[
@@ -126,14 +224,7 @@ export default function AdminDues() {
             <View
               key={tile.label}
               className="flex-1"
-              style={{
-                backgroundColor: "#1A1A1A",
-                borderRadius: 20,
-                borderWidth: 1,
-                borderColor: "#333333",
-                padding: 18,
-                gap: 6,
-              }}
+              style={{ backgroundColor: "#1A1A1A", borderRadius: 20, borderWidth: 1, borderColor: "#333333", padding: 18, gap: 6 }}
             >
               <Text className="text-body-md text-text-muted">{tile.label}</Text>
               <Text className="font-extrabold" style={{ fontSize: 28, color: tile.color }}>
@@ -147,25 +238,44 @@ export default function AdminDues() {
           <FormPanel>
             <View className="flex-row items-center gap-2">
               <MaterialIcons name="add-circle-outline" size={20} color="#F5821F" />
-              <Text className="text-body-md font-bold text-on-surface">New Due</Text>
+              <Text className="text-body-md font-bold text-on-surface">New Payment</Text>
             </View>
+
+            {/* target toggle */}
             <View className="gap-2">
-              <Text className="text-label-caps uppercase text-text-muted">Flat</Text>
-              <View className="flex-row flex-wrap gap-2">
-                {flats.map((flat) => (
-                  <Chip
-                    key={flat.id}
-                    label={`${flat.flatNumber}`}
-                    selected={flatId === flat.id}
-                    onPress={() => {
-                      setFlatId(flat.id);
-                      setFlatError(null);
-                    }}
-                  />
-                ))}
+              <Text className="text-label-caps uppercase text-text-muted">Send to</Text>
+              <View className="flex-row gap-2">
+                <Chip label="Specific flat" selected={target === "flat"} onPress={() => setTarget("flat")} />
+                <Chip label="All residents" selected={target === "all"} onPress={() => setTarget("all")} />
               </View>
-              {flatError && <Text className="text-body-sm text-status-red">{flatError}</Text>}
             </View>
+
+            {target === "flat" && (
+              <View className="gap-2">
+                <Text className="text-label-caps uppercase text-text-muted">Flat</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {flats.map((flat) => (
+                    <Chip
+                      key={flat.id}
+                      label={`${flat.flatNumber}`}
+                      selected={flatId === flat.id}
+                      onPress={() => {
+                        setFlatId(flat.id);
+                        setFlatError(null);
+                      }}
+                    />
+                  ))}
+                </View>
+                {flatError && <Text className="text-body-sm text-status-red">{flatError}</Text>}
+              </View>
+            )}
+
+            <Input
+              label="Title (optional)"
+              placeholder="e.g. Diwali fund, Water bill"
+              value={title}
+              onChangeText={setTitle}
+            />
             <Input
               label="Amount"
               placeholder="e.g. 2500"
@@ -178,9 +288,8 @@ export default function AdminDues() {
               error={amountError ?? undefined}
             />
             <DateField label="Due Date" value={dueDate} onChange={setDueDate} />
-            <Text className="text-meta-text text-text-muted">Billing period: {periodLabel(toPeriodString(dueDate))}</Text>
             <Button onPress={handleSubmit} loading={createMutation.isPending}>
-              Generate Due
+              {target === "all" ? "Send to All Residents" : "Generate Due"}
             </Button>
           </FormPanel>
         )}
@@ -202,15 +311,7 @@ export default function AdminDues() {
             <EmptyState title="No dues found" description="Generate a due above to get started." icon="payments" />
           </View>
         ) : (
-          <View
-            style={{
-              backgroundColor: "#1A1A1A",
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: "#333333",
-              overflow: "hidden",
-            }}
-          >
+          <View style={{ backgroundColor: "#1A1A1A", borderRadius: 20, borderWidth: 1, borderColor: "#333333", overflow: "hidden" }}>
             {dues.map((due, index) => {
               const paid = due.status === "paid";
               const overdue = !paid && due.isOverdue;
@@ -220,28 +321,31 @@ export default function AdminDues() {
                 <View
                   key={due.id}
                   className="flex-row items-center gap-3"
-                  style={{
-                    padding: 20,
-                    borderTopWidth: index > 0 ? 1 : 0,
-                    borderTopColor: "#333333",
-                  }}
+                  style={{ padding: 20, borderTopWidth: index > 0 ? 1 : 0, borderTopColor: "#333333" }}
                 >
                   <View className="min-w-0 flex-1">
                     <Text className="text-section-header font-bold text-on-surface" numberOfLines={1}>
                       {due.flatNumber}
                     </Text>
                     <Text className="mt-0.5 text-body-sm text-text-muted" numberOfLines={1}>
-                      {periodLabel(due.period)}
+                      {due.title ?? periodLabel(due.period)}
                     </Text>
                   </View>
+                  {due.hasProof && (
+                    <Pressable
+                      onPress={() => setProofDueId(due.id)}
+                      hitSlop={8}
+                      className="items-center justify-center rounded-full"
+                      style={{ width: 34, height: 34, backgroundColor: "#242424", borderWidth: 1, borderColor: "#333333" }}
+                      accessibilityLabel={`View payment proof for ${due.flatNumber}`}
+                    >
+                      <MaterialIcons name="receipt-long" size={18} color="#27C96D" />
+                    </Pressable>
+                  )}
                   <Text className="text-body-lg font-bold text-on-surface">₹{Number(due.amount).toLocaleString("en-IN")}</Text>
                   <View
                     className="items-center justify-center rounded-full px-3 py-1"
-                    style={
-                      paid
-                        ? { backgroundColor: "#242424" }
-                        : { borderWidth: 1, borderColor: pillColor }
-                    }
+                    style={paid ? { backgroundColor: "#242424" } : { borderWidth: 1, borderColor: pillColor }}
                   >
                     <Text className="text-label-caps font-semibold uppercase" style={{ color: pillColor }}>
                       {pillLabel}
@@ -253,6 +357,55 @@ export default function AdminDues() {
           </View>
         )}
       </ScrollView>
+
+      <ProofModal
+        visible={!!proofDueId}
+        loading={proofQuery.isLoading}
+        image={proofQuery.data?.proofImage ?? null}
+        onClose={() => setProofDueId(null)}
+      />
     </View>
+  );
+}
+
+function ProofModal({
+  visible,
+  loading,
+  image,
+  onClose,
+}: {
+  visible: boolean;
+  loading: boolean;
+  image: string | null;
+  onClose: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable className="flex-1 items-center justify-center px-6" style={{ backgroundColor: "rgba(0,0,0,0.85)" }} onPress={onClose}>
+        <Pressable
+          onPress={() => {}}
+          className="w-full items-center gap-4 p-5"
+          style={[{ backgroundColor: "#1A1A1A", borderRadius: 24, paddingBottom: insets.bottom + 20 }, shadowElevated]}
+        >
+          <Text className="text-body-lg font-extrabold text-on-surface">Payment Proof</Text>
+          {loading ? (
+            <ActivityIndicator color="#F5821F" style={{ marginVertical: 40 }} />
+          ) : image ? (
+            <Image source={{ uri: image }} style={{ width: "100%", height: 380, borderRadius: 12 }} resizeMode="contain" />
+          ) : (
+            <Text className="py-10 text-body-md text-text-muted">No screenshot attached.</Text>
+          )}
+          <Pressable
+            onPress={onClose}
+            className="h-12 w-full items-center justify-center rounded-full"
+            style={{ backgroundColor: "#242424", borderWidth: 1, borderColor: "#333333" }}
+            accessibilityLabel="Close"
+          >
+            <Text className="text-body-md font-bold text-on-surface">Close</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }

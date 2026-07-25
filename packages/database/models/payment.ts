@@ -1,4 +1,4 @@
-import { pgTable, pgEnum, uuid, varchar, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, pgEnum, uuid, varchar, numeric, text, boolean, timestamp } from "drizzle-orm/pg-core";
 import { duesTable } from "./due";
 
 export const paymentStatusEnum = pgEnum("payment_status", ["created", "success", "failed"]);
@@ -14,6 +14,10 @@ export const paymentsTable = pgTable("payments", {
   provider: varchar("provider", { length: 30 }).notNull().default("razorpay"),
   providerRefId: varchar("provider_ref_id", { length: 120 }),
   status: paymentStatusEnum("status").notNull().default("created"),
+
+  // UPI manual flow: resident's payment screenshot (base64 data URL) + admin verification.
+  proofImage: text("proof_image"),
+  verified: boolean("verified").notNull().default(false),
 
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow(),

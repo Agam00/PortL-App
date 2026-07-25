@@ -51,7 +51,7 @@ export default function ResidentDues() {
       pathname: "/(resident)/pay",
       params: {
         dueId: due.id,
-        title: paymentTitle(due.period),
+        title: due.title ?? paymentTitle(due.period),
         amount: Number(due.amount).toFixed(2),
         dueDate: due.dueDate,
         overdue: due.isOverdue ? "1" : "0",
