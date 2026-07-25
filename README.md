@@ -14,7 +14,7 @@ A production-ready, mobile-first society management platform for modern apartmen
 
 | What | Link |
 |---|---|
-| 📱 **Install the APK** (Android) | https://expo.dev/accounts/agam142/projects/portl/builds/6ec9e0c6-6387-414c-9d08-ada950035eb6 |
+| 📱 **Install the APK** (Android) | [Latest build → Install](https://expo.dev/accounts/agam142/projects/portl/builds) *(open the newest build, scan the QR or download the `.apk`)* |
 | 🌐 **Live Backend API** | **https://portl-app.onrender.com** |
 | ❤️ Backend health check | https://portl-app.onrender.com/health |
 | 📖 Interactive API docs (OpenAPI/Scalar) | https://portl-app.onrender.com/docs |
@@ -126,24 +126,33 @@ Clean navigation ✅ · Fast approval flows ✅ · Responsive layouts ✅ · Loa
 ## 🏗️ Architecture
 
 ```mermaid
-flowchart LR
-  subgraph Mobile["📱 Expo / React Native app (apps/mobile)"]
-    UI["Resident · Guard · Admin dashboards"]
-    ZS["Zustand (auth/UI)"]
+flowchart TD
+  subgraph Mobile["Expo / React Native app — apps/mobile"]
+    UI["Resident / Guard / Admin dashboards"]
+    ZS["Zustand — auth & UI state"]
     RQ["React Query + tRPC client"]
   end
-  subgraph Server["☁️ Backend on Render (apps/api)"]
-    EX["Express"]
-    TRPC["tRPC router + REST (trpc-to-openapi)"]
-    SVC["Domain services (packages/services)"]
-    PUSH["Expo Push (expo-server-sdk)"]
-  end
-  DB[("🐘 PostgreSQL — Neon\nDrizzle ORM")]
 
-  RQ -- "HTTPS /trpc" --> EX
-  EX --> TRPC --> SVC --> DB
-  SVC --> PUSH -.-> Mobile
+  subgraph Server["Backend on Render — apps/api"]
+    EX["Express host"]
+    TRPC["tRPC router + REST via trpc-to-openapi"]
+    SVC["Domain services — packages/services"]
+    PUSH["Expo Push — expo-server-sdk"]
+  end
+
+  DB[("PostgreSQL on Neon<br/>Drizzle ORM")]
+
+  UI --> ZS
+  UI --> RQ
+  RQ -->|"HTTPS /trpc"| EX
+  EX --> TRPC
+  TRPC --> SVC
+  SVC --> DB
+  SVC --> PUSH
+  PUSH -.->|"device notifications"| Mobile
 ```
+
+> **Request lifecycle:** the app calls a tRPC procedure → Express + `trpc-to-openapi` route it → the procedure runs `requireRole` (RBAC) → a domain **service** executes the business logic via **Drizzle** against **Postgres** → side effects (e.g. push notifications) fire → a fully typed response returns to React Query. See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for sequence diagrams.
 
 **Type-safe, end-to-end monorepo (pnpm workspaces):**
 
@@ -252,6 +261,21 @@ The app reads its backend URL at launch from a small remote config file — `mob
 
 ---
 
+## 📚 Documentation
+
+Deep-dive docs for reviewers (and AI evaluation):
+
+| Doc | What's inside |
+|---|---|
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | System design, request lifecycle, sequence diagrams (visitor approval & dues approval), monorepo & type-safety story, key design decisions |
+| [`docs/FEATURES.md`](./docs/FEATURES.md) | Full feature catalogue per role, each mapped to the exact requirement it satisfies |
+| [`docs/API.md`](./docs/API.md) | The 120-endpoint API reference grouped by domain, auth model, RBAC, and example requests |
+| [`docs/DATA-MODEL.md`](./docs/DATA-MODEL.md) | Database schema, all tables & relationships, entity-relationship diagram |
+| [`docs/QA-PLAN.md`](./docs/QA-PLAN.md) | End-to-end manual + automated QA plan |
+| [`docs/DEPLOY-GCP.md`](./docs/DEPLOY-GCP.md) | Alternative cloud deployment guide |
+
+---
+
 ## 📁 Repository Structure
 
 ```
@@ -278,8 +302,9 @@ PortL-App/
 - [x] **Live backend + database** (bonus) — https://portl-app.onrender.com
 - [x] README with setup instructions (this file)
 - [x] Demo credentials (above)
-- [ ] Demo video
-- [ ] Screenshots
+- [x] Comprehensive documentation ([`docs/`](./docs))
+- [ ] Demo video *(recorded separately and added to the submission)*
+- [ ] Screenshots *(added to the submission folder)*
 
 ---
 
