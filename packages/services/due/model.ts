@@ -3,18 +3,15 @@ import { z } from "zod";
 export const dueStatusSchema = z.enum(["pending", "paid", "overdue"]);
 
 // Admin creates a charge: either for one flat, or for every resident's flat.
-export const createDueInputSchema = z
-  .object({
-    title: z.string().max(120).optional(),
-    amount: z.number().positive(),
-    dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format"),
-    applyToAll: z.boolean().optional(),
-    flatId: z.string().uuid().optional(),
-  })
-  .refine((v) => v.applyToAll === true || !!v.flatId, {
-    message: "Choose a flat or apply to all residents",
-    path: ["flatId"],
-  });
+// NOTE: no .refine() here — trpc-to-openapi calls .omit() on input schemas, which
+// Zod forbids on refined objects. The "flat or applyToAll" rule is enforced in the service.
+export const createDueInputSchema = z.object({
+  title: z.string().max(120).optional(),
+  amount: z.number().positive(),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD format"),
+  applyToAll: z.boolean().optional(),
+  flatId: z.string().uuid().optional(),
+});
 
 export const createDueResultSchema = z.object({
   count: z.number().describe("How many due rows were created"),
