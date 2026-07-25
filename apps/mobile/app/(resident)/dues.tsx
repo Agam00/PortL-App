@@ -27,9 +27,15 @@ function dateLabel(iso: string) {
   return d.toLocaleDateString([], { day: "2-digit", month: "long" });
 }
 
-// PAID = green, PENDING = gold, OVERDUE = red (the mockup's "FAILED" red slot).
+// A screenshot has been submitted but the admin hasn't approved it yet.
+function isUnderReview(due: DueOutput): boolean {
+  return due.status !== "paid" && due.hasProof && !due.verified;
+}
+
+// PAID = green, UNDER REVIEW = blue, PENDING = gold, OVERDUE = red.
 function statusPill(due: DueOutput): { label: string; bg: string; fg: string } {
   if (due.status === "paid") return { label: "PAID", bg: "#3DBE5D", fg: "#FFFFFF" };
+  if (isUnderReview(due)) return { label: "UNDER REVIEW", bg: "#3B5BDB", fg: "#FFFFFF" };
   if (due.isOverdue) return { label: "OVERDUE", bg: "#E5484D", fg: "#FFFFFF" };
   return { label: "PENDING", bg: "#EFC050", fg: "#3D2E00" };
 }
@@ -127,6 +133,7 @@ export default function ResidentDues() {
           filtered.map((due) => {
             const pill = statusPill(due);
             const isPaid = due.status === "paid";
+            const underReview = isUnderReview(due);
             return (
               <View key={due.id} className="gap-2 rounded-2xl bg-surface p-4" style={shadowCard}>
                 <View className="flex-row items-center justify-between gap-2">
@@ -146,7 +153,11 @@ export default function ResidentDues() {
 
                 <View className="flex-row items-center justify-between pt-1">
                   <Text className="text-body-sm text-text-muted">
-                    {isPaid && due.paidAt ? `Paid on ${dateTimeLabel(due.paidAt)}` : `Due date ${dateLabel(due.dueDate)}`}
+                    {isPaid && due.paidAt
+                      ? `Paid on ${dateTimeLabel(due.paidAt)}`
+                      : underReview
+                        ? "Awaiting admin approval"
+                        : `Due date ${dateLabel(due.dueDate)}`}
                   </Text>
                   {isPaid ? (
                     <Pressable
@@ -160,6 +171,13 @@ export default function ResidentDues() {
                         Receipt
                       </Text>
                     </Pressable>
+                  ) : underReview ? (
+                    <View className="flex-row items-center gap-1.5">
+                      <MaterialIcons name="hourglass-top" size={18} color="#8AA0FF" />
+                      <Text className="text-body-sm font-bold" style={{ color: "#8AA0FF" }}>
+                        Under review
+                      </Text>
+                    </View>
                   ) : (
                     <Pressable
                       onPress={() => startPay(due)}

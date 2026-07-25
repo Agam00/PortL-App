@@ -76,6 +76,30 @@ export default function AdminDues() {
     },
   });
 
+  const approveMutation = trpc.dues.approvePayment.useMutation({
+    onSuccess: () => {
+      hapticSuccess();
+      showToast("Payment approved — marked paid", "success");
+      utils.dues.list.invalidate();
+    },
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
+  });
+
+  const rejectMutation = trpc.dues.rejectPayment.useMutation({
+    onSuccess: () => {
+      hapticSuccess();
+      showToast("Payment rejected — back to pending", "success");
+      utils.dues.list.invalidate();
+    },
+    onError: (error) => {
+      hapticError();
+      showToast(getErrorMessage(error), "error");
+    },
+  });
+
   function handleSubmit() {
     const flatMissing = target === "flat" && !flatId;
     const amountMissing = !amount.trim();
@@ -227,42 +251,77 @@ export default function AdminDues() {
             {dues.map((due, index) => {
               const paid = due.status === "paid";
               const overdue = !paid && due.isOverdue;
-              const pillColor = paid ? "#8A8A8A" : overdue ? "#FF5F5F" : "#F5821F";
-              const pillLabel = paid ? "PAID" : overdue ? "OVERDUE" : "DUE";
+              const underReview = !paid && due.hasProof && !due.verified;
+              const pillColor = paid ? "#8A8A8A" : underReview ? "#7B8CFF" : overdue ? "#FF5F5F" : "#F5821F";
+              const pillLabel = paid ? "PAID" : underReview ? "REVIEW" : overdue ? "OVERDUE" : "DUE";
+              const busy = approveMutation.isPending || rejectMutation.isPending;
               return (
                 <View
                   key={due.id}
-                  className="flex-row items-center gap-3"
-                  style={{ padding: 20, borderTopWidth: index > 0 ? 1 : 0, borderTopColor: "#333333" }}
+                  style={{ padding: 20, borderTopWidth: index > 0 ? 1 : 0, borderTopColor: "#333333", gap: 14 }}
                 >
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-section-header font-bold text-on-surface" numberOfLines={1}>
-                      {due.flatNumber}
-                    </Text>
-                    <Text className="mt-0.5 text-body-sm text-text-muted" numberOfLines={1}>
-                      {due.title ?? periodLabel(due.period)}
-                    </Text>
-                  </View>
-                  {due.hasProof && (
-                    <Pressable
-                      onPress={() => setProofDueId(due.id)}
-                      hitSlop={8}
-                      className="items-center justify-center rounded-full"
-                      style={{ width: 34, height: 34, backgroundColor: "#242424", borderWidth: 1, borderColor: "#333333" }}
-                      accessibilityLabel={`View payment proof for ${due.flatNumber}`}
+                  <View className="flex-row items-center gap-3">
+                    <View className="min-w-0 flex-1">
+                      <Text className="text-section-header font-bold text-on-surface" numberOfLines={1}>
+                        {due.flatNumber}
+                      </Text>
+                      <Text className="mt-0.5 text-body-sm text-text-muted" numberOfLines={1}>
+                        {due.title ?? periodLabel(due.period)}
+                      </Text>
+                    </View>
+                    {paid && due.hasProof && (
+                      <Pressable
+                        onPress={() => setProofDueId(due.id)}
+                        hitSlop={8}
+                        className="items-center justify-center rounded-full"
+                        style={{ width: 34, height: 34, backgroundColor: "#242424", borderWidth: 1, borderColor: "#333333" }}
+                        accessibilityLabel={`View payment proof for ${due.flatNumber}`}
+                      >
+                        <MaterialIcons name="receipt-long" size={18} color="#27C96D" />
+                      </Pressable>
+                    )}
+                    <Text className="text-body-lg font-bold text-on-surface">₹{Number(due.amount).toLocaleString("en-IN")}</Text>
+                    <View
+                      className="items-center justify-center rounded-full px-3 py-1"
+                      style={paid ? { backgroundColor: "#242424" } : { borderWidth: 1, borderColor: pillColor }}
                     >
-                      <MaterialIcons name="receipt-long" size={18} color="#27C96D" />
-                    </Pressable>
-                  )}
-                  <Text className="text-body-lg font-bold text-on-surface">₹{Number(due.amount).toLocaleString("en-IN")}</Text>
-                  <View
-                    className="items-center justify-center rounded-full px-3 py-1"
-                    style={paid ? { backgroundColor: "#242424" } : { borderWidth: 1, borderColor: pillColor }}
-                  >
-                    <Text className="text-label-caps font-semibold uppercase" style={{ color: pillColor }}>
-                      {pillLabel}
-                    </Text>
+                      <Text className="text-label-caps font-semibold uppercase" style={{ color: pillColor }}>
+                        {pillLabel}
+                      </Text>
+                    </View>
                   </View>
+
+                  {underReview && (
+                    <View className="flex-row items-center gap-2 border-t pt-3" style={{ borderTopColor: "#333333" }}>
+                      <Pressable
+                        onPress={() => setProofDueId(due.id)}
+                        className="flex-row items-center gap-1.5"
+                        accessibilityLabel={`View payment proof for ${due.flatNumber}`}
+                      >
+                        <MaterialIcons name="image" size={18} color="#F5821F" />
+                        <Text className="text-body-sm font-bold text-primary">View proof</Text>
+                      </Pressable>
+                      <View className="flex-1" />
+                      <Pressable
+                        onPress={() => rejectMutation.mutate({ dueId: due.id })}
+                        disabled={busy}
+                        className="rounded-full px-4 py-2"
+                        style={{ borderWidth: 1, borderColor: "#FF5F5F", opacity: busy ? 0.5 : 1 }}
+                        accessibilityLabel={`Reject payment for ${due.flatNumber}`}
+                      >
+                        <Text className="text-body-sm font-bold" style={{ color: "#FF5F5F" }}>Reject</Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => approveMutation.mutate({ dueId: due.id })}
+                        disabled={busy}
+                        className="rounded-full px-4 py-2"
+                        style={{ backgroundColor: "#27C96D", opacity: busy ? 0.5 : 1 }}
+                        accessibilityLabel={`Approve payment for ${due.flatNumber}`}
+                      >
+                        <Text className="text-body-sm font-bold" style={{ color: "#08210F" }}>Approve</Text>
+                      </Pressable>
+                    </View>
+                  )}
                 </View>
               );
             })}

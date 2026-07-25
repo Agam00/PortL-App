@@ -89,6 +89,24 @@ export const duesRouter = router({
     .output(dueProofOutputSchema)
     .query(async ({ ctx, input }) => dueService.getProof(requireSocietyId(ctx.user.societyId), input.dueId)),
 
+  // Admin approves a submitted payment → the due becomes paid.
+  approvePayment: adminProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/approve"), tags: TAGS } })
+    .input(dueIdInputSchema)
+    .output(dueOutputSchema)
+    .mutation(async ({ ctx, input }) =>
+      dueService.approvePayment(requireSocietyId(ctx.user.societyId), input.dueId),
+    ),
+
+  // Admin rejects a submitted payment → the due goes back to pending.
+  rejectPayment: adminProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/reject"), tags: TAGS } })
+    .input(dueIdInputSchema)
+    .output(dueOutputSchema)
+    .mutation(async ({ ctx, input }) =>
+      dueService.rejectPayment(requireSocietyId(ctx.user.societyId), input.dueId),
+    ),
+
   payMock: residentProcedure
     .meta({ openapi: { method: "POST", path: getPath("/pay-mock"), tags: TAGS } })
     .input(dueIdInputSchema)

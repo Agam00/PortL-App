@@ -29,7 +29,7 @@ export default function PayDue() {
   const submitMutation = trpc.dues.submitUpiPayment.useMutation({
     onSuccess: () => {
       hapticSuccess();
-      showToast("Payment submitted — marked as paid", "success");
+      showToast("Submitted — waiting for admin approval", "success");
       utils.dues.mine.invalidate();
       router.back();
     },

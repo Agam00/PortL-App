@@ -1,5 +1,5 @@
 /**
- * Live test for the UPI dues feature against the deployed API.
+ * Live test for the dues approval flow against the deployed API.
  * Run: API_URL=https://portl-app.onrender.com/trpc apps/api/node_modules/.bin/tsx apps/api/_qa_pay.ts
  */
 import { createTRPCClient, httpBatchLink, type ServerRouter } from "@repo/trpc/client";
@@ -32,87 +32,88 @@ async function check(name: string, fn: () => Promise<any>) {
 function assert(c: any, m: string) {
   if (!c) throw new Error(m);
 }
-const PNG_1x1 =
+const PNG =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 async function main() {
-  console.log("\n===== UPI DUES — LIVE TEST =====\n");
+  console.log("\n===== DUES APPROVAL — LIVE TEST =====\n");
   const admin = await login("admin@portl.dev");
   const r1 = await login("resident1@portl.dev");
 
-  await check("admin sets collection UPI", async () => {
-    const res: any = await admin.c.dues.setPaymentSettings.mutate({
-      upiId: "palmmeadows@okhdfcbank",
-      upiName: "Palm Meadows Society",
-    });
-    assert(res.upiId === "palmmeadows@okhdfcbank", "upiId not saved");
-    return res.upiId;
-  });
-  await check("admin reads back settings", async () => {
-    const s: any = await admin.c.dues.paymentSettings.query();
-    assert(s.upiId === "palmmeadows@okhdfcbank", "mismatch");
-    return `${s.upiId} (${s.upiName})`;
-  });
-  await check("invalid UPI id rejected", async () => {
-    let blocked = false;
-    try {
-      await admin.c.dues.setPaymentSettings.mutate({ upiId: "not-a-upi" } as any);
-    } catch {
-      blocked = true;
-    }
-    assert(blocked, "invalid upi should be rejected");
-    return "validation works";
-  });
-  await check("resident reads collection UPI", async () => {
-    const s: any = await r1.c.dues.collectionUpi.query();
-    assert(s.upiId === "palmmeadows@okhdfcbank", "resident can't see UPI");
-    return s.upiId;
-  });
-  await check("admin creates due for a specific flat", async () => {
+  let dueId = "";
+  await check("admin creates a due for a flat", async () => {
     const res: any = await admin.c.dues.create.mutate({
-      title: "QA Water Bill",
-      amount: 750,
+      title: "QA Approval Test",
+      amount: 350,
       dueDate: new Date(Date.now() + 6 * 864e5).toISOString().slice(0, 10),
       flatId: r1.user.flatId,
     });
     assert(res.count === 1, `count=${res.count}`);
     return "1 due";
   });
-  await check("admin sends due to ALL residents", async () => {
-    const res: any = await admin.c.dues.create.mutate({
-      title: "QA Festival Fund",
-      amount: 500,
-      dueDate: new Date(Date.now() + 10 * 864e5).toISOString().slice(0, 10),
-      applyToAll: true,
-    });
-    assert(res.count >= 1, `count=${res.count}`);
-    return `${res.count} flats charged`;
-  });
-  let paidDueId = "";
-  await check("resident pays via UPI + attaches screenshot", async () => {
+  await check("resident submits screenshot → UNDER REVIEW, not paid", async () => {
     const mine: any[] = await r1.c.dues.mine.query();
-    const pending = mine.find((d) => d.status !== "paid" && d.title?.startsWith("QA"));
-    assert(pending, "no QA pending due for resident");
-    paidDueId = pending.id;
-    const res: any = await r1.c.dues.submitUpiPayment.mutate({ dueId: pending.id, proofImage: PNG_1x1 });
-    assert(res.status === "paid", `status=${res.status}`);
-    assert(res.hasProof === true, "hasProof not set");
-    return "paid with proof";
+    const pending = mine.find((d) => d.status !== "paid" && d.title === "QA Approval Test" && !d.hasProof);
+    assert(pending, "no fresh QA due");
+    dueId = pending.id;
+    const res: any = await r1.c.dues.submitUpiPayment.mutate({ dueId, proofImage: PNG });
+    assert(res.status !== "paid", `should NOT be paid yet, got ${res.status}`);
+    assert(res.hasProof === true && res.verified === false, "should be under review (hasProof, !verified)");
+    return "under review";
   });
-  await check("admin views the payment screenshot", async () => {
-    const res: any = await admin.c.dues.proof.query({ dueId: paidDueId });
-    assert(res.proofImage && res.proofImage.startsWith("data:image"), "proof image missing");
-    return `proof ${res.proofImage.length} chars`;
-  });
-  await check("double-submit blocked", async () => {
+  await check("resident cannot resubmit while under review", async () => {
     let blocked = false;
     try {
-      await r1.c.dues.submitUpiPayment.mutate({ dueId: paidDueId, proofImage: PNG_1x1 });
+      await r1.c.dues.submitUpiPayment.mutate({ dueId, proofImage: PNG });
     } catch {
       blocked = true;
     }
-    assert(blocked, "paying an already-paid due should fail");
+    assert(blocked, "resubmit should be blocked");
     return "CONFLICT enforced";
+  });
+  await check("admin sees the screenshot", async () => {
+    const res: any = await admin.c.dues.proof.query({ dueId });
+    assert(res.proofImage && res.proofImage.startsWith("data:image"), "no proof");
+    return `${res.proofImage.length} chars`;
+  });
+  await check("admin approves → PAID + verified", async () => {
+    const res: any = await admin.c.dues.approvePayment.mutate({ dueId });
+    assert(res.status === "paid", `status=${res.status}`);
+    assert(res.verified === true, "should be verified");
+    assert(res.paidAt, "paidAt should be set after approval");
+    return "approved → paid";
+  });
+  await check("paying an already-paid due is blocked", async () => {
+    let blocked = false;
+    try {
+      await r1.c.dues.submitUpiPayment.mutate({ dueId, proofImage: PNG });
+    } catch {
+      blocked = true;
+    }
+    assert(blocked, "should be blocked");
+    return "CONFLICT enforced";
+  });
+
+  // reject flow
+  let dueId2 = "";
+  await check("reject flow: submit → admin rejects → back to pending", async () => {
+    await admin.c.dues.create.mutate({
+      title: "QA Reject Test",
+      amount: 120,
+      dueDate: new Date(Date.now() + 6 * 864e5).toISOString().slice(0, 10),
+      flatId: r1.user.flatId,
+    });
+    const mine: any[] = await r1.c.dues.mine.query();
+    const d = mine.find((x) => x.title === "QA Reject Test" && !x.hasProof);
+    assert(d, "no reject-test due");
+    dueId2 = d.id;
+    await r1.c.dues.submitUpiPayment.mutate({ dueId: dueId2, proofImage: PNG });
+    const rejected: any = await admin.c.dues.rejectPayment.mutate({ dueId: dueId2 });
+    assert(rejected.status !== "paid" && rejected.hasProof === false, "should be back to pending, no proof");
+    // resident can submit again after rejection
+    const again: any = await r1.c.dues.submitUpiPayment.mutate({ dueId: dueId2, proofImage: PNG });
+    assert(again.hasProof && !again.verified, "resubmission should work after reject");
+    return "reject → resubmit OK";
   });
 
   const pass = rows.filter((r) => r.ok).length;

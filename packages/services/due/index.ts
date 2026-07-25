@@ -43,15 +43,17 @@ async function enrich(row: Awaited<ReturnType<typeof baseQuery>>[number]): Promi
     .orderBy(desc(paymentsTable.createdAt))
     .limit(1);
 
+  const verified = payment?.verified ?? false;
   const isOverdue = row.status === "pending" && new Date(row.dueDate).getTime() < Date.now();
 
   return {
     ...row,
     title: row.title ?? null,
     isOverdue,
-    paidAt: payment?.paidAt?.toISOString() ?? null,
+    // Only an admin-approved payment counts as "paid on".
+    paidAt: verified ? (payment?.paidAt?.toISOString() ?? null) : null,
     hasProof: payment?.hasProof ?? false,
-    verified: payment?.verified ?? false,
+    verified,
     createdAt: row.createdAt?.toISOString() ?? null,
   };
 }
@@ -144,7 +146,10 @@ class DueService {
 
   // ---- Resident UPI payment ----
 
-  /** Resident reports a UPI payment and attaches a screenshot; the due is marked paid. */
+  /**
+   * Resident reports a payment and attaches a screenshot. The due is NOT marked paid yet —
+   * it stays pending with an unverified proof ("under review") until an admin approves it.
+   */
   async submitUpiPayment(flatId: string, dueId: string, proofImage: string): Promise<DueOutput> {
     const [due] = await db.select().from(duesTable).where(eq(duesTable.id, dueId)).limit(1);
     if (!due || due.flatId !== flatId) {
@@ -152,6 +157,17 @@ class DueService {
     }
     if (due.status === "paid") {
       throw new TRPCError({ code: "CONFLICT", message: "This due has already been paid" });
+    }
+    // Block a second submission while one is already awaiting approval.
+    const [pendingProof] = await db
+      .select({ id: paymentsTable.id })
+      .from(paymentsTable)
+      .where(
+        and(eq(paymentsTable.dueId, dueId), eq(paymentsTable.status, "success"), eq(paymentsTable.verified, false)),
+      )
+      .limit(1);
+    if (pendingProof) {
+      throw new TRPCError({ code: "CONFLICT", message: "Payment already submitted — waiting for admin approval" });
     }
 
     await db.insert(paymentsTable).values({
@@ -164,7 +180,62 @@ class DueService {
       verified: false,
       paidAt: new Date(),
     });
+
+    const updated = await this.getById(dueId);
+    if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    return updated;
+  }
+
+  private async requireDueInSociety(societyId: string, dueId: string) {
+    const [row] = await db
+      .select({ dueId: duesTable.id, societyId: towersTable.societyId })
+      .from(duesTable)
+      .innerJoin(flatsTable, eq(flatsTable.id, duesTable.flatId))
+      .innerJoin(towersTable, eq(towersTable.id, flatsTable.towerId))
+      .where(eq(duesTable.id, dueId))
+      .limit(1);
+    if (!row || row.societyId !== societyId) {
+      throw new TRPCError({ code: "NOT_FOUND", message: "Due not found" });
+    }
+  }
+
+  private async pendingProofPaymentId(dueId: string): Promise<string | null> {
+    const [p] = await db
+      .select({ id: paymentsTable.id })
+      .from(paymentsTable)
+      .where(
+        and(eq(paymentsTable.dueId, dueId), eq(paymentsTable.status, "success"), eq(paymentsTable.verified, false)),
+      )
+      .orderBy(desc(paymentsTable.createdAt))
+      .limit(1);
+    return p?.id ?? null;
+  }
+
+  /** Admin approves a submitted payment → the due becomes paid. */
+  async approvePayment(societyId: string, dueId: string): Promise<DueOutput> {
+    await this.requireDueInSociety(societyId, dueId);
+    const paymentId = await this.pendingProofPaymentId(dueId);
+    if (!paymentId) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "No payment awaiting approval" });
+    }
+    await db.update(paymentsTable).set({ verified: true }).where(eq(paymentsTable.id, paymentId));
     await db.update(duesTable).set({ status: "paid" }).where(eq(duesTable.id, dueId));
+
+    const updated = await this.getById(dueId);
+    if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+    return updated;
+  }
+
+  /** Admin rejects a submitted payment → the due goes back to pending; resident can resubmit. */
+  async rejectPayment(societyId: string, dueId: string): Promise<DueOutput> {
+    await this.requireDueInSociety(societyId, dueId);
+    const paymentId = await this.pendingProofPaymentId(dueId);
+    if (!paymentId) {
+      throw new TRPCError({ code: "BAD_REQUEST", message: "No payment awaiting approval" });
+    }
+    // Mark failed so it no longer counts as a submission (hasProof falls back to false).
+    await db.update(paymentsTable).set({ status: "failed" }).where(eq(paymentsTable.id, paymentId));
+    await db.update(duesTable).set({ status: "pending" }).where(eq(duesTable.id, dueId));
 
     const updated = await this.getById(dueId);
     if (!updated) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
