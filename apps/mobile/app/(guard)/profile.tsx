@@ -219,8 +219,6 @@ export default function GuardProfile() {
             {logoutMutation.isPending ? "Logging out…" : "Logout"}
           </Text>
         </Pressable>
-
-        <Text className="pt-1 text-center text-body-sm text-text-muted">Developed by Opus LabWorks</Text>
       </ScrollView>
     </View>
   );

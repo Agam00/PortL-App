@@ -11,7 +11,11 @@ export default function ResidentLayout() {
   }
 
   return (
-    <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <ResidentTabBar {...props} />}>
+    <Tabs
+      backBehavior="history"
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <ResidentTabBar {...props} />}
+    >
       {/* Visible tabs (rendered by ResidentTabBar): Home · Activity · Social · Service */}
       <Tabs.Screen name="home" options={{ title: "Home" }} />
       <Tabs.Screen name="visitor-history" options={{ title: "Activity" }} />

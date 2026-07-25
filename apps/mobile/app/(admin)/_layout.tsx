@@ -15,7 +15,7 @@ export default function AdminLayout() {
 
   return (
     <Fragment>
-    <Tabs screenOptions={{ ...tabBarScreenOptions, tabBarShowLabel: false }}>
+    <Tabs backBehavior="history" screenOptions={{ ...tabBarScreenOptions, tabBarShowLabel: false }}>
       <Tabs.Screen
         name="dashboard"
         options={{
