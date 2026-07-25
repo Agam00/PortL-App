@@ -132,7 +132,7 @@ export default function AdminStaff() {
       <ScrollView
         contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={staffQuery.isRefetching} onRefresh={() => staffQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={staffQuery.isRefetching} onRefresh={() => staffQuery.refetch()} />}
       >
         <Button variant={showForm ? "outline" : "primary"} onPress={() => (showForm ? resetForm() : setShowForm(true))}>
           {showForm ? "Cancel" : "+ Add Provider"}

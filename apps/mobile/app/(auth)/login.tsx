@@ -142,13 +142,15 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
       className="flex-1 bg-background"
     >
       <ScrollView
         contentContainerClassName="flex-grow justify-center px-6"
-        contentContainerStyle={{ paddingTop: insets.top + 24, paddingBottom: 40 }}
+        contentContainerStyle={{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 120 }}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive"
+        showsVerticalScrollIndicator={false}
       >
         <View className="w-full max-w-[400px] self-center">
           {/* Logo tile */}

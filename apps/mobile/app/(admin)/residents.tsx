@@ -169,19 +169,17 @@ export default function AdminResidents() {
   }
 
   const flats = flatsQuery.data ?? [];
+  // Only vacant flats can take a new resident — an occupied flat already has one.
+  const availableFlats = flats.filter((flat) => flat.residentCount === 0);
 
   return (
     <View className="flex-1 bg-background">
-      <AdminHeader
-        showBack
-        barTitle="Residents"
-        action={{ label: showForm ? "Close" : "+ Add", onPress: () => (showForm ? resetForm() : setShowForm(true)) }}
-      />
+      <AdminHeader showBack barTitle="Residents" />
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40, gap: 16 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl
+          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
             refreshing={residentsQuery.isRefetching || flatsQuery.isRefetching}
             onRefresh={() => {
               residentsQuery.refetch();
@@ -248,11 +246,15 @@ export default function AdminResidents() {
             />
             <View className="gap-2">
               <Text className="text-label-caps uppercase text-text-muted">Flat</Text>
-              {flats.length === 0 ? (
-                <Text className="text-body-sm text-text-muted">No flats yet — add one under Flats Management.</Text>
+              {availableFlats.length === 0 ? (
+                <Text className="text-body-sm text-text-muted">
+                  {flats.length === 0
+                    ? "No flats yet — add one under Flats Management."
+                    : "All flats are occupied — free one up or add a flat under Flats Management."}
+                </Text>
               ) : (
                 <View className="flex-row flex-wrap gap-2">
-                  {flats.map((flat) => (
+                  {availableFlats.map((flat) => (
                     <Pressable
                       key={flat.id}
                       onPress={() => {
@@ -263,7 +265,6 @@ export default function AdminResidents() {
                     >
                       <Text className={`text-body-sm ${flatId === flat.id ? "text-primary-container" : "text-on-surface-variant"}`}>
                         {flat.flatNumber}
-                        {flat.residentCount > 0 ? ` (${flat.residentCount})` : ""}
                       </Text>
                     </Pressable>
                   ))}

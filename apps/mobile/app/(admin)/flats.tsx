@@ -138,7 +138,7 @@ export default function AdminFlats() {
         contentContainerClassName="gap-4 p-4 pb-8"
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl
+          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
             refreshing={flatsQuery.isRefetching || towersQuery.isRefetching}
             onRefresh={() => {
               flatsQuery.refetch();

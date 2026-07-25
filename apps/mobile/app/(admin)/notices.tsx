@@ -130,7 +130,7 @@ export default function AdminNotices() {
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 16 }}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={noticesQuery.isRefetching} onRefresh={() => noticesQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={noticesQuery.isRefetching} onRefresh={() => noticesQuery.refetch()} />}
       >
         {showForm && (
           <FormPanel>

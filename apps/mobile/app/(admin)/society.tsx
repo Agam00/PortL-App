@@ -51,7 +51,7 @@ export default function AdminSociety() {
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32 }}
         refreshControl={
-          <RefreshControl
+          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
             refreshing={
               towersQuery.isRefetching ||
               flatsQuery.isRefetching ||

@@ -106,7 +106,7 @@ export default function AdminTowers() {
       <ScrollView
         contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={towersQuery.isRefetching} onRefresh={() => towersQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={towersQuery.isRefetching} onRefresh={() => towersQuery.refetch()} />}
       >
         <Button
           variant={showForm ? "outline" : "primary"}

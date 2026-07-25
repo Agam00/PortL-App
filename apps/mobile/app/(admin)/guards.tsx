@@ -143,7 +143,7 @@ export default function AdminGuards() {
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 40, gap: 16 }}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={guardsQuery.isRefetching} onRefresh={() => guardsQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={guardsQuery.isRefetching} onRefresh={() => guardsQuery.refetch()} />}
       >
         <Input
           placeholder="Search guards..."

@@ -282,7 +282,7 @@ export default function GuardInOut() {
           />
         )}
         contentContainerClassName="pb-8"
-        refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} tintColor="#F5821F" />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
         ListEmptyComponent={
           query.isLoading ? (
             <View className="px-4 pt-6">

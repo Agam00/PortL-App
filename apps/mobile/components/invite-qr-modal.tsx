@@ -1,6 +1,9 @@
+import { useRef } from "react";
 import { View, Text, Modal, Pressable, Share } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import QRCode from "react-native-qrcode-svg";
+import { captureRef } from "react-native-view-shot";
+import * as Sharing from "expo-sharing";
 import { hapticTap } from "../lib/haptics";
 
 interface InviteQrModalProps {
@@ -19,15 +22,30 @@ interface InviteQrModalProps {
  */
 export function InviteQrModal({ visible, name, code, roleLabel, onClose }: InviteQrModalProps) {
   const firstName = name.trim().split(/\s+/)[0] || name;
+  const cardRef = useRef<View>(null);
+
+  const shareText =
+    `Welcome to PORTL, ${name}!\n\n` +
+    `Open the PORTL app, tap "Activate account" and enter this code to set your password:\n\n${code}`;
 
   async function share() {
     if (!code) return;
     hapticTap();
-    await Share.share({
-      message:
-        `Welcome to PORTL, ${name}!\n\n` +
-        `Open the PORTL app, tap "Activate account" and enter this code to set your password:\n\n${code}`,
-    });
+    // Capture the white QR card as a PNG and share the image, so the invitee can just
+    // scan it. Falls back to plain text if capture/sharing isn't available.
+    try {
+      const uri = await captureRef(cardRef, { format: "png", quality: 1 });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+          mimeType: "image/png",
+          dialogTitle: `PORTL invite for ${firstName}`,
+        });
+        return;
+      }
+    } catch {
+      // fall through to text share
+    }
+    await Share.share({ message: shareText });
   }
 
   return (
@@ -62,39 +80,37 @@ export function InviteQrModal({ visible, name, code, roleLabel, onClose }: Invit
           </Text>
 
           {code && (
-            <>
-              <View
-                className="mt-6 items-center justify-center"
-                style={{ backgroundColor: "#FFFFFF", borderRadius: 20, padding: 20 }}
+            <View
+              ref={cardRef}
+              collapsable={false}
+              className="mt-6 items-center"
+              style={{ backgroundColor: "#FFFFFF", borderRadius: 20, paddingHorizontal: 24, paddingVertical: 22 }}
+            >
+              <QRCode value={code} size={176} backgroundColor="#FFFFFF" color="#0D0D0D" />
+              <Text
+                style={{ marginTop: 16, fontSize: 11, letterSpacing: 2, color: "#6B6B6B", fontWeight: "700" }}
               >
-                <QRCode value={code} size={176} backgroundColor="#FFFFFF" color="#0D0D0D" />
-              </View>
-
-              <View className="mt-5 flex-row flex-wrap items-center justify-center" style={{ columnGap: 14, rowGap: 6 }}>
-                {code.split("").map((char, i) => (
-                  <Text
-                    key={i}
-                    selectable
-                    className="font-extrabold text-primary"
-                    style={{ fontSize: 26, lineHeight: 30 }}
-                  >
-                    {char}
-                  </Text>
-                ))}
-              </View>
-            </>
+                PORTL INVITE CODE
+              </Text>
+              <Text
+                selectable
+                style={{ marginTop: 2, fontSize: 26, letterSpacing: 5, color: "#0D0D0D", fontWeight: "800" }}
+              >
+                {code}
+              </Text>
+            </View>
           )}
 
           <Pressable
             onPress={share}
             className="mt-6 h-14 w-full flex-row items-center justify-center gap-2 rounded-full"
             style={{ backgroundColor: "#F5821F" }}
-            accessibilityLabel={`Share invite code with ${roleLabel}`}
+            accessibilityLabel={`Share invite QR with ${roleLabel}`}
             accessibilityRole="button"
           >
             <MaterialIcons name="ios-share" size={20} color="#0D0D0D" />
             <Text className="text-body-lg font-bold" style={{ color: "#0D0D0D" }}>
-              Share
+              Share QR
             </Text>
           </Pressable>
 

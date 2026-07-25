@@ -107,7 +107,7 @@ export default function ResidentDues() {
 
       <ScrollView
         contentContainerClassName="gap-3 px-4 pb-10 pt-1"
-        refreshControl={<RefreshControl refreshing={duesQuery.isRefetching} onRefresh={() => duesQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={duesQuery.isRefetching} onRefresh={() => duesQuery.refetch()} />}
       >
         {duesQuery.isLoading ? (
           <ListLoading />

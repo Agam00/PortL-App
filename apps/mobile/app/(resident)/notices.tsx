@@ -127,7 +127,7 @@ export default function ResidentNotices() {
         contentContainerClassName="gap-4 px-4 pb-24 pt-1"
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl
+          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
             refreshing={noticesQuery.isRefetching || pollsQuery.isRefetching}
             onRefresh={() => {
               noticesQuery.refetch();

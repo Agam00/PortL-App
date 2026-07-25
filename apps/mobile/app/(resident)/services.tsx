@@ -126,7 +126,7 @@ export default function ResidentServices() {
       <ScrollView
         contentContainerClassName="gap-5 px-4 pb-28 pt-1"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={bookingsQuery.isRefetching} onRefresh={() => bookingsQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={bookingsQuery.isRefetching} onRefresh={() => bookingsQuery.refetch()} />}
       >
         {/* Your Bookings */}
         <View className="gap-3">

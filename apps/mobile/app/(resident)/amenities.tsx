@@ -118,7 +118,7 @@ export default function ResidentAmenities() {
       <ScrollView
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"
         refreshControl={
-          <RefreshControl
+          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
             refreshing={amenitiesQuery.isRefetching || myBookingsQuery.isRefetching}
             onRefresh={() => {
               amenitiesQuery.refetch();

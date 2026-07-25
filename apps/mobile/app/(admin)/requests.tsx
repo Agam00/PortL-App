@@ -135,7 +135,7 @@ export default function AdminRequests() {
         contentContainerClassName="gap-4 px-4 pb-8 pt-2"
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl
+          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
             refreshing={complaintsQuery.isRefetching || guardsQuery.isRefetching}
             onRefresh={() => {
               complaintsQuery.refetch();

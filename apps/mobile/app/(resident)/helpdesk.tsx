@@ -187,7 +187,7 @@ export default function ResidentHelpdesk() {
 
       <ScrollView
         contentContainerClassName="gap-3 px-4 pb-28 pt-1"
-        refreshControl={<RefreshControl refreshing={listQuery.isRefetching} onRefresh={() => listQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={listQuery.isRefetching} onRefresh={() => listQuery.refetch()} />}
       >
         {listQuery.isLoading ? (
           <ListLoading />

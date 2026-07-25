@@ -166,6 +166,19 @@ export default function AdminAmenities() {
 
   const amenities = amenitiesQuery.data ?? [];
 
+  // Booking oversight is split into live vs finished: once a slot's end time passes,
+  // the booking drops into History (alongside cancellations) and is read-only.
+  const now = Date.now();
+  const bookingEnd = (b: { date: string; slotEnd: string }) =>
+    new Date(`${b.date.slice(0, 10)}T${b.slotEnd.slice(0, 5)}:00`).getTime();
+  const allAdminBookings = bookingsQuery.data ?? [];
+  const upcomingBookings = allAdminBookings
+    .filter((b) => b.status === "confirmed" && bookingEnd(b) >= now)
+    .sort((a, b) => bookingEnd(a) - bookingEnd(b));
+  const pastBookings = allAdminBookings
+    .filter((b) => b.status === "cancelled" || (b.status === "confirmed" && bookingEnd(b) < now))
+    .sort((a, b) => bookingEnd(b) - bookingEnd(a));
+
   return (
     <View className="flex-1 bg-background">
       <AdminHeader
@@ -178,7 +191,7 @@ export default function AdminAmenities() {
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 16 }}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={amenitiesQuery.isRefetching} onRefresh={() => amenitiesQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={amenitiesQuery.isRefetching} onRefresh={() => amenitiesQuery.refetch()} />}
       >
         {showForm && (
           <FormPanel style={{ borderWidth: 1.5, borderColor: "#F5821F" }}>
@@ -307,26 +320,61 @@ export default function AdminAmenities() {
                   <View className="gap-2 border-t border-outline-variant pt-3">
                     {bookingsQuery.isLoading ? (
                       <ActivityIndicator color="#F5821F" />
-                    ) : (bookingsQuery.data ?? []).length === 0 ? (
+                    ) : allAdminBookings.length === 0 ? (
                       <Text className="text-body-sm text-text-muted">No bookings yet.</Text>
                     ) : (
-                      (bookingsQuery.data ?? []).map((booking) => (
-                        <View
-                          key={booking.id}
-                          className="flex-row items-center justify-between p-3"
-                          style={{ borderRadius: 12, backgroundColor: "#242424" }}
-                        >
-                          <View className="min-w-0 flex-1">
-                            <Text className="text-body-sm font-medium text-on-surface" numberOfLines={1}>
-                              {booking.flatNumber} · {booking.bookedByName}
-                            </Text>
-                            <Text className="text-meta-text text-text-muted">
-                              {booking.date} · {booking.slotStart.slice(0, 5)}–{booking.slotEnd.slice(0, 5)}
-                            </Text>
-                          </View>
-                          <View className={`h-1.5 w-1.5 rounded-full ${booking.status === "confirmed" ? "bg-status-green" : "bg-text-muted"}`} />
-                        </View>
-                      ))
+                      <>
+                        <Text className="text-label-caps uppercase text-text-muted">Upcoming</Text>
+                        {upcomingBookings.length === 0 ? (
+                          <Text className="text-body-sm text-text-muted">No upcoming bookings.</Text>
+                        ) : (
+                          upcomingBookings.map((booking) => (
+                            <View
+                              key={booking.id}
+                              className="flex-row items-center justify-between p-3"
+                              style={{ borderRadius: 12, backgroundColor: "#242424" }}
+                            >
+                              <View className="min-w-0 flex-1">
+                                <Text className="text-body-sm font-medium text-on-surface" numberOfLines={1}>
+                                  {booking.flatNumber} · {booking.bookedByName}
+                                </Text>
+                                <Text className="text-meta-text text-text-muted">
+                                  {booking.date} · {booking.slotStart.slice(0, 5)}–{booking.slotEnd.slice(0, 5)}
+                                </Text>
+                              </View>
+                              <View className="h-1.5 w-1.5 rounded-full bg-status-green" />
+                            </View>
+                          ))
+                        )}
+
+                        {pastBookings.length > 0 && (
+                          <>
+                            <Text className="mt-2 text-label-caps uppercase text-text-muted">History</Text>
+                            {pastBookings.map((booking) => {
+                              const cancelled = booking.status === "cancelled";
+                              return (
+                                <View
+                                  key={booking.id}
+                                  className="flex-row items-center justify-between p-3"
+                                  style={{ borderRadius: 12, backgroundColor: "#1F1F1F", opacity: 0.75 }}
+                                >
+                                  <View className="min-w-0 flex-1">
+                                    <Text className="text-body-sm font-medium text-on-surface-variant" numberOfLines={1}>
+                                      {booking.flatNumber} · {booking.bookedByName}
+                                    </Text>
+                                    <Text className="text-meta-text text-text-muted">
+                                      {booking.date} · {booking.slotStart.slice(0, 5)}–{booking.slotEnd.slice(0, 5)}
+                                    </Text>
+                                  </View>
+                                  <Text className="text-meta-text font-semibold" style={{ color: cancelled ? "#FF8A8A" : "#8A8A8A" }}>
+                                    {cancelled ? "Cancelled" : "Completed"}
+                                  </Text>
+                                </View>
+                              );
+                            })}
+                          </>
+                        )}
+                      </>
                     )}
                   </View>
                 )}

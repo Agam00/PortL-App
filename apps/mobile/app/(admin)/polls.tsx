@@ -101,7 +101,7 @@ export default function AdminPolls() {
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 16 }}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={pollsQuery.isRefetching} onRefresh={() => pollsQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={pollsQuery.isRefetching} onRefresh={() => pollsQuery.refetch()} />}
       >
         {showForm && (
           <FormPanel>

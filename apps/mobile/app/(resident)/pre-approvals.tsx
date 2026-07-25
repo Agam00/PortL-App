@@ -286,7 +286,7 @@ export default function MyPreApprovals() {
 
       <ScrollView
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"
-        refreshControl={<RefreshControl refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
       >
         {query.isLoading ? (
           <ListLoading />

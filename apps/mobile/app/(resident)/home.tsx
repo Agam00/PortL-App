@@ -140,7 +140,7 @@ export default function ResidentHome() {
         contentContainerClassName="pb-28"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
+          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
             refreshing={pendingQuery.isRefetching || noticesQuery.isRefetching}
             onRefresh={() => {
               pendingQuery.refetch();

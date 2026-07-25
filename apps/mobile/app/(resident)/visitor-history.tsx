@@ -177,7 +177,7 @@ export default function ResidentActivity() {
       <ScrollView
         contentContainerClassName="gap-3 px-4 pb-28 pt-1"
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={historyQuery.isRefetching} onRefresh={() => historyQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={historyQuery.isRefetching} onRefresh={() => historyQuery.refetch()} />}
       >
         {historyQuery.isLoading ? (
           <ListLoading />

@@ -121,6 +121,15 @@ export function RoleProfileScreen() {
             value={user.email}
             isLast={user.role !== "resident"}
           />
+          {user.role === "resident" && user.flatNumber && (
+            <MenuRow
+              icon="home"
+              iconColor="#27C96D"
+              iconBg="#12331F"
+              label="Home"
+              value={user.towerName ? `${user.towerName} · ${user.flatNumber}` : `Flat ${user.flatNumber}`}
+            />
+          )}
           {user.role === "resident" && (
             <MenuRow
               icon="apartment"

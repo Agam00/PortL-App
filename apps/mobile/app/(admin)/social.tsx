@@ -193,7 +193,7 @@ function FeedTab({ adminName }: { adminName: string }) {
         contentContainerClassName="gap-3 px-4 pb-28 pt-1"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={postsQuery.isRefetching} onRefresh={() => postsQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={postsQuery.isRefetching} onRefresh={() => postsQuery.refetch()} />}
       >
         {/* Compose entry — admin posts as Management */}
         <Pressable
@@ -510,7 +510,7 @@ function ChatTab() {
     <ScrollView
       contentContainerClassName="gap-2 px-4 pb-28 pt-1"
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={convQuery.isRefetching} onRefresh={() => convQuery.refetch()} />}
+      refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={convQuery.isRefetching} onRefresh={() => convQuery.refetch()} />}
     >
       {convQuery.isLoading ? (
         <ListLoading />
@@ -599,7 +599,7 @@ function PeopleTab() {
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       refreshControl={
-        <RefreshControl
+        <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
           refreshing={residentsQuery.isRefetching || guardsQuery.isRefetching}
           onRefresh={() => {
             residentsQuery.refetch();

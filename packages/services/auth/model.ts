@@ -19,6 +19,8 @@ export const authUserSchema = z.object({
   role: userRoleSchema,
   societyId: z.string().uuid().nullable(),
   flatId: z.string().uuid().nullable(),
+  flatNumber: z.string().nullable(),
+  towerName: z.string().nullable(),
   mustResetPassword: z.boolean(),
 });
 export type AuthUser = z.infer<typeof authUserSchema>;

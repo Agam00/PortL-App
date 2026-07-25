@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { TRPCError } from "@trpc/server";
 import { db, eq, and, or, isNull } from "@repo/database";
-import { usersTable, refreshTokensTable, flatsTable, societiesTable } from "@repo/database/schema";
+import { usersTable, refreshTokensTable, flatsTable, towersTable, societiesTable } from "@repo/database/schema";
 import { env } from "../env";
 import type { AccessTokenPayload, AuthUser } from "./model";
 
@@ -14,7 +14,10 @@ function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function toAuthUser(user: typeof usersTable.$inferSelect): AuthUser {
+function toAuthUser(
+  user: typeof usersTable.$inferSelect,
+  flat?: { flatNumber: string | null; towerName: string | null },
+): AuthUser {
   return {
     id: user.id,
     fullName: user.fullName,
@@ -23,8 +26,24 @@ function toAuthUser(user: typeof usersTable.$inferSelect): AuthUser {
     role: user.role,
     societyId: user.societyId,
     flatId: user.flatId,
+    flatNumber: flat?.flatNumber ?? null,
+    towerName: flat?.towerName ?? null,
     mustResetPassword: user.mustResetPassword,
   };
+}
+
+/** Resolves the flat number + tower name for a user's flat, or nulls if unassigned. */
+async function loadFlatInfo(
+  flatId: string | null,
+): Promise<{ flatNumber: string | null; towerName: string | null }> {
+  if (!flatId) return { flatNumber: null, towerName: null };
+  const [row] = await db
+    .select({ flatNumber: flatsTable.flatNumber, towerName: towersTable.name })
+    .from(flatsTable)
+    .leftJoin(towersTable, eq(towersTable.id, flatsTable.towerId))
+    .where(eq(flatsTable.id, flatId))
+    .limit(1);
+  return { flatNumber: row?.flatNumber ?? null, towerName: row?.towerName ?? null };
 }
 
 class AuthService {
@@ -63,8 +82,17 @@ class AuthService {
       )
       .limit(1);
 
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid credentials" });
+    }
+
+    // Distinct from "invalid credentials" so a revoked resident/guard understands why
+    // their previously-working login stopped working.
+    if (!user.isActive && !user.inviteCode) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Access revoked — your account has been deactivated by your society admin.",
+      });
     }
 
     if (user.inviteCode) {
@@ -86,8 +114,9 @@ class AuthService {
       flatId: user.flatId,
     });
     const refreshToken = await this.issueRefreshToken(user.id);
+    const flat = await loadFlatInfo(user.flatId);
 
-    return { accessToken, refreshToken, user: toAuthUser(user) };
+    return { accessToken, refreshToken, user: toAuthUser(user, flat) };
   }
 
   async refresh(refreshToken: string) {
@@ -187,8 +216,9 @@ class AuthService {
       flatId: updated.flatId,
     });
     const refreshToken = await this.issueRefreshToken(updated.id);
+    const flat = await loadFlatInfo(updated.flatId);
 
-    return { accessToken, refreshToken, user: toAuthUser(updated) };
+    return { accessToken, refreshToken, user: toAuthUser(updated, flat) };
   }
 
   async setPassword(userId: string, newPassword: string) {
@@ -201,7 +231,9 @@ class AuthService {
 
   async getById(userId: string): Promise<AuthUser | null> {
     const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId)).limit(1);
-    return user ? toAuthUser(user) : null;
+    if (!user) return null;
+    const flat = await loadFlatInfo(user.flatId);
+    return toAuthUser(user, flat);
   }
 }
 

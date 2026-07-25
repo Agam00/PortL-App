@@ -108,7 +108,7 @@ export default function AdminDues() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 16 }}
         keyboardShouldPersistTaps="handled"
         refreshControl={
-          <RefreshControl
+          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
             refreshing={duesQuery.isRefetching || flatsQuery.isRefetching}
             onRefresh={() => {
               duesQuery.refetch();

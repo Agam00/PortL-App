@@ -145,7 +145,7 @@ function PostsFeed() {
         contentContainerClassName="gap-3 px-4 pb-28 pt-1"
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        refreshControl={<RefreshControl refreshing={postsQuery.isRefetching} onRefresh={() => postsQuery.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={postsQuery.isRefetching} onRefresh={() => postsQuery.refetch()} />}
       >
         {/* Compose entry */}
         <Pressable
@@ -417,7 +417,7 @@ function ChatTab() {
     <ScrollView
       contentContainerClassName="gap-2 px-4 pb-28 pt-1"
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl refreshing={convQuery.isRefetching} onRefresh={() => convQuery.refetch()} />}
+      refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={convQuery.isRefetching} onRefresh={() => convQuery.refetch()} />}
     >
       {convQuery.isLoading ? (
         <ListLoading />
@@ -495,7 +495,7 @@ function ResidentsTab() {
       contentContainerClassName="gap-1 px-4 pb-28 pt-1"
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
-      refreshControl={<RefreshControl refreshing={dirQuery.isRefetching} onRefresh={() => dirQuery.refetch()} />}
+      refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={dirQuery.isRefetching} onRefresh={() => dirQuery.refetch()} />}
     >
       <View className="mb-2 flex-row items-center gap-3 rounded-full px-4" style={{ backgroundColor: "#1A1A1A" }}>
         <MaterialIcons name="search" size={20} color="#8A8A8A" />

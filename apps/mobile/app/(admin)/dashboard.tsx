@@ -78,7 +78,8 @@ export default function AdminDashboard() {
 
   const metrics = metricsQuery.data;
   const residentCount = residentsQuery.data?.length ?? null;
-  const guardsOnDuty = dutyQuery.data ? dutyQuery.data.filter((g) => g.onDuty).length : null;
+  const onDutyGuards = (dutyQuery.data ?? []).filter((g) => g.onDuty);
+  const guardsOnDuty = dutyQuery.data ? onDutyGuards.length : null;
   const feed = (feedQuery.data ?? []).slice(0, 6);
 
   const fmt = (n: number | null | undefined) => (n === null || n === undefined ? "—" : `${n}`);
@@ -116,7 +117,7 @@ export default function AdminDashboard() {
       <ScrollView
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 32 }}
         refreshControl={
-          <RefreshControl
+          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
             refreshing={metricsQuery.isRefetching || feedQuery.isRefetching}
             onRefresh={() => {
               metricsQuery.refetch();
@@ -191,6 +192,59 @@ export default function AdminDashboard() {
                 </Text>
               </Pressable>
             ))}
+          </View>
+        </View>
+
+        {/* Guards on duty now */}
+        <View style={{ gap: 12 }}>
+          <Text className="text-section-header font-bold text-on-surface">Guards on duty</Text>
+          <View
+            style={{
+              backgroundColor: "#1A1A1A",
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: "#333333",
+              overflow: "hidden",
+            }}
+          >
+            {dutyQuery.isLoading ? (
+              <ListLoading />
+            ) : onDutyGuards.length === 0 ? (
+              <EmptyState
+                title="No guards on duty"
+                description="Guards appear here when they go on duty from their app."
+                icon="security"
+              />
+            ) : (
+              onDutyGuards.map((guard, index) => (
+                <View
+                  key={guard.id}
+                  className="flex-row items-center"
+                  style={{ padding: 20, gap: 16, borderTopWidth: index > 0 ? 1 : 0, borderTopColor: "#333333" }}
+                >
+                  <View
+                    className="items-center justify-center"
+                    style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#242424", borderWidth: 1, borderColor: "#333333" }}
+                  >
+                    <MaterialIcons name="security" size={20} color="#F5821F" />
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="text-body-main text-on-surface" numberOfLines={1}>
+                      {guard.name}
+                    </Text>
+                    <Text className="text-body-sm text-text-muted" numberOfLines={1}>
+                      {guard.dutyChangedAt ? `On duty since ${timeAgo(guard.dutyChangedAt)}` : "On duty"}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center gap-1.5">
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#27C96D" }} />
+                    <Text className="font-semibold" style={{ fontSize: 10, letterSpacing: 1, color: "#27C96D" }}>
+                      ON DUTY
+                    </Text>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
         </View>
 

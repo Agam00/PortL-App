@@ -92,7 +92,7 @@ export function NotificationInboxScreen({ role }: { role: "resident" | "guard" |
       <ScrollView
         contentContainerClassName="gap-4 px-5 pb-8 pt-2"
         refreshControl={
-          <RefreshControl refreshing={notificationsQuery.isRefetching} onRefresh={() => notificationsQuery.refetch()} />
+          <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={notificationsQuery.isRefetching} onRefresh={() => notificationsQuery.refetch()} />
         }
       >
         {hasUnread && (
