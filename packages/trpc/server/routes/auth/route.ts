@@ -13,6 +13,7 @@ import {
   lookupInviteInputSchema,
   lookupInviteOutputSchema,
   claimAccountInputSchema,
+  registerAdminInputSchema,
 } from "@repo/services/auth/model";
 import { publicProcedure, protectedProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
@@ -37,6 +38,12 @@ export const authRouter = router({
     .mutation(async ({ input }) => {
       return authService.login(input.identifier, input.password);
     }),
+
+  register: publicProcedure
+    .meta({ openapi: { method: "POST", path: getPath("/register"), tags: TAGS } })
+    .input(registerAdminInputSchema)
+    .output(authTokensOutputSchema)
+    .mutation(async ({ input }) => authService.registerAdmin(input)),
 
   lookupInvite: publicProcedure
     .meta({ openapi: { method: "GET", path: getPath("/invite"), tags: TAGS } })

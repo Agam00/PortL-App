@@ -221,6 +221,60 @@ class AuthService {
     return { accessToken, refreshToken, user: toAuthUser(updated, flat) };
   }
 
+  /** Public society onboarding — creates a new society + its first admin, signed straight in. */
+  async registerAdmin(input: {
+    societyName: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    password: string;
+  }) {
+    const [existing] = await db
+      .select({ id: usersTable.id })
+      .from(usersTable)
+      .where(
+        and(
+          or(eq(usersTable.email, input.email), eq(usersTable.phone, input.phone)),
+          isNull(usersTable.deletedAt),
+        ),
+      )
+      .limit(1);
+    if (existing) {
+      throw new TRPCError({ code: "CONFLICT", message: "An account with this email or phone already exists" });
+    }
+
+    const [society] = await db
+      .insert(societiesTable)
+      .values({ name: input.societyName })
+      .returning();
+    if (!society) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+    const passwordHash = await bcrypt.hash(input.password, 10);
+    const [user] = await db
+      .insert(usersTable)
+      .values({
+        fullName: input.fullName,
+        email: input.email,
+        phone: input.phone,
+        passwordHash,
+        role: "admin",
+        societyId: society.id,
+        isActive: true,
+        mustResetPassword: false,
+      })
+      .returning();
+    if (!user) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+
+    const accessToken = this.signAccessToken({
+      sub: user.id,
+      role: user.role,
+      societyId: user.societyId,
+      flatId: user.flatId,
+    });
+    const refreshToken = await this.issueRefreshToken(user.id);
+    return { accessToken, refreshToken, user: toAuthUser(user, { flatNumber: null, towerName: null }) };
+  }
+
   async setPassword(userId: string, newPassword: string) {
     const passwordHash = await bcrypt.hash(newPassword, 10);
     await db

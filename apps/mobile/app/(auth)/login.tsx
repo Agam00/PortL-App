@@ -422,6 +422,18 @@ export default function LoginScreen() {
               </>
             )}
           </View>
+
+          {/* Create a new society (admin) */}
+          <Pressable
+            onPress={() => router.push("/(auth)/register-admin")}
+            className="mt-5 flex-row items-center justify-center gap-1.5"
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Create an admin account for a new society"
+          >
+            <Text className="text-body-md text-on-surface-variant">New society?</Text>
+            <Text className="text-body-md font-bold text-primary-container">Create an admin account</Text>
+          </Pressable>
         </View>
       </ScrollView>
 

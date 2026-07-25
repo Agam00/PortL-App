@@ -77,3 +77,12 @@ export const claimAccountInputSchema = z.object({
   code: inviteCodeSchema,
   password: z.string().min(6),
 });
+
+// Public society onboarding: creates a new society and its first admin account.
+export const registerAdminInputSchema = z.object({
+  societyName: z.string().trim().min(2).max(120),
+  fullName: z.string().trim().min(1).max(80),
+  email: z.string().email(),
+  phone: z.string().trim().min(6).max(20),
+  password: z.string().min(6),
+});
