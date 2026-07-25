@@ -1,0 +1,22 @@
+# Render Blueprint — deploys the Portl backend as a Docker web service.
+# In Render: New → Blueprint → pick the Agam00/PortL-App repo. Render reads this file.
+services:
+  - type: web
+    name: portl-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    region: singapore # closest free region to India
+    branch: main
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: prod
+      - key: ACCESS_TOKEN_SECRET
+        sync: false # you paste this in the dashboard (kept out of git)
+      - key: DATABASE_URL
+        sync: false # you paste the Neon connection string in the dashboard
+      - key: BASE_URL
+        sync: false # set to the Render URL after first deploy
