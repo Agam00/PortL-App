@@ -24,6 +24,7 @@ import {
   postsTable,
   postCommentsTable,
   postLikesTable,
+  vehiclesTable,
   refreshTokensTable,
   paymentsTable,
   notificationsTable,
@@ -52,6 +53,7 @@ async function reset() {
   await db.delete(amenityBookingsTable);
   await db.delete(amenitiesTable);
   await db.delete(staffDirectoryTable);
+  await db.delete(vehiclesTable);
   await db.delete(postLikesTable);
   await db.delete(postCommentsTable);
   await db.delete(postsTable);
@@ -347,6 +349,14 @@ async function main() {
     { postId: post2.id, userId: R(0).id },
     { postId: post2.id, userId: R(6).id },
     { postId: post2.id, userId: R(2).id },
+  ]);
+
+  console.log("Seeding resident vehicles...");
+  await db.insert(vehiclesTable).values([
+    { userId: R(0).id, societyId: society.id, type: "car", number: "KA 01 MJ 4521" },
+    { userId: R(0).id, societyId: society.id, type: "bike", number: "KA 05 EG 2290" },
+    { userId: R(1).id, societyId: society.id, type: "car", number: "KA 03 HA 8876" },
+    { userId: R(2).id, societyId: society.id, type: "car", number: "KA 02 CB 1145" },
   ]);
 
   console.log("\nSeed complete.\n");

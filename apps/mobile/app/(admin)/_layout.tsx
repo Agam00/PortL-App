@@ -62,6 +62,7 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen name="chat" options={{ href: null }} />
+      <Tabs.Screen name="gate-log" options={{ href: null }} />
       <Tabs.Screen name="more" options={{ href: null }} />
       <Tabs.Screen name="profile" options={{ href: null }} />
       <Tabs.Screen name="towers" options={{ href: null }} />

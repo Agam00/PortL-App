@@ -103,7 +103,7 @@ export default function AdminDashboard() {
     { label: "Add Resident", icon: "person-add", onPress: () => router.push("/(admin)/residents") },
     { label: "Post Notice", icon: "campaign", onPress: () => router.push("/(admin)/notices") },
     { label: "New Poll", icon: "poll", onPress: () => router.push("/(admin)/polls") },
-    { label: "Gate Log", icon: "history", onPress: () => router.push("/(admin)/notifications") },
+    { label: "Gate Log", icon: "history", onPress: () => router.push("/(admin)/gate-log") },
   ];
 
   return (

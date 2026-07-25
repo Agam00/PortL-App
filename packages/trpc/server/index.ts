@@ -21,6 +21,7 @@ import { alertsRouter } from "./routes/alerts/route";
 import { serviceRequestsRouter } from "./routes/service-requests/route";
 import { chatRouter } from "./routes/chat/route";
 import { dutyRouter } from "./routes/duty/route";
+import { vehiclesRouter } from "./routes/vehicles/route";
 
 export const serverRouter = router({
   health: healthRouter,
@@ -44,6 +45,7 @@ export const serverRouter = router({
   serviceRequests: serviceRequestsRouter,
   chat: chatRouter,
   duty: dutyRouter,
+  vehicles: vehiclesRouter,
 });
 
 export { createContext } from "./context";

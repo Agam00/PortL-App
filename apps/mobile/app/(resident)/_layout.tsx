@@ -37,6 +37,7 @@ export default function ResidentLayout() {
       <Tabs.Screen name="pay" options={{ href: null }} />
       <Tabs.Screen name="chat" options={{ href: null }} />
       <Tabs.Screen name="staff-directory" options={{ href: null }} />
+      <Tabs.Screen name="vehicles" options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
     </Tabs>
   );

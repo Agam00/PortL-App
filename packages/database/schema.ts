@@ -23,5 +23,6 @@ export * from "./models/amenity-booking";
 export * from "./models/due";
 export * from "./models/payment";
 export * from "./models/staff-directory";
+export * from "./models/vehicle";
 export * from "./models/push-token";
 export * from "./models/notification";

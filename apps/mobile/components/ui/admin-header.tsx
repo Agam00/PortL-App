@@ -61,7 +61,7 @@ export function AdminHeader({
             borderBottomColor: "#333333",
           }}
         >
-          <View className="w-16 flex-row items-center">
+          <View className="flex-row items-center" style={{ minWidth: 84 }}>
             {showBack && (
               <Pressable
                 onPress={() => router.back()}
@@ -90,7 +90,7 @@ export function AdminHeader({
             )}
           </View>
 
-          <View className="w-16 flex-row items-center justify-end">
+          <View className="flex-row items-center justify-end" style={{ minWidth: 84 }}>
             {action && (
               <Pressable
                 onPress={action.onPress}
@@ -98,7 +98,9 @@ export function AdminHeader({
                 accessibilityLabel={action.label}
                 accessibilityRole="button"
               >
-                <Text className="text-body-lg font-bold text-primary">{action.label}</Text>
+                <Text className="text-body-lg font-bold text-primary" numberOfLines={1}>
+                  {action.label}
+                </Text>
               </Pressable>
             )}
           </View>

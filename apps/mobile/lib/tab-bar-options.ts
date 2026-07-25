@@ -7,6 +7,9 @@ export const tabBarScreenOptions = {
   tabBarStyle: {
     backgroundColor: "#1A1A1A",
     borderTopWidth: 0,
+    height: 68,
+    paddingTop: 12,
+    paddingBottom: 14,
     elevation: 12,
     shadowColor: "#F5821F",
     shadowOffset: { width: 0, height: -4 },

@@ -18,6 +18,7 @@ import PostService from "@repo/services/post";
 import ServiceRequestService from "@repo/services/service-request";
 import ChatService from "@repo/services/chat";
 import DutyService from "@repo/services/duty";
+import VehicleService from "@repo/services/vehicle";
 
 export const userService = new UserService();
 export const authService = new AuthService();
@@ -39,3 +40,4 @@ export const postService = new PostService();
 export const serviceRequestService = new ServiceRequestService();
 export const chatService = new ChatService();
 export const dutyService = new DutyService();
+export const vehicleService = new VehicleService();

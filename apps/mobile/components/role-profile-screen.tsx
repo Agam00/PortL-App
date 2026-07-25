@@ -151,6 +151,15 @@ export function RoleProfileScreen() {
           )}
           {user.role === "resident" && (
             <MenuRow
+              icon="directions-car"
+              iconColor="#F5821F"
+              iconBg="#2A2320"
+              label="My Vehicles"
+              onPress={() => router.push("/(resident)/vehicles")}
+            />
+          )}
+          {user.role === "resident" && (
+            <MenuRow
               icon="apartment"
               iconColor="#C4C4C4"
               iconBg="#333333"
