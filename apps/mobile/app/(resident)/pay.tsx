@@ -1,14 +1,13 @@
 import { useState } from "react";
-import { View, Text, ScrollView, Pressable, Image, Linking } from "react-native";
+import { View, Text, ScrollView, Pressable, Image } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
-import { hapticSuccess, hapticError, hapticTap } from "../../lib/haptics";
+import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { pickImageFromGallery } from "../../lib/capture-visitor-photo";
-import { buildUpiUrl, UPI_APPS, type UpiApp } from "../../lib/upi";
 import { shadowCard, shadowElevated } from "../../lib/shadows";
 
 export default function PayDue() {
@@ -27,10 +26,6 @@ export default function PayDue() {
 
   const [proof, setProof] = useState<string | null>(null);
 
-  const upiQuery = trpc.dues.collectionUpi.useQuery();
-  const upiId = upiQuery.data?.upiId ?? null;
-  const upiName = upiQuery.data?.upiName || "Society Collection";
-
   const submitMutation = trpc.dues.submitUpiPayment.useMutation({
     onSuccess: () => {
       hapticSuccess();
@@ -43,25 +38,6 @@ export default function PayDue() {
       showToast(getErrorMessage(error), "error");
     },
   });
-
-  async function openUpi(app: UpiApp) {
-    if (!upiId) {
-      showToast("Your society hasn't set up a UPI ID yet — ask the admin.", "error");
-      return;
-    }
-    hapticTap();
-    const url = buildUpiUrl(app, {
-      pa: upiId,
-      pn: upiName,
-      am: amount ?? "0",
-      tn: title || "Society dues",
-    });
-    try {
-      await Linking.openURL(url);
-    } catch {
-      showToast("Couldn't open that UPI app — is it installed?", "error");
-    }
-  }
 
   async function attach() {
     try {
@@ -114,56 +90,18 @@ export default function PayDue() {
           )}
         </View>
 
-        {/* Step 1 — pay via UPI */}
-        <View className="gap-3">
-          <Text className="text-body-md font-bold text-text-muted">Step 1 · Pay via UPI</Text>
-
-          {upiId ? (
-            <View className="flex-row items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor: "#1A1A1A" }}>
-              <MaterialIcons name="account-balance-wallet" size={18} color="#F5821F" />
-              <Text className="flex-1 text-body-sm text-on-surface-variant" numberOfLines={1}>
-                Paying to <Text className="font-bold text-on-surface">{upiName}</Text> · {upiId}
-              </Text>
-            </View>
-          ) : (
-            <View className="flex-row items-center gap-2 rounded-xl px-3 py-3" style={{ backgroundColor: "#2A1A1A" }}>
-              <MaterialIcons name="info-outline" size={18} color="#FF8A8A" />
-              <Text className="flex-1 text-body-sm" style={{ color: "#FF8A8A" }}>
-                Your society hasn't added a UPI ID yet. Ask the admin to set it up under Dues.
-              </Text>
-            </View>
-          )}
-
-          <View className="flex-row flex-wrap gap-3">
-            {UPI_APPS.map((app) => (
-              <Pressable
-                key={app.key}
-                onPress={() => openUpi(app.key)}
-                disabled={!upiId}
-                className="flex-row items-center gap-2.5 rounded-2xl bg-surface px-4 py-3"
-                style={[shadowCard, { opacity: upiId ? 1 : 0.5, minWidth: "47%" }]}
-                accessibilityRole="button"
-                accessibilityLabel={`Pay with ${app.label}`}
-              >
-                <View
-                  className="items-center justify-center"
-                  style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: app.color }}
-                >
-                  <Text className="font-extrabold text-white" style={{ fontSize: 11 }}>
-                    {app.short}
-                  </Text>
-                </View>
-                <Text className="flex-1 text-body-md font-bold text-on-surface" numberOfLines={1}>
-                  {app.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+        {/* How-to note */}
+        <View className="flex-row items-start gap-2 rounded-xl px-3 py-3" style={{ backgroundColor: "#1A1A1A" }}>
+          <MaterialIcons name="info-outline" size={18} color="#F5821F" />
+          <Text className="flex-1 text-body-sm text-on-surface-variant">
+            Pay the maintenance to the society (UPI, bank transfer or cash), then upload your payment screenshot here as
+            proof. The admin can view it.
+          </Text>
         </View>
 
-        {/* Step 2 — attach screenshot */}
+        {/* Attach screenshot */}
         <View className="gap-3">
-          <Text className="text-body-md font-bold text-text-muted">Step 2 · Attach payment screenshot</Text>
+          <Text className="text-body-md font-bold text-text-muted">Payment screenshot</Text>
           {proof ? (
             <View className="flex-row items-center gap-3 rounded-2xl bg-surface p-3" style={shadowCard}>
               <Image source={{ uri: proof }} style={{ width: 64, height: 64, borderRadius: 8 }} />
@@ -178,14 +116,14 @@ export default function PayDue() {
           ) : (
             <Pressable
               onPress={attach}
-              className="items-center justify-center gap-2 rounded-2xl bg-surface py-7"
+              className="items-center justify-center gap-2 rounded-2xl bg-surface py-8"
               style={[shadowCard, { borderWidth: 1.5, borderColor: "#333333", borderStyle: "dashed" }]}
               accessibilityRole="button"
               accessibilityLabel="Attach payment screenshot"
             >
-              <MaterialIcons name="add-photo-alternate" size={30} color="#8A8A8A" />
+              <MaterialIcons name="add-photo-alternate" size={32} color="#8A8A8A" />
               <Text className="text-body-md font-bold text-on-surface-variant">Attach payment screenshot</Text>
-              <Text className="text-body-sm text-text-muted">Upload it after you complete the UPI payment</Text>
+              <Text className="text-body-sm text-text-muted">Tap to pick it from your gallery</Text>
             </Pressable>
           )}
         </View>

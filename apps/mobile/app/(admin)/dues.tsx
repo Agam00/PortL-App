@@ -45,18 +45,11 @@ export default function AdminDues() {
   const [flatError, setFlatError] = useState<string | null>(null);
   const [amountError, setAmountError] = useState<string | null>(null);
 
-  // UPI collection settings
-  const [showUpiForm, setShowUpiForm] = useState(false);
-  const [upiIdInput, setUpiIdInput] = useState("");
-  const [upiNameInput, setUpiNameInput] = useState("");
-  const [upiError, setUpiError] = useState<string | null>(null);
-
   // Proof viewer
   const [proofDueId, setProofDueId] = useState<string | null>(null);
 
   const flatsQuery = trpc.flats.list.useQuery({});
   const duesQuery = trpc.dues.list.useQuery();
-  const upiQuery = trpc.dues.paymentSettings.useQuery();
   const proofQuery = trpc.dues.proof.useQuery({ dueId: proofDueId ?? "" }, { enabled: !!proofDueId });
 
   function resetForm() {
@@ -83,20 +76,6 @@ export default function AdminDues() {
     },
   });
 
-  const setUpiMutation = trpc.dues.setPaymentSettings.useMutation({
-    onSuccess: () => {
-      hapticSuccess();
-      showToast("UPI collection details saved", "success");
-      setShowUpiForm(false);
-      setUpiError(null);
-      utils.dues.paymentSettings.invalidate();
-    },
-    onError: (error) => {
-      hapticError();
-      setUpiError(getErrorMessage(error));
-    },
-  });
-
   function handleSubmit() {
     const flatMissing = target === "flat" && !flatId;
     const amountMissing = !amount.trim();
@@ -112,18 +91,10 @@ export default function AdminDues() {
     });
   }
 
-  function openUpiForm() {
-    setUpiIdInput(upiQuery.data?.upiId ?? "");
-    setUpiNameInput(upiQuery.data?.upiName ?? "");
-    setUpiError(null);
-    setShowUpiForm(true);
-  }
-
   const flats = flatsQuery.data ?? [];
   const allDues = duesQuery.data ?? [];
   const collected = allDues.filter((d) => d.status === "paid").reduce((sum, d) => sum + Number(d.amount), 0);
   const pending = allDues.filter((d) => d.status !== "paid").reduce((sum, d) => sum + Number(d.amount), 0);
-  const upiId = upiQuery.data?.upiId ?? null;
 
   const dues = allDues.filter((d) => {
     if (statusFilter === "all") return true;
@@ -152,69 +123,10 @@ export default function AdminDues() {
             onRefresh={() => {
               duesQuery.refetch();
               flatsQuery.refetch();
-              upiQuery.refetch();
             }}
           />
         }
       >
-        {/* Collection UPI card */}
-        <View style={{ backgroundColor: "#1A1A1A", borderRadius: 20, borderWidth: 1, borderColor: "#333333", padding: 18, gap: 12 }}>
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
-              <MaterialIcons name="account-balance-wallet" size={18} color="#F5821F" />
-              <Text className="text-body-md font-bold text-on-surface">Collection UPI</Text>
-            </View>
-            <Pressable onPress={openUpiForm} hitSlop={8} accessibilityLabel="Edit UPI details">
-              <Text className="text-body-sm font-bold text-primary">{upiId ? "Edit" : "Set up"}</Text>
-            </Pressable>
-          </View>
-          <Text className="text-body-sm text-text-muted">
-            {upiId ? (
-              <>
-                Residents pay to <Text className="font-bold text-on-surface">{upiId}</Text>
-                {upiQuery.data?.upiName ? ` (${upiQuery.data.upiName})` : ""}
-              </>
-            ) : (
-              "Add the UPI ID residents should pay to — their UPI app opens straight to it."
-            )}
-          </Text>
-
-          {showUpiForm && (
-            <View className="gap-3 border-t pt-3" style={{ borderTopColor: "#333333" }}>
-              <Input
-                label="UPI ID"
-                placeholder="e.g. society@okhdfcbank or 9876543210@ybl"
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={upiIdInput}
-                onChangeText={(v) => {
-                  setUpiIdInput(v);
-                  if (upiError) setUpiError(null);
-                }}
-                error={upiError ?? undefined}
-              />
-              <Input
-                label="Payee name (optional)"
-                placeholder="e.g. Palm Meadows Society"
-                value={upiNameInput}
-                onChangeText={setUpiNameInput}
-              />
-              <View className="flex-row gap-3">
-                <Button variant="outline" className="flex-1" onPress={() => setShowUpiForm(false)}>
-                  Cancel
-                </Button>
-                <Button
-                  className="flex-1"
-                  loading={setUpiMutation.isPending}
-                  onPress={() => setUpiMutation.mutate({ upiId: upiIdInput.trim(), upiName: upiNameInput.trim() || undefined })}
-                >
-                  Save
-                </Button>
-              </View>
-            </View>
-          )}
-        </View>
-
         {/* Summary tiles */}
         <View className="flex-row" style={{ gap: 16 }}>
           {[
