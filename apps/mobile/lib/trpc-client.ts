@@ -1,6 +1,6 @@
 import { httpBatchLink } from "@repo/trpc/client";
 import { trpc } from "./trpc";
-import { env } from "./env";
+import { getApiBase } from "./runtime-config";
 import { useAuthStore } from "../stores/auth-store";
 
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -33,7 +33,7 @@ async function refreshAccessToken(): Promise<string | null> {
     if (!refreshToken) return null;
 
     try {
-      const res = await fetchWithTimeout(`${env.API_URL}/trpc/auth.refresh`, {
+      const res = await fetchWithTimeout(`${getApiBase()}/trpc/auth.refresh`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refreshToken }),
@@ -87,7 +87,7 @@ export function createTRPCClient() {
   return trpc.createClient({
     links: [
       httpBatchLink({
-        url: `${env.API_URL}/trpc`,
+        url: `${getApiBase()}/trpc`,
         fetch: authFetch,
       }),
     ],
