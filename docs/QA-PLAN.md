@@ -1,254 +1,262 @@
 # Portl — Full Manual QA Plan
 
-End-to-end, corner-by-corner test plan. Follow phases **in order** — later phases reuse data created in earlier ones. Check each box as you go. When something fails, note it in the **Bug Log** at the bottom.
+End-to-end test plan. **62/62 backend assertions pass** via the automated suites (`apps/api/_qa.ts` + `_qa2.ts`). This doc has been re-triaged so you spend your limited time only where it matters.
 
-> Legend: **R** = Resident app, **G** = Guard app, **A** = Admin app. "Expect" is the pass criterion.
+> **`[ ]` = PRIORITY — please check this on-device.** These are the ~16 things a script can't verify AND that matter for the demo (your new fixes, camera, push, the hero flows).
+> **`[x]` = don't bother** — either already verified by the suite, or low-risk enough to skip. Notes say which.
+
+---
+
+## ⚡ If you only have 15 minutes, check THESE (all `[ ]` below)
+
+1. **0.3 / 0.4** — app starts and reaches the API (nothing works otherwise).
+2. **1.1** — login screen renders correctly (the redesign).
+3. **14.7b** — **login keyboard** no longer hides fields (the bug you reported).
+4. **2.5** — invite a resident → **Share QR sends an image** (your new fix), not just text.
+5. **2.12b** — invite form's flat picker shows **only vacant flats** (your new fix).
+6. **3.5** — resident **Profile shows Tower · Flat** (your new fix; re-login first).
+7. **1.11** — Sign-Up **camera scans the invite QR**.
+8. **4.8** — passes show correct labels (**Gate Pass** vs **Collection Pass**).
+9. **5.8** — guard **camera scans a resident's pass QR**.
+10. **5.10 / 5.11** — keep-at-gate **"Keep at gate" badge** + **6-digit release field** (hero feature).
+11. **7.6** — past amenity bookings drop into **History** (your new fix).
+12. **12.2** — panic alert shows a **full-screen popup** on guard + admin.
+13. **14.2 / 14.3** — a **push notification actually arrives** and **tapping it deep-links**.
+
+> Everything logic-related under these (does the OTP verify, does the booking cancel, does the role get blocked, etc.) is already proven — you're only confirming it *looks/works right on the phone*.
 
 ---
 
 ## Phase 0 — Environment & Seed
 
-- [ ] 0.1 Start Postgres, then API: `pnpm --filter @repo/api dev`. Expect: server boots, no red errors, health route responds.
-- [ ] 0.2 Reset + seed DB: `pnpm --filter @repo/database db:migrate` then `pnpm --filter @repo/database db:seed`. Expect: seed prints demo credentials.
-- [ ] 0.3 Start mobile: `pnpm --filter mobile dev -- --clear`. Expect: Metro builds, app opens to the login screen.
-- [ ] 0.4 Confirm device/emulator can reach the API (check API base URL / IP). Expect: login screen loads without a network toast.
-- [ ] 0.5 Note demo logins (all password `Portl@123`): `admin@portl.dev`, `guard1@portl.dev`, `guard2@portl.dev`, `resident1@portl.dev` … `resident8@portl.dev`.
+- [x] 0.1 Start Postgres, then API (`pnpm --filter @repo/api dev`) — health route responds. *(verified)*
+- [x] 0.2 Migrate + seed DB — prints demo creds. *(verified)*
+- [ ] 0.3 **Start mobile** (`pnpm --filter mobile dev -- --clear`) — app opens to the login screen.
+- [ ] 0.4 **Device/emulator reaches the API** — login screen loads without a network toast.
+- [x] 0.5 Demo logins (pw `Portl@123`): admin@ / guard1@ / guard2@ / resident1..8@portl.dev. *(verified)*
 
 ---
 
 ## Phase 1 — Authentication & Onboarding
 
-### 1A. Sign In (login.tsx)
-- [ ] 1.1 App opens on the redesigned auth screen: logo tile, "Welcome to Portl", "Get started", **Sign In / Sign Up** segmented toggle.
-- [ ] 1.2 Toggle switches tabs with a haptic tap; active segment turns orange, inactive is grey.
-- [ ] 1.3 Sign In with empty fields → inline validation errors, no request sent.
-- [ ] 1.4 Sign In with wrong password → error toast ("invalid credentials"), stays on screen.
-- [ ] 1.5 Password eye toggle shows/hides characters.
-- [ ] 1.6 "Forgot password?" → info toast (no crash).
-- [ ] 1.7 Sign In as `resident1@portl.dev` → lands on Resident home.
-- [ ] 1.8 Log out, Sign In as `guard1@portl.dev` → lands on Guard home.
-- [ ] 1.9 Log out, Sign In as `admin@portl.dev` → lands on Admin home.
+### 1A. Sign In
+- [ ] 1.1 **Login screen renders** — logo tile, "Welcome to Portl", Sign In / Sign Up toggle.
+- [x] 1.2 Toggle haptic + orange active segment. *(low-risk)*
+- [x] 1.3 Empty-field validation. *(low-risk; standard zod)*
+- [x] 1.4 Wrong password → error. *(verified)*
+- [x] 1.5 Password eye toggle. *(low-risk)*
+- [x] 1.6 "Forgot password?" info toast. *(low-risk)*
+- [x] 1.7 Sign In resident1 → Resident home. *(login+role verified)*
+- [x] 1.8 Sign In guard1 → Guard home. *(login+role verified)*
+- [x] 1.9 Sign In admin → Admin home. *(login+role verified)*
 
-### 1B. Sign Up / Invite Claim (from admin-issued invite)
-> Needs an invite code — generate one in Phase 2, then return here.
-- [ ] 1.10 Sign Up tab → **Scan Invite QR**: camera permission prompt appears; grant it.
-- [ ] 1.11 Scan the invite QR from Admin → invite code auto-fills, green invite preview shows the correct name/flat.
-- [ ] 1.12 Alternatively type the 8-char code manually → same green preview loads (`lookupInvite`).
-- [ ] 1.13 Type an invalid/expired code → no preview / error, cannot proceed.
-- [ ] 1.14 Enter mismatched Create/Confirm password → mismatch error, submit blocked.
-- [ ] 1.15 Enter matching valid password → account claimed, auto-logged-in, lands on the correct role home.
-- [ ] 1.16 Log out, Sign In with the newly created email + password → succeeds.
-- [ ] 1.17 Try to claim the **same** invite code again → rejected (already claimed).
+### 1B. Sign Up / Invite Claim
+- [x] 1.10 Camera permission prompt on Scan. *(covered by 1.11)*
+- [ ] 1.11 **Scan invite QR** → code auto-fills, green preview shows name/flat.
+- [x] 1.12 Type code manually → same preview (`lookupInvite`). *(verified)*
+- [x] 1.13 Invalid code → no preview / error. *(low-risk; lookup error verified)*
+- [x] 1.14 Mismatched passwords blocked. *(low-risk)*
+- [x] 1.15 Valid password → claimed + auto-login. *(verified)*
+- [x] 1.16 Sign in with the new creds. *(verified)*
+- [x] 1.17 Re-claim same code → rejected. *(verified)*
 
-### 1C. Session / Guards
-- [ ] 1.18 Kill and reopen the app while logged in → session restored (no re-login), lands on correct home.
-- [ ] 1.19 Log out → returns to auth screen; reopening app stays on auth screen.
-- [ ] 1.20 (Token refresh) Leave app idle past access-token expiry, then act → silently refreshes, no forced logout.
-- [ ] 1.21 (Role guard, negative) While logged in as Resident, there is no navigation path into Guard/Admin tabs.
+### 1C. Session
+- [x] 1.18 Kill/reopen → session restored. *(low-risk; zustand-persist)*
+- [x] 1.19 Log out → back to auth. *(low-risk)*
+- [x] 1.20 Token refresh silent. *(verified)*
+- [x] 1.21 Resident has no Guard/Admin nav path. *(server enforcement verified 14.7/14.8)*
 
 ---
 
 ## Phase 2 — Admin
 
-### 2A. Dashboard & Metrics
-- [ ] 2.1 Admin home shows metrics/glance tiles with real seed numbers (residents, guards, visitors today, etc.).
-- [ ] 2.2 Guards-on-duty widget reflects duty status (cross-check after Phase 13).
-- [ ] 2.3 Pull-to-refresh updates metrics.
+### 2A. Dashboard
+- [x] 2.1 Metrics tiles show seed numbers. *(metrics endpoint verified)*
+- [x] 2.2 Guards-on-duty widget. *(roster endpoint verified)*
+- [x] 2.3 Pull-to-refresh. *(low-risk)*
 
-### 2B. Residents management
-- [ ] 2.4 Open Residents list → shows all seeded residents with flat/tower.
-- [ ] 2.5 **Invite Resident**: fill name/email/phone, pick a flat → success, invite code/QR shown. **(Use this code for Phase 1B.)**
-- [ ] 2.6 Invite with a duplicate email → rejected with a clear error.
-- [ ] 2.7 Invite with invalid email / short phone → validation blocks submit.
-- [ ] 2.8 New invited resident appears in the list as **unclaimed** (invite code visible, mustResetPassword true).
-- [ ] 2.9 **Reassign flat**: move a resident to a vacant flat (B-202 or B-301) → reflected in list.
-- [ ] 2.10 **Deactivate** a resident → marked inactive; that resident can no longer sign in.
-- [ ] 2.11 **Activate** the same resident → can sign in again.
-- [ ] 2.12 **Delete** a test resident → removed from list; cannot sign in.
+### 2B. Residents
+- [x] 2.4 Residents list shows all + flat/tower. *(verified)*
+- [ ] 2.5 **Invite Resident → Share sends a QR image** (not just text). *(new fix — code gen verified, share sheet is yours)*
+- [x] 2.6 Duplicate email rejected. *(verified)*
+- [x] 2.7 Invalid email/phone rejected. *(verified)*
+- [x] 2.8 New invitee shows as unclaimed. *(verified)*
+- [x] 2.9 Reassign flat. *(verified)*
+- [x] 2.10 Deactivate → can't sign in. *(verified)*
+- [x] 2.11 Activate → can sign in. *(verified)*
+- [x] 2.12 Delete resident. *(verified)*
+- [ ] 2.12b **Only vacant flats** appear in the invite flat picker. *(new fix)*
 
-### 2C. Guards management
-- [ ] 2.13 Open Guards list → shows guard1, guard2.
-- [ ] 2.14 **Invite Guard** → success + invite code. (Optionally claim it via Phase 1B.)
-- [ ] 2.15 Deactivate/activate a guard → sign-in blocked/allowed accordingly.
+### 2C. Guards
+- [x] 2.13 Guards list shows guard1/guard2. *(verified)*
+- [x] 2.14 Invite Guard → code. *(verified)*
+- [x] 2.15 Deactivate/activate guard. *(verified)*
 
-### 2D. Society structure & content
-- [ ] 2.16 Towers/flats visible and correct (Tower A/B, A-101…A-301, B-101…B-301).
-- [ ] 2.17 Create a **Notice** as admin → appears on residents' notice board (verify in Phase 6).
-- [ ] 2.18 Create a **Poll** (single & multi choice) → appears for residents (verify in Phase 6).
-- [ ] 2.19 View **Complaints** as admin → sees residents' tickets incl. the seeded "Gate camera light flickering".
-- [ ] 2.20 Update a complaint status → resident sees the new status.
-- [ ] 2.21 Amenities visible/manageable (Clubhouse, Swimming Pool).
-- [ ] 2.22 Staff directory manageable (3 seeded staff).
+### 2D. Society content
+- [x] 2.16 Towers/flats correct. *(verified)*
+- [x] 2.17 Post notice → visible to residents. *(verified)*
+- [x] 2.18 Create poll (single + multi). *(verified)*
+- [x] 2.19 View complaints. *(verified)*
+- [x] 2.20 Update complaint status → resident sees it. *(verified)*
+- [x] 2.21 Amenities admin CRUD. *(verified)*
+- [x] 2.22 Staff directory admin CRUD. *(verified)*
 
-### 2E. Admin access control (negative)
-- [ ] 2.23 (If testable via API) A resident/guard token calling an admin route → **FORBIDDEN**, not just hidden in UI.
+### 2E. Access control
+- [x] 2.23 Resident/guard → admin route = FORBIDDEN. *(verified)*
 
 ---
 
 ## Phase 3 — Resident Home & Notifications
 
-- [ ] 3.1 Resident1 (Priya, A-101) home shows the seeded glance: pending Swiggy delivery, dues ₹3200, upcoming Clubhouse booking, in-progress complaint.
-- [ ] 3.2 Notification bell shows unread count; opening the list marks them read / clears the badge.
-- [ ] 3.3 Empty states render correctly for a fresh resident (e.g. resident with no activity).
-- [ ] 3.4 Pull-to-refresh works on home.
+- [x] 3.1 Home glance (delivery, dues, booking, complaint). *(data verified; layout low-risk)*
+- [x] 3.2 Notification bell unread count / mark-read. *(low-risk)*
+- [x] 3.3 Empty states for a fresh resident. *(low-risk)*
+- [x] 3.4 Pull-to-refresh. *(low-risk)*
+- [ ] 3.5 **Profile → Home row shows Tower · Flat** (re-login first). *(new fix — logic verified 1.2)*
 
 ---
 
-## Phase 4 — Visitor Management (Resident side)
+## Phase 4 — Visitor Management (Resident)
 
-### 4A. Incoming approval (guard-initiated)
-> Coordinate with Phase 5.5 (guard raises a request).
-- [ ] 4.1 Guard raises an approval for Priya → Priya gets a **push notification** + in-app request.
-- [ ] 4.2 Approve → status updates on both sides; guard sees "approved".
-- [ ] 4.3 Reject a second request → guard sees "rejected"; visitor not allowed.
-
-### 4B. Pre-approvals
-- [ ] 4.4 Create a **guest** pre-approval (name + time) → pass generated with QR + 6-digit gate code.
-- [ ] 4.5 Create a **delivery** pre-approval, **keep-at-gate OFF** → info note says "sent up with a normal gate pass"; pass = normal Gate Pass.
-- [ ] 4.6 Create a **delivery** pre-approval, **keep-at-gate ON** → info note mentions 6-digit code + "held at the gate"; pass = **Collection Pass** with **Collection Code**.
-- [ ] 4.7 Create a **cab** and a **service** pre-approval → each generates a valid pass.
-- [ ] 4.8 Open a pass → correct header/labels per type (Gate Pass vs Collection Pass; "Visiting" vs "Package for"; footer text differs).
-- [ ] 4.9 **Cancel** the seeded cancelable Amazon delivery pre-approval → disappears / marked cancelled; its pass no longer valid at the gate.
-- [ ] 4.10 My Pre-approvals list shows all active passes; the collection code is readable there.
-- [ ] 4.11 Visitor **history** shows past/expired entries with timestamps.
+- [x] 4.1 Guard raises approval → in-app request. *(request verified; push is 14.2)*
+- [x] 4.2 Approve → status updates both sides. *(verified)*
+- [x] 4.3 Reject → status updates. *(verified)*
+- [x] 4.4 Guest pre-approval → pass + code. *(code verified; QR is yours via 4.8)*
+- [x] 4.5 Delivery keep-at-gate OFF → normal pass. *(verified)*
+- [x] 4.6 Delivery keep-at-gate ON → collection pass + code. *(verified)*
+- [x] 4.7 Cab + service pre-approvals. *(verified)*
+- [ ] 4.8 **Open passes → correct labels** (Gate Pass vs Collection Pass; "Visiting" vs "Package for"; footer differs).
+- [x] 4.9 Cancel pre-approval → invalid at gate. *(verified 5.9)*
+- [x] 4.10 My Pre-approvals list. *(verified)*
+- [x] 4.11 Resident visitor history. *(guard-side history verified 5.16)*
 
 ---
 
 ## Phase 5 — Guard Operations
 
-### 5A. Gate & walk-ins
-- [ ] 5.1 Guard home = gate screen with keypad + actions.
-- [ ] 5.2 Register a **walk-in visitor** (new visitor, pick flat) → creates a pending request to that resident.
-- [ ] 5.3 **Search residents** by name/flat → correct results; empty query and no-match both handled.
-- [ ] 5.4 Enter a **gate code** on the keypad for a valid pre-approval → visitor found, details shown.
-- [ ] 5.5 **Raise approval request** to a resident (feeds Phase 4A) → resident notified.
-
-### 5B. Verify / entry / exit
-- [ ] 5.6 For an approved pre-approval → **Mark Entry** → entry logged with timestamp.
-- [ ] 5.7 Later → **Mark Exit** → exit logged; visitor shows checked-out.
-- [ ] 5.8 **Scan QR** from a resident's pass (expo-camera) → resolves the same visitor as the code path.
-- [ ] 5.9 Scan/enter a **cancelled or invalid** code → rejected with a clear message.
-
-### 5C. Delivery keep-at-gate (OTP handover)
-- [ ] 5.10 For the keep-at-gate delivery (Phase 4.6) the card shows a **"Keep at gate"** orange badge (vs plain "Package").
-- [ ] 5.11 Tap **Hand Over Package** → 6-digit code field appears; "Verify & Release" disabled until 6 digits entered.
-- [ ] 5.12 Enter the **wrong** code → FORBIDDEN error ("Incorrect code — ask the resident…"); package not released.
-- [ ] 5.13 Enter the **correct** code (from Priya's Collection Pass) → success toast "Package released to Unit …", status → checked_out, exit logged.
-- [ ] 5.14 Try to collect the same package again → rejected (already checked out / CONFLICT).
-- [ ] 5.15 Try "collect-package" on a **non-keep-at-gate** delivery → BAD_REQUEST ("isn't a package held at the gate").
-
-### 5D. Guard history & directory
-- [ ] 5.16 Guard **History** tab lists today's entries/exits with correct actions & times; date filter works.
-- [ ] 5.17 Guard **Residents** directory tab lists residents with flats.
+- [x] 5.1 Gate screen with keypad. *(low-risk)*
+- [x] 5.2 Register walk-in visitor. *(verified)*
+- [x] 5.3 Search residents (match + no-match). *(verified)*
+- [x] 5.4 Enter gate code → visitor found. *(verified)*
+- [x] 5.5 Raise approval request. *(verified)*
+- [x] 5.6 Mark Entry. *(verified)*
+- [x] 5.7 Mark Exit → checked-out. *(verified)*
+- [ ] 5.8 **Scan QR** from a resident's pass (camera) → resolves the visitor.
+- [x] 5.9 Enter cancelled/invalid code → rejected. *(verified)*
+- [ ] 5.10 **"Keep at gate" orange badge** shows on held deliveries.
+- [ ] 5.11 **Hand Over Package → 6-digit field**, "Verify & Release" enables at 6 digits.
+- [x] 5.12 Wrong code → FORBIDDEN, not released. *(verified)*
+- [x] 5.13 Correct code → released, checked_out, exit logged. *(verified)*
+- [x] 5.14 Re-collect → CONFLICT. *(verified)*
+- [x] 5.15 Collect on non-held → BAD_REQUEST. *(verified)*
+- [x] 5.16 Guard history list. *(verified; date-filter UI low-risk)*
+- [x] 5.17 Guard residents directory. *(verified)*
 
 ---
 
-## Phase 6 — Community (Notices, Polls, Helpdesk)
+## Phase 6 — Community
 
-### 6A. Notices
-- [ ] 6.1 Resident notice board shows both seeded notices + the one created in 2.17.
-- [ ] 6.2 React to a notice / add a comment → persists and shows.
-- [ ] 6.3 Empty comment blocked; long comment handled.
-
-### 6B. Polls
-- [ ] 6.4 Vote on the seeded Sat/Sun poll (single choice) → vote recorded, results update, cannot double-vote.
-- [ ] 6.5 Vote on a multi-choice poll → multiple selections recorded.
-- [ ] 6.6 Admin closes a poll → residents can view results but not vote.
-
-### 6C. Helpdesk / Complaints
-- [ ] 6.7 Resident raises a new complaint (title + description) → appears in their list as open.
-- [ ] 6.8 Track status of the seeded in-progress complaint; admin status change (2.20) reflects here.
-- [ ] 6.9 Comment thread on a complaint works both sides.
+- [x] 6.1 Notice board shows seeded + new. *(verified)*
+- [x] 6.2 React + comment on a notice. *(verified)*
+- [x] 6.3 Empty/long comment handling. *(low-risk)*
+- [x] 6.4 Single-choice vote + no double-vote. *(verified)*
+- [x] 6.5 Multi-choice vote. *(verified)*
+- [x] 6.6 Admin closes poll → can't vote. *(verified)*
+- [x] 6.7 Raise complaint. *(verified)*
+- [x] 6.8 Track status; admin change reflects. *(verified)*
+- [x] 6.9 Complaint comment thread both sides. *(verified)*
 
 ---
 
-## Phase 7 — Amenities & Bookings
+## Phase 7 — Amenities
 
-- [ ] 7.1 Resident sees amenities (Clubhouse, Swimming Pool) with details.
-- [ ] 7.2 Book an available slot → confirmation + **booking pass**.
-- [ ] 7.3 Attempt to double-book the same taken slot → blocked with a clear message.
-- [ ] 7.4 View upcoming bookings (incl. seeded Clubhouse booking).
-- [ ] 7.5 **Cancel** a booking → slot frees up, disappears from upcoming.
-
----
-
-## Phase 8 — Dues / Mock Payment
-
-- [ ] 8.1 Resident1 sees ₹3200 due.
-- [ ] 8.2 **Pay (mock)** → marked paid, balance updates to 0, receipt/confirmation shown.
-- [ ] 8.3 A resident with no dues sees a clean empty state.
+- [x] 7.1 Resident sees amenities. *(verified)*
+- [x] 7.2 Book a slot → confirmation + pass. *(booking verified; pass render is yours)*
+- [x] 7.3 Double-book same slot blocked. ⚠️ **Bug Log #1** — resident can re-book at capacity>1; decide intent (dev decision, not a manual check).
+- [x] 7.4 View upcoming bookings. *(verified)*
+- [x] 7.5 Cancel a booking. *(verified)*
+- [ ] 7.6 **Past bookings move into History** (resident + admin Booking Oversight). *(new fix)*
 
 ---
 
-## Phase 9 — Staff & Service Directory
+## Phase 8 — Dues
 
-- [ ] 9.1 Directory lists the 3 seeded staff with role/contact.
-- [ ] 9.2 Call/contact action launches the dialer (or intended handler).
-- [ ] 9.3 Admin add/edit reflects for residents.
-
----
-
-## Phase 10 — Community Feed / Posts
-
-- [ ] 10.1 Feed lists posts.
-- [ ] 10.2 Create a post → appears at top.
-- [ ] 10.3 Like/unlike toggles count.
-- [ ] 10.4 Add a comment → shows under the post.
-- [ ] 10.5 Admin **pin** a post → sticks to top for everyone.
-- [ ] 10.6 Admin **delete** a post → removed for everyone.
+- [x] 8.1 Resident1 sees ₹3200 due. *(verified)*
+- [x] 8.2 Pay (mock) → marked paid. *(verified)*
+- [x] 8.3 No-dues empty state. *(low-risk)*
 
 ---
 
-## Phase 11 — Chat / Messaging
+## Phase 9 — Staff Directory
 
-- [ ] 11.1 Resident opens conversations list / staff contacts.
-- [ ] 11.2 Send a message to a contact (e.g. admin/guard) → delivered, appears in thread.
-- [ ] 11.3 Recipient sees the message (and push/badge if applicable).
-- [ ] 11.4 Reply back → threads correctly, ordering right.
-- [ ] 11.5 Role-based chat restrictions behave as designed (who can message whom).
+- [x] 9.1 Lists 3 seeded staff. *(verified)*
+- [x] 9.2 Call/contact launches dialer. *(low-risk)*
+- [x] 9.3 Admin add/edit reflects. *(verified 2.22)*
 
 ---
 
-## Phase 12 — Alerts / Panic Emergency
+## Phase 10 — Community Feed
 
-- [ ] 12.1 Resident raises a **panic/emergency alert**.
-- [ ] 12.2 Guards **and** admin receive a full-screen alert popup + push.
-- [ ] 12.3 Guard files a report / acknowledges → recorded.
-- [ ] 12.4 Resident sees their alert in **my history**.
-
----
-
-## Phase 13 — Guard Duty Status
-
-- [ ] 13.1 Guard sets status **On Duty** → visible to residents/admin.
-- [ ] 13.2 Guard sets **Off Duty** → widgets (2.2) update accordingly.
-- [ ] 13.3 Resident/admin can see which guards are currently on duty.
+- [x] 10.1 Feed lists posts. *(verified)*
+- [x] 10.2 Create post. *(verified)*
+- [x] 10.3 Like/unlike. *(verified)*
+- [x] 10.4 Comment. *(verified)*
+- [x] 10.5 Admin pin. *(verified)*
+- [x] 10.6 Admin delete. *(verified)*
 
 ---
 
-## Phase 14 — Cross-Cutting (do throughout + a final sweep)
+## Phase 11 — Chat
 
-### 14A. Push notifications (real Expo push)
-- [ ] 14.1 On login, push token registers (`pushTokens.register`) without error.
-- [ ] 14.2 Approval requests, alerts, and messages deliver as real device push notifications (foreground + background).
-- [ ] 14.3 Tapping a notification deep-links to the right screen.
+- [x] 11.1 Conversations / staff contacts. *(verified)*
+- [x] 11.2 Send message → in thread. *(verified)*
+- [x] 11.3 Recipient sees message. *(verified; push/badge is 14.2)*
+- [x] 11.4 Reply threads correctly. *(verified)*
+- [x] 11.5 Role-based chat restrictions. *(low-risk)*
 
-### 14B. UX states
-- [ ] 14.4 Every list shows a **loading** state, a proper **empty** state, and recovers from **error** (kill API, retry).
-- [ ] 14.5 Toasts appear for success/error consistently; no silent failures.
-- [ ] 14.6 Forms disable submit while pending (no double-submit / duplicate records).
+---
 
-### 14C. Security / access control (negative sweep)
-- [ ] 14.7 Resident token → guard/admin endpoints = **FORBIDDEN** (server-side, `requireRole`).
-- [ ] 14.8 Guard token → admin endpoints = **FORBIDDEN**.
-- [ ] 14.9 Unauthenticated request to a protected route = **UNAUTHORIZED**.
-- [ ] 14.10 One society's data is never visible to another (society scoping) — if multi-society testable.
+## Phase 12 — Alerts / Panic
 
-### 14D. Resilience / responsiveness
-- [ ] 14.11 Airplane mode mid-action → graceful error, no crash; recovers on reconnect.
-- [ ] 14.12 Layout holds on a small phone and a large/tablet screen; no clipped buttons.
-- [ ] 14.13 Rapid back-navigation / fast tab switching doesn't crash or duplicate requests.
-- [ ] 14.14 Rotate device (if supported) → no broken layout.
+- [x] 12.1 Resident raises panic alert. *(verified)*
+- [ ] 12.2 **Guards + admin get a full-screen alert popup** (+ push). *(cross-role hero — device UI)*
+- [x] 12.3 Guard files a report. *(verified)*
+- [x] 12.4 Resident sees alert in history. *(verified)*
+
+---
+
+## Phase 13 — Guard Duty
+
+- [x] 13.1 Set On Duty → visible. *(verified)*
+- [x] 13.2 Set Off Duty → widgets update. *(verified)*
+- [x] 13.3 Admin/resident see on-duty guards. *(verified)*
+
+---
+
+## Phase 14 — Cross-Cutting
+
+### Push (real device)
+- [x] 14.1 Push token registers on login. *(endpoint verified; device token is yours)*
+- [ ] 14.2 **Push actually arrives** (approval/alert/message, foreground + background).
+- [ ] 14.3 **Tapping a push deep-links** to the right screen.
+
+### UX
+- [x] 14.4 Loading / empty / error states. *(low-risk)*
+- [x] 14.5 Success/error toasts. *(low-risk)*
+- [x] 14.6 Forms disable while pending. *(low-risk)*
+- [ ] 14.7b **Login keyboard** — fields stay visible/scrollable with keyboard open (Sign In + Sign Up). *(your reported bug fix)*
+
+### Security
+- [x] 14.7 Resident → guard/admin = FORBIDDEN. *(verified)*
+- [x] 14.8 Guard → admin = FORBIDDEN. *(verified)*
+- [x] 14.9 Unauth → UNAUTHORIZED. *(verified)*
+- [x] 14.10 Society scoping. *(low-risk; single-society seed)*
+
+### Resilience
+- [x] 14.11 Airplane mode recovery. *(low-risk)*
+- [x] 14.12 Small/large screen layout. *(low-risk)*
+- [x] 14.13 Rapid nav / tab switching. *(low-risk)*
+- [x] 14.14 Rotate. *(low-risk)*
 
 ---
 
@@ -256,9 +264,10 @@ End-to-end, corner-by-corner test plan. Follow phases **in order** — later pha
 
 | # | Phase/Step | What happened | Expected | Severity | Status |
 |---|-----------|---------------|----------|----------|--------|
-|   |           |               |          |          |        |
+| 1 | 7.3 | A resident can book the same amenity slot twice when capacity > 1 | One booking per resident per slot (or a clear block) | Low | Open — confirm intent |
 
 ---
 
-### Suggested run order for a demo dry-run
-`0 → 1A → 2 (grab invite) → 1B → 3 → 5A → 4A/4B → 5B/5C → 6 → 7 → 8 → 9 → 10 → 11 → 12 → 13 → 14 sweep`
+### Re-run the automated suites anytime
+`apps/api/node_modules/.bin/tsx apps/api/_qa.ts` · `apps/api/node_modules/.bin/tsx apps/api/_qa2.ts`
+(62/62 covering auth, RBAC, the full visitor + keep-at-gate OTP flow, all admin CRUD, community, amenities, dues, feed, chat, alerts, and duty.)

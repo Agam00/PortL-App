@@ -153,7 +153,7 @@ export default function LoginScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View className="w-full max-w-[400px] self-center">
-          {/* Logo tile */}
+          {/* Brand lockup — P-door mark + PORTL wordmark from the app icon */}
           <View className="items-center">
             <View
               className="items-center justify-center"
@@ -163,13 +163,18 @@ export default function LoginScreen() {
               ]}
             >
               <Image
-                source={require("../../assets/icon.png")}
-                style={{ width: 60, height: 60, borderRadius: 16 }}
+                source={require("../../assets/portl-mark.png")}
+                style={{ width: 52, height: 60 }}
                 resizeMode="contain"
               />
             </View>
-            <Text className="mt-5 text-headline-lg font-extrabold text-on-surface">Welcome to Portl</Text>
-            <Text className="mt-1 text-body-md text-on-surface-variant">Your society, in one place</Text>
+            <Image
+              source={require("../../assets/portl-wordmark.png")}
+              style={{ width: 176, height: 44, marginTop: 18 }}
+              resizeMode="contain"
+              accessibilityLabel="PORTL Society"
+            />
+            <Text className="mt-2 text-body-md text-on-surface-variant">Your society, in one place</Text>
           </View>
 
           {/* Get started */}
