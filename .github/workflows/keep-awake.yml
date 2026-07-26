@@ -1,0 +1,26 @@
+name: keep-render-awake
+
+# Pings the Render backend every ~10 minutes so the free-tier web service
+# never sleeps (Render sleeps after 15 min idle → ~30-50s cold start).
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping backend /health
+        run: |
+          URL="https://portl-app.onrender.com/health"
+          for i in 1 2 3; do
+            code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 70 "$URL" || echo "000")
+            if [ "$code" = "200" ]; then
+              echo "✅ awake (HTTP $code)"; exit 0
+            fi
+            echo "attempt $i → HTTP $code (server may be waking), retrying…"
+            sleep 25
+          done
+          echo "⚠️ health check did not return 200 — leaving job green anyway"
+          exit 0
