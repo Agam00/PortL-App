@@ -11,6 +11,12 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// The last Expo push token this device obtained — used at logout to unregister it.
+let lastPushToken: string | null = null;
+export function getLastPushToken(): string | null {
+  return lastPushToken;
+}
+
 /** Requests permission and returns an Expo push token, or null if denied/unavailable (e.g. in Expo Go on Android). */
 export async function registerForPushNotifications(): Promise<string | null> {
   if (Platform.OS === "android") {
@@ -34,6 +40,7 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
   try {
     const { data } = await Notifications.getExpoPushTokenAsync({ projectId });
+    lastPushToken = data;
     return data;
   } catch (err) {
     // Non-fatal: the device just won't receive push. Common on emulators without

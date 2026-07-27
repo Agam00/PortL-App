@@ -25,6 +25,13 @@ class PushTokenService {
       deviceInfo: input.deviceInfo,
     });
   }
+
+  /** Remove this device's token on logout so a signed-out device stops receiving pushes. */
+  async unregister(userId: string, expoPushToken: string): Promise<void> {
+    await db
+      .delete(pushTokensTable)
+      .where(and(eq(pushTokensTable.userId, userId), eq(pushTokensTable.expoPushToken, expoPushToken)));
+  }
 }
 
 export default PushTokenService;

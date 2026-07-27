@@ -4,3 +4,7 @@ export const registerPushTokenInputSchema = z.object({
   expoPushToken: z.string().min(1),
   deviceInfo: z.string().max(200).optional(),
 });
+
+export const unregisterPushTokenInputSchema = z.object({
+  expoPushToken: z.string().min(1),
+});

@@ -7,6 +7,7 @@ import { useAuthStore } from "../../stores/auth-store";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticTap } from "../../lib/haptics";
+import { getLastPushToken } from "../../lib/push-notifications";
 import { shadowCard } from "../../lib/shadows";
 
 // Society contact numbers the guard can reach in one tap. Seed data uses the
@@ -46,6 +47,7 @@ export default function GuardProfile() {
     onError: (error) => showToast(getErrorMessage(error), "error"),
   });
 
+  const unregisterPush = trpc.pushTokens.unregister.useMutation();
   const logoutMutation = trpc.auth.logout.useMutation({
     onSettled: () => {
       logout();
@@ -54,7 +56,16 @@ export default function GuardProfile() {
     onError: (error) => showToast(getErrorMessage(error), "error"),
   });
 
-  function doLogout() {
+  async function doLogout() {
+    // Stop this device from receiving pushes for the signed-out account (best-effort).
+    const token = getLastPushToken();
+    if (token) {
+      try {
+        await unregisterPush.mutateAsync({ expoPushToken: token });
+      } catch {
+        // ignore — logout proceeds regardless
+      }
+    }
     if (refreshToken) logoutMutation.mutate({ refreshToken });
     else {
       logout();

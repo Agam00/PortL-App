@@ -6,6 +6,7 @@ import { trpc } from "../lib/trpc";
 import { useAuthStore } from "../stores/auth-store";
 import { useUiStore } from "../stores/ui-store";
 import { getErrorMessage } from "../lib/error-message";
+import { getLastPushToken } from "../lib/push-notifications";
 import { RoleBadge } from "./ui/role-badge";
 import { shadowCard } from "../lib/shadows";
 
@@ -78,6 +79,7 @@ export function RoleProfileScreen() {
   const logout = useAuthStore((s) => s.logout);
   const showToast = useUiStore((s) => s.showToast);
 
+  const unregisterPush = trpc.pushTokens.unregister.useMutation();
   const logoutMutation = trpc.auth.logout.useMutation({
     onSettled: () => {
       logout();
@@ -85,6 +87,23 @@ export function RoleProfileScreen() {
     },
     onError: (error) => showToast(getErrorMessage(error), "error"),
   });
+
+  async function doLogout() {
+    // Stop this device from receiving pushes for the signed-out account (best-effort).
+    const token = getLastPushToken();
+    if (token) {
+      try {
+        await unregisterPush.mutateAsync({ expoPushToken: token });
+      } catch {
+        // ignore — logout proceeds regardless
+      }
+    }
+    if (refreshToken) logoutMutation.mutate({ refreshToken });
+    else {
+      logout();
+      router.replace("/(auth)/login");
+    }
+  }
 
   const deleteMutation = trpc.auth.deleteAccount.useMutation({
     onSuccess: () => {
@@ -171,15 +190,8 @@ export function RoleProfileScreen() {
         </View>
 
         <Pressable
-          onPress={() => {
-            if (refreshToken) {
-              logoutMutation.mutate({ refreshToken });
-            } else {
-              logout();
-              router.replace("/(auth)/login");
-            }
-          }}
-          disabled={logoutMutation.isPending}
+          onPress={doLogout}
+          disabled={logoutMutation.isPending || unregisterPush.isPending}
           className="h-14 flex-row items-center justify-center gap-2 rounded-full"
           style={{ backgroundColor: "#3A1A1A" }}
           accessibilityLabel="Log out"

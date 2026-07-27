@@ -15,7 +15,13 @@ export function PushRegistration() {
   const hasRegistered = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!user || hasRegistered.current === user.id) return;
+    // On logout, clear the marker so the next login (even the same user) re-registers,
+    // since the token is unregistered from the backend at logout.
+    if (!user) {
+      hasRegistered.current = null;
+      return;
+    }
+    if (hasRegistered.current === user.id) return;
     hasRegistered.current = user.id;
 
     registerForPushNotifications()
