@@ -30,6 +30,7 @@ export default function GuardChatScreen() {
   const showToast = useUiStore((s) => s.showToast);
   const { peerId, name } = useLocalSearchParams<{ peerId?: string; name?: string }>();
   const [draft, setDraft] = useState("");
+  const [headerHeight, setHeaderHeight] = useState(96);
   const scrollRef = useRef<ScrollView>(null);
   const keyboardVisible = useKeyboardVisible();
   const utils = trpc.useUtils();
@@ -58,6 +59,7 @@ export default function GuardChatScreen() {
     <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       {/* Header */}
       <View
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         className="flex-row items-center gap-3 px-4 pb-3"
         style={{ paddingTop: insets.top + 10, borderBottomWidth: 1, borderBottomColor: "#1A1A1A" }}
       >
@@ -71,8 +73,8 @@ export default function GuardChatScreen() {
       </View>
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={insets.top + 60}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={headerHeight}
         className="flex-1"
       >
         <ScrollView

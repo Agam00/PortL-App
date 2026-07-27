@@ -409,6 +409,38 @@ function ComposeModal({ open, onClose }: { open: boolean; onClose: () => void })
 
 /* ------------------------------- Chat ------------------------------- */
 
+type RoleFilter = "resident" | "guard" | "admin" | null;
+const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
+  { label: "All", value: null },
+  { label: "🏠 Residents", value: "resident" },
+  { label: "🛡️ Guards", value: "guard" },
+  { label: "⭐ Admin", value: "admin" },
+];
+
+function RoleFilterChips({ value, onChange }: { value: RoleFilter; onChange: (v: RoleFilter) => void }) {
+  return (
+    <View className="flex-row flex-wrap gap-2 px-4 pb-2 pt-1">
+      {ROLE_FILTERS.map((f) => {
+        const active = value === f.value;
+        return (
+          <Pressable
+            key={f.label}
+            onPress={() => onChange(f.value)}
+            className="rounded-full px-3.5 py-1.5"
+            style={{ backgroundColor: active ? "#F5821F" : "#1A1A1A", borderWidth: 1, borderColor: active ? "#F5821F" : "#333333" }}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+          >
+            <Text className="text-body-sm font-bold" style={{ color: active ? "#141118" : "#C4C4C4" }}>
+              {f.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function chatTime(iso: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -420,14 +452,17 @@ function ChatTab() {
   const router = useRouter();
   const convQuery = trpc.chat.conversations.useQuery(undefined, { refetchInterval: 8000 });
   const { refreshing, onRefresh } = useManualRefresh(() => convQuery.refetch());
-  const convs = convQuery.data ?? [];
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>(null);
+  const convs = (convQuery.data ?? []).filter((c) => !roleFilter || c.peerRole === roleFilter);
 
   return (
-    <ScrollView
-      contentContainerClassName="gap-2 px-4 pb-28 pt-1"
-      showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={refreshing} onRefresh={onRefresh} />}
-    >
+    <View className="flex-1">
+      <RoleFilterChips value={roleFilter} onChange={setRoleFilter} />
+      <ScrollView
+        contentContainerClassName="gap-2 px-4 pb-28 pt-1"
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={refreshing} onRefresh={onRefresh} />}
+      >
       {convQuery.isLoading ? (
         <ListLoading />
       ) : convs.length === 0 ? (
@@ -479,7 +514,8 @@ function ChatTab() {
           </Pressable>
         ))
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -491,13 +527,15 @@ function ResidentsTab() {
   const dirQuery = trpc.residents.directory.useQuery();
   const contactsQuery = trpc.residents.societyContacts.useQuery();
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>(null);
 
   const q = search.trim().toLowerCase();
-  const society = (contactsQuery.data ?? []).filter(
-    (c) => q.length === 0 || c.fullName.toLowerCase().includes(q) || c.role.includes(q) || c.phone.includes(q),
-  );
+  const society = (contactsQuery.data ?? [])
+    .filter((c) => !roleFilter || c.role === roleFilter)
+    .filter((c) => q.length === 0 || c.fullName.toLowerCase().includes(q) || c.role.includes(q) || c.phone.includes(q));
 
-  const flats = (dirQuery.data ?? [])
+  const showFlats = roleFilter === null || roleFilter === "resident";
+  const flats = (showFlats ? dirQuery.data ?? [] : [])
     .map((f) => ({ ...f, residents: f.residents.filter((r) => r.id !== meId) }))
     .filter((f) => f.residents.length > 0)
     .filter((f) => {
@@ -523,6 +561,8 @@ function ResidentsTab() {
           className="flex-1 py-3 text-body-md text-on-surface"
         />
       </View>
+
+      <RoleFilterChips value={roleFilter} onChange={setRoleFilter} />
 
       {/* Society staff — guards + admin the resident can call or chat */}
       {society.length > 0 && (

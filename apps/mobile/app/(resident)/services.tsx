@@ -36,7 +36,6 @@ const MOVERS = require("../../assets/services/movers.png");
 const SANITIZE = require("../../assets/services/sanitize.png");
 const BEAUTY = require("../../assets/services/beauty.png");
 
-// New categories reuse the existing service icons so the grid stays visually consistent.
 const SERVICES: { key: string; img: ImageSourcePropType }[] = [
   { key: "Home Cleaning", img: CLEANING },
   { key: "Appliances Repair", img: APPLIANCES },
@@ -46,12 +45,6 @@ const SERVICES: { key: string; img: ImageSourcePropType }[] = [
   { key: "Packer & Movers", img: MOVERS },
   { key: "Home Sanitize", img: SANITIZE },
   { key: "Hair & Beauty", img: BEAUTY },
-  { key: "Electrician", img: APPLIANCES },
-  { key: "AC Service", img: APPLIANCES },
-  { key: "Pest Control", img: SANITIZE },
-  { key: "Gardening", img: CLEANING },
-  { key: "Laundry", img: SANITIZE },
-  { key: "Cook / Chef", img: CLEANING },
 ];
 
 const IMG_BY_CATEGORY: Record<string, ImageSourcePropType> = Object.fromEntries(SERVICES.map((s) => [s.key, s.img]));
