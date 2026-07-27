@@ -9,7 +9,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.agam142.portl",
+      "supportsTablet": false,
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.agam142.portl",
@@ -19,17 +23,19 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ]
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store",
+      [
+        "expo-secure-store",
+        {
+          "faceIDPermission": false
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -43,14 +49,17 @@
         "expo-image-picker",
         {
           "photosPermission": "Allow Portl to access your photos to attach a visitor photo.",
-          "cameraPermission": "Allow Portl to use the camera to capture a visitor photo."
+          "cameraPermission": "Allow Portl to use the camera to capture a visitor photo.",
+          "microphonePermission": false
         }
       ],
       "@react-native-community/datetimepicker",
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Portl to use the camera to scan visitor gate passes."
+          "cameraPermission": "Allow Portl to use the camera to scan visitor gate passes.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       [
@@ -59,7 +68,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#F5821F"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true

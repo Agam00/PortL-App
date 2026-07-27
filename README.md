@@ -303,8 +303,8 @@ PortL-App/
 - [x] README with setup instructions (this file)
 - [x] Demo credentials (above)
 - [x] Comprehensive documentation ([`docs/`](./docs))
-- [ ] Demo video *(recorded separately and added to the submission)*
-- [ ] Screenshots *(added to the submission folder)*
+- [x] Demo video *(recorded separately and added to the submission)*
+- [x] Screenshots *(added to the submission folder)*
 
 ---
 
