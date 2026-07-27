@@ -9,9 +9,10 @@ const ROLE_TAG: Record<Role, { label: string; emoji: string; bg: string; fg: str
   admin: { label: "Admin", emoji: "⭐", bg: "#3A2E12", fg: "#FFB74D" },
 };
 
-/** Small pill showing a person's role (emoji + label). */
+/** Small pill showing a person's role (emoji + label). Renders nothing for an unknown role. */
 export function RoleTag({ role, size = "md" }: { role: string; size?: "sm" | "md" }) {
-  const tag = ROLE_TAG[(role as Role) in ROLE_TAG ? (role as Role) : "resident"];
+  const tag = ROLE_TAG[role as Role];
+  if (!tag) return null;
   const compact = size === "sm";
   return (
     <View

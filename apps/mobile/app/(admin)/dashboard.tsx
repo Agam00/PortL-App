@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
+import { useManualRefresh } from "../../hooks/use-manual-refresh";
 import { useAuthStore } from "../../stores/auth-store";
 import { AdminHeader } from "../../components/ui/admin-header";
 import { EmptyState } from "../../components/ui/empty-state";
@@ -75,6 +76,9 @@ export default function AdminDashboard() {
   const residentsQuery = trpc.admin.listResidents.useQuery();
   const dutyQuery = trpc.duty.guards.useQuery(undefined, { refetchInterval: 15_000 });
   const feedQuery = trpc.visitors.history.useQuery({}, { refetchInterval: 5000 });
+  const { refreshing, onRefresh } = useManualRefresh(() =>
+    Promise.all([metricsQuery.refetch(), residentsQuery.refetch(), dutyQuery.refetch(), feedQuery.refetch()]),
+  );
 
   const metrics = metricsQuery.data;
   const residentCount = residentsQuery.data?.length ?? null;
@@ -118,13 +122,8 @@ export default function AdminDashboard() {
         contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: 32, gap: 32 }}
         refreshControl={
           <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
-            refreshing={metricsQuery.isRefetching || feedQuery.isRefetching}
-            onRefresh={() => {
-              metricsQuery.refetch();
-              residentsQuery.refetch();
-              dutyQuery.refetch();
-              feedQuery.refetch();
-            }}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
           />
         }
       >

@@ -18,6 +18,7 @@ import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
+import { useManualRefresh } from "../../hooks/use-manual-refresh";
 import { useAuthStore } from "../../stores/auth-store";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
@@ -504,13 +505,14 @@ function chatTime(iso: string | null) {
 function ChatTab() {
   const router = useRouter();
   const convQuery = trpc.chat.conversations.useQuery(undefined, { refetchInterval: 8000 });
+  const { refreshing, onRefresh } = useManualRefresh(() => convQuery.refetch());
   const convs = convQuery.data ?? [];
 
   return (
     <ScrollView
       contentContainerClassName="gap-2 px-4 pb-28 pt-1"
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={convQuery.isRefetching} onRefresh={() => convQuery.refetch()} />}
+      refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {convQuery.isLoading ? (
         <ListLoading />

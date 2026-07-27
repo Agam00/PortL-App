@@ -21,6 +21,7 @@ import { useAuthStore } from "../../stores/auth-store";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { RoleTag } from "../../components/ui/role-tag";
+import { useManualRefresh } from "../../hooks/use-manual-refresh";
 import { hapticSuccess, hapticError, hapticTap } from "../../lib/haptics";
 import { captureVisitorPhoto, pickImageFromGallery } from "../../lib/capture-visitor-photo";
 import { Avatar } from "../../components/ui/avatar";
@@ -418,13 +419,14 @@ function chatTime(iso: string | null) {
 function ChatTab() {
   const router = useRouter();
   const convQuery = trpc.chat.conversations.useQuery(undefined, { refetchInterval: 8000 });
+  const { refreshing, onRefresh } = useManualRefresh(() => convQuery.refetch());
   const convs = convQuery.data ?? [];
 
   return (
     <ScrollView
       contentContainerClassName="gap-2 px-4 pb-28 pt-1"
       showsVerticalScrollIndicator={false}
-      refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={convQuery.isRefetching} onRefresh={() => convQuery.refetch()} />}
+      refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {convQuery.isLoading ? (
         <ListLoading />

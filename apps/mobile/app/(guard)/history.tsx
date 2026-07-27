@@ -13,6 +13,7 @@ import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { EmptyState } from "../../components/ui/empty-state";
 import { ListLoading } from "../../components/ui/list-loading";
 import { GuardNotificationBell } from "../../components/guard-notification-bell";
+import { useManualRefresh } from "../../hooks/use-manual-refresh";
 import { PhotoViewerModal } from "../../components/photo-viewer-modal";
 
 const TYPE_ICON: Record<VisitorOutput["type"], React.ComponentProps<typeof MaterialIcons>["name"]> = {
@@ -83,6 +84,7 @@ export default function GuardInOut() {
   // Poll so a resident's approval (and the push you already receive) flips a Waiting
   // row into the Approved tab within a few seconds without a manual refresh.
   const query = trpc.visitors.listForGuard.useQuery(undefined, { refetchInterval: 4000 });
+  const { refreshing, onRefresh } = useManualRefresh(() => query.refetch());
   const all = query.data ?? [];
 
   const buckets: Record<Tab, VisitorOutput[]> = {
@@ -282,7 +284,7 @@ export default function GuardInOut() {
           />
         )}
         contentContainerClassName="pb-8"
-        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={query.isRefetching} onRefresh={() => query.refetch()} />}
+        refreshControl={<RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A" refreshing={refreshing} onRefresh={onRefresh} />}
         ListEmptyComponent={
           query.isLoading ? (
             <View className="px-4 pt-6">

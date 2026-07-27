@@ -13,6 +13,7 @@ import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticSuccess, hapticError } from "../../lib/haptics";
 import { trpc } from "../../lib/trpc";
+import { useManualRefresh } from "../../hooks/use-manual-refresh";
 import { EmptyState } from "../../components/ui/empty-state";
 import { Avatar } from "../../components/ui/avatar";
 import { VisitorRequestCard } from "../../components/visitor-request-card";
@@ -58,6 +59,9 @@ export default function ResidentHome() {
   const noticesQuery = trpc.notices.listForResident.useQuery({ limit: 50 });
   const dutyQuery = trpc.duty.guards.useQuery(undefined, { refetchInterval: 30_000 });
   const guardsOnDuty = (dutyQuery.data ?? []).filter((g) => g.onDuty);
+  const { refreshing, onRefresh } = useManualRefresh(() =>
+    Promise.all([pendingQuery.refetch(), noticesQuery.refetch(), notificationsQuery.refetch()]),
+  );
 
   const unreadNotifications = (notificationsQuery.data ?? []).filter((n) => !n.readAt).length;
   const unreadNotices = (noticesQuery.data ?? []).filter((n) => !n.isRead).length;
@@ -141,12 +145,8 @@ export default function ResidentHome() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl tintColor="#F5821F" colors={["#F5821F"]} progressBackgroundColor="#1A1A1A"
-            refreshing={pendingQuery.isRefetching || noticesQuery.isRefetching}
-            onRefresh={() => {
-              pendingQuery.refetch();
-              noticesQuery.refetch();
-              notificationsQuery.refetch();
-            }}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
           />
         }
       >
