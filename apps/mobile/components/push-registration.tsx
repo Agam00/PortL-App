@@ -18,11 +18,15 @@ export function PushRegistration() {
     if (!user || hasRegistered.current === user.id) return;
     hasRegistered.current = user.id;
 
-    registerForPushNotifications().then((token) => {
-      if (token) {
-        registerMutation.mutate({ expoPushToken: token, deviceInfo: Platform.OS });
-      }
-    });
+    registerForPushNotifications()
+      .then((token) => {
+        if (token) {
+          registerMutation.mutate({ expoPushToken: token, deviceInfo: Platform.OS });
+        }
+      })
+      .catch(() => {
+        // Non-fatal: permission prompt or token fetch can throw; device just won't get push.
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 

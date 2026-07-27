@@ -17,13 +17,13 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://portl-app.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://139.84.177.188.sslip.io"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://portl-app.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://139.84.177.188.sslip.io"
       }
     }
   },

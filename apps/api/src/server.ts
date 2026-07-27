@@ -11,8 +11,9 @@ import { serverRouter, createContext } from "@repo/trpc/server";
 import { env } from "./env";
 
 export const app = express();
+const isProd = env.NODE_ENV === "prod";
 const openApiDocument = generateOpenApiDocument(serverRouter, {
-  title: "Streamyst OpenAPI",
+  title: "Portl API",
   version: "1.0.0",
   baseUrl: env.BASE_URL.concat("/api"),
 });
@@ -28,20 +29,23 @@ if (env.NODE_ENV !== "prod") {
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  return res.json({ message: "Streamyst is up and running..." });
+  return res.json({ message: "Portl API is up and running..." });
 });
 
 app.get("/health", (req, res) => {
-  return res.json({ message: "Streamyst server is healthy", healthy: true });
+  return res.json({ message: "Portl server is healthy", healthy: true });
 });
 
-logger.debug(`openapi.json: ${env.BASE_URL}/openapi.json`);
-app.get("/openapi.json", (req, res) => {
-  return res.json(openApiDocument);
-});
+// API docs are dev-only — don't expose the full API surface publicly in production.
+if (!isProd) {
+  logger.debug(`openapi.json: ${env.BASE_URL}/openapi.json`);
+  app.get("/openapi.json", (req, res) => {
+    return res.json(openApiDocument);
+  });
 
-logger.debug(`docs: ${env.BASE_URL}/docs`);
-app.use("/docs", apiReference({ url: "/openapi.json" }));
+  logger.debug(`docs: ${env.BASE_URL}/docs`);
+  app.use("/docs", apiReference({ url: "/openapi.json" }));
+}
 
 app.use(
   "/api",
