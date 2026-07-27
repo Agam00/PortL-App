@@ -17,6 +17,7 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticError } from "../../lib/haptics";
+import { useKeyboardVisible } from "../../hooks/use-keyboard-visible";
 import { Avatar } from "../../components/ui/avatar";
 
 function timeLabel(iso: string | null) {
@@ -31,6 +32,7 @@ export default function ChatScreen() {
   const { peerId, name } = useLocalSearchParams<{ peerId?: string; name?: string }>();
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<ScrollView>(null);
+  const keyboardVisible = useKeyboardVisible();
   const utils = trpc.useUtils();
 
   const threadQuery = trpc.chat.thread.useQuery({ peerId: peerId ?? "" }, { enabled: !!peerId, refetchInterval: 4000 });
@@ -102,7 +104,7 @@ export default function ChatScreen() {
 
         <View
           className="flex-row items-center gap-2 px-4 pt-2"
-          style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 12, borderTopWidth: 1, borderTopColor: "#1A1A1A" }}
+          style={{ paddingBottom: keyboardVisible ? 8 : insets.bottom > 0 ? insets.bottom : 12, borderTopWidth: 1, borderTopColor: "#1A1A1A" }}
         >
           <TextInput
             placeholder="Type a message..."
