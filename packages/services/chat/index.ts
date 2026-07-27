@@ -95,7 +95,7 @@ class ChatService {
     if (peerIds.length === 0) return [];
 
     const peers = await db
-      .select({ id: usersTable.id, name: usersTable.fullName, flatNumber: flatsTable.flatNumber })
+      .select({ id: usersTable.id, name: usersTable.fullName, flatNumber: flatsTable.flatNumber, role: usersTable.role })
       .from(usersTable)
       .leftJoin(flatsTable, eq(flatsTable.id, usersTable.flatId))
       .where(or(...peerIds.map((id) => eq(usersTable.id, id))));
@@ -105,6 +105,7 @@ class ChatService {
       peerId: c.peerId,
       peerName: peerMap.get(c.peerId)?.name ?? "Resident",
       peerFlat: peerMap.get(c.peerId)?.flatNumber ?? null,
+      peerRole: (peerMap.get(c.peerId)?.role ?? "resident") as "resident" | "guard" | "admin",
       lastMessage: c.lastMessage,
       lastAt: c.lastAt?.toISOString() ?? null,
       unreadCount: c.unreadCount,

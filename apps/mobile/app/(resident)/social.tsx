@@ -20,6 +20,7 @@ import { trpc } from "../../lib/trpc";
 import { useAuthStore } from "../../stores/auth-store";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
+import { RoleTag } from "../../components/ui/role-tag";
 import { hapticSuccess, hapticError, hapticTap } from "../../lib/haptics";
 import { captureVisitorPhoto, pickImageFromGallery } from "../../lib/capture-visitor-photo";
 import { Avatar } from "../../components/ui/avatar";
@@ -178,9 +179,12 @@ function PostsFeed() {
                 <View className="flex-row items-center gap-3">
                   <Avatar name={post.authorName} size={40} />
                   <View className="min-w-0 flex-1">
-                    <Text className="text-body-md font-extrabold text-on-surface" numberOfLines={1}>
-                      {post.authorName}
-                    </Text>
+                    <View className="flex-row items-center gap-2">
+                      <Text className="shrink text-body-md font-extrabold text-on-surface" numberOfLines={1}>
+                        {post.authorName}
+                      </Text>
+                      <RoleTag role={post.authorRole} size="sm" />
+                    </View>
                     {post.flatNumber && <Text className="text-body-sm text-text-muted">{post.flatNumber}</Text>}
                   </View>
                   <Text className="text-body-sm text-text-muted">{timeAgo(post.createdAt)}</Text>
@@ -238,10 +242,13 @@ function PostsFeed() {
                           <View key={c.id} className="flex-row gap-2">
                             <Avatar name={c.authorName} size={28} />
                             <View className="min-w-0 flex-1 rounded-xl p-2.5" style={{ backgroundColor: "#242424" }}>
-                              <Text className="text-body-sm font-bold text-on-surface">
-                                {c.authorName}
-                                {c.flatNumber ? ` · ${c.flatNumber}` : ""}
-                              </Text>
+                              <View className="flex-row items-center gap-2">
+                                <Text className="shrink text-body-sm font-bold text-on-surface" numberOfLines={1}>
+                                  {c.authorName}
+                                  {c.flatNumber ? ` · ${c.flatNumber}` : ""}
+                                </Text>
+                                <RoleTag role={c.authorRole} size="sm" />
+                              </View>
                               <Text className="text-body-sm text-on-surface-variant">{c.body}</Text>
                             </View>
                           </View>
@@ -443,12 +450,13 @@ function ChatTab() {
           >
             <Avatar name={c.peerName} size={48} />
             <View className="min-w-0 flex-1">
-              <View className="flex-row items-center justify-between gap-2">
-                <Text className="min-w-0 flex-1 text-body-md font-extrabold text-on-surface" numberOfLines={1}>
+              <View className="flex-row items-center gap-2">
+                <Text className="shrink text-body-md font-extrabold text-on-surface" numberOfLines={1}>
                   {c.peerName}
                   {c.peerFlat ? ` · ${c.peerFlat}` : ""}
                 </Text>
-                <Text className="text-meta-text text-text-muted">{chatTime(c.lastAt)}</Text>
+                {c.peerRole !== "resident" && <RoleTag role={c.peerRole} size="sm" />}
+                <Text className="ml-auto text-meta-text text-text-muted">{chatTime(c.lastAt)}</Text>
               </View>
               <View className="flex-row items-center justify-between gap-2">
                 <Text
@@ -479,7 +487,13 @@ function ResidentsTab() {
   const router = useRouter();
   const meId = useAuthStore((s) => s.user?.id);
   const dirQuery = trpc.residents.directory.useQuery();
+  const contactsQuery = trpc.residents.societyContacts.useQuery();
   const [search, setSearch] = useState("");
+
+  const q = search.trim().toLowerCase();
+  const society = (contactsQuery.data ?? []).filter(
+    (c) => q.length === 0 || c.fullName.toLowerCase().includes(q) || c.role.includes(q) || c.phone.includes(q),
+  );
 
   const flats = (dirQuery.data ?? [])
     .map((f) => ({ ...f, residents: f.residents.filter((r) => r.id !== meId) }))
@@ -508,15 +522,62 @@ function ResidentsTab() {
         />
       </View>
 
+      {/* Society staff — guards + admin the resident can call or chat */}
+      {society.length > 0 && (
+        <View className="mb-1">
+          <Text className="px-1 pb-1 pt-2 text-label-caps font-bold uppercase tracking-wider text-text-muted">
+            🏢 Society
+          </Text>
+          {society.map((c) => (
+            <View
+              key={c.id}
+              className="flex-row items-center gap-3 rounded-2xl bg-surface p-3"
+              style={[{ marginBottom: 6 }, shadowCard]}
+            >
+              <Avatar name={c.fullName} size={46} />
+              <View className="min-w-0 flex-1">
+                <View className="flex-row items-center gap-2">
+                  <Text className="shrink text-body-md font-extrabold text-on-surface" numberOfLines={1}>
+                    {c.fullName}
+                  </Text>
+                  <RoleTag role={c.role} size="sm" />
+                </View>
+                <Text className="text-body-sm text-text-muted">{c.role === "guard" ? "Gate Security" : "Society Admin"}</Text>
+              </View>
+              <Pressable
+                onPress={() => Linking.openURL(`tel:${c.phone}`)}
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: "#242424" }}
+                hitSlop={4}
+                accessibilityLabel={`Call ${c.fullName}`}
+                accessibilityRole="button"
+              >
+                <MaterialIcons name="call" size={19} color="#F5821F" />
+              </Pressable>
+              <Pressable
+                onPress={() => router.push(`/(resident)/chat?peerId=${c.id}&name=${encodeURIComponent(c.fullName)}`)}
+                className="h-10 w-10 items-center justify-center rounded-full"
+                style={{ backgroundColor: "#242424" }}
+                hitSlop={4}
+                accessibilityLabel={`Chat with ${c.fullName}`}
+                accessibilityRole="button"
+              >
+                <MaterialIcons name="chat-bubble-outline" size={18} color="#F5821F" />
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+
       {dirQuery.isLoading ? (
         <ListLoading />
       ) : dirQuery.isError ? (
         <View className="rounded-xl bg-surface">
           <EmptyState title="Couldn't load directory" description="Pull down to refresh and try again." icon="error-outline" />
         </View>
-      ) : flats.length === 0 ? (
+      ) : flats.length === 0 && society.length === 0 ? (
         <View className="rounded-xl bg-surface">
-          <EmptyState title="No residents found" description="Try a different search." icon="contacts" />
+          <EmptyState title="No one found" description="Try a different search." icon="contacts" />
         </View>
       ) : (
         flats.map((flat) => (

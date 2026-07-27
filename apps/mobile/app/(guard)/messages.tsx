@@ -6,6 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { trpc } from "../../lib/trpc";
 import { Avatar } from "../../components/ui/avatar";
 import { EmptyState } from "../../components/ui/empty-state";
+import { RoleTag } from "../../components/ui/role-tag";
 
 type Tab = "messages" | "residents";
 type ResidentRow =
@@ -180,12 +181,13 @@ export default function GuardMessages() {
             >
               <Avatar name={item.peerName} size={48} />
               <View className="min-w-0 flex-1">
-                <View className="flex-row items-center justify-between">
-                  <Text className="text-body-lg font-bold text-on-surface" numberOfLines={1}>
+                <View className="flex-row items-center gap-2">
+                  <Text className="shrink text-body-lg font-bold text-on-surface" numberOfLines={1}>
                     {item.peerName}
                     {item.peerFlat ? <Text className="text-body-sm text-text-muted"> · {item.peerFlat}</Text> : null}
                   </Text>
-                  <Text className="text-body-sm text-text-muted">{timeLabel(item.lastAt)}</Text>
+                  {item.peerRole !== "resident" && <RoleTag role={item.peerRole} size="sm" />}
+                  <Text className="ml-auto text-body-sm text-text-muted">{timeLabel(item.lastAt)}</Text>
                 </View>
                 <View className="flex-row items-center justify-between gap-2">
                   <Text

@@ -25,6 +25,7 @@ export const conversationOutputSchema = z.object({
   peerId: z.string().uuid(),
   peerName: z.string(),
   peerFlat: z.string().nullable(),
+  peerRole: z.enum(["resident", "guard", "admin"]),
   lastMessage: z.string(),
   lastAt: z.string().nullable(),
   unreadCount: z.number(),

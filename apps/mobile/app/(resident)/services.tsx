@@ -27,18 +27,29 @@ import { Avatar } from "../../components/ui/avatar";
 import { ListLoading } from "../../components/ui/list-loading";
 import { shadowCard } from "../../lib/shadows";
 
-const SERVICES: { key: string; img: ImageSourcePropType }[] = [
-  { key: "Home Cleaning", img: require("../../assets/services/cleaning.png") },
-  { key: "Appliances Repair", img: require("../../assets/services/appliances.png") },
-  { key: "Carpenter Service", img: require("../../assets/services/carpenter.png") },
-  { key: "Home Painting", img: require("../../assets/services/painting.png") },
-  { key: "Plumbing Service", img: require("../../assets/services/plumbing.png") },
-  { key: "Packer & Movers", img: require("../../assets/services/movers.png") },
-  { key: "Home Sanitize", img: require("../../assets/services/sanitize.png") },
-  { key: "Hair & Beauty", img: require("../../assets/services/beauty.png") },
+const SERVICES: { key: string; emoji: string; img?: ImageSourcePropType }[] = [
+  { key: "Home Cleaning", emoji: "🧹", img: require("../../assets/services/cleaning.png") },
+  { key: "Appliances Repair", emoji: "🔧", img: require("../../assets/services/appliances.png") },
+  { key: "Carpenter Service", emoji: "🪚", img: require("../../assets/services/carpenter.png") },
+  { key: "Home Painting", emoji: "🎨", img: require("../../assets/services/painting.png") },
+  { key: "Plumbing Service", emoji: "🚰", img: require("../../assets/services/plumbing.png") },
+  { key: "Packer & Movers", emoji: "📦", img: require("../../assets/services/movers.png") },
+  { key: "Home Sanitize", emoji: "🧼", img: require("../../assets/services/sanitize.png") },
+  { key: "Hair & Beauty", emoji: "💇", img: require("../../assets/services/beauty.png") },
+  { key: "Electrician", emoji: "💡" },
+  { key: "Pest Control", emoji: "🐜" },
+  { key: "AC Service", emoji: "❄️" },
+  { key: "Gardening", emoji: "🪴" },
+  { key: "Laundry", emoji: "🧺" },
+  { key: "Cook / Chef", emoji: "🍳" },
+  { key: "Car Wash", emoji: "🚗" },
+  { key: "Tutor", emoji: "📚" },
 ];
 
-const IMG_BY_CATEGORY: Record<string, ImageSourcePropType> = Object.fromEntries(SERVICES.map((s) => [s.key, s.img]));
+const IMG_BY_CATEGORY: Record<string, ImageSourcePropType | undefined> = Object.fromEntries(
+  SERVICES.map((s) => [s.key, s.img]),
+);
+const EMOJI_BY_CATEGORY: Record<string, string> = Object.fromEntries(SERVICES.map((s) => [s.key, s.emoji]));
 
 function statusPill(status: ServiceRequestOutput["status"]): { label: string; color: string } {
   switch (status) {
@@ -142,7 +153,13 @@ export default function ResidentServices() {
               const pill = statusPill(b.status);
               return (
                 <View key={b.id} className="flex-row items-center gap-3 rounded-2xl bg-surface p-4" style={shadowCard}>
-                  <Image source={IMG_BY_CATEGORY[b.category] ?? SERVICES[1].img} style={{ width: 52, height: 52 }} resizeMode="contain" />
+                  {IMG_BY_CATEGORY[b.category] ? (
+                    <Image source={IMG_BY_CATEGORY[b.category]} style={{ width: 52, height: 52 }} resizeMode="contain" />
+                  ) : (
+                    <View className="items-center justify-center rounded-xl" style={{ width: 52, height: 52, backgroundColor: "#242424" }}>
+                      <Text style={{ fontSize: 28 }}>{EMOJI_BY_CATEGORY[b.category] ?? "🛠️"}</Text>
+                    </View>
+                  )}
                   <View className="min-w-0 flex-1 gap-0.5">
                     <Text className="text-body-md font-extrabold text-on-surface" numberOfLines={1}>
                       {b.category}
@@ -193,7 +210,13 @@ export default function ResidentServices() {
                 accessibilityLabel={s.key}
                 accessibilityRole="button"
               >
-                <Image source={s.img} style={{ width: 44, height: 44 }} resizeMode="contain" />
+                {s.img ? (
+                  <Image source={s.img} style={{ width: 44, height: 44 }} resizeMode="contain" />
+                ) : (
+                  <View className="items-center justify-center rounded-xl" style={{ width: 44, height: 44, backgroundColor: "#242424" }}>
+                    <Text style={{ fontSize: 24 }}>{s.emoji}</Text>
+                  </View>
+                )}
                 <Text className="min-w-0 flex-1 text-body-md font-bold text-on-surface">{s.key}</Text>
               </Pressable>
             ))}

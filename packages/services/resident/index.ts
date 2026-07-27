@@ -1,6 +1,6 @@
-import { db, eq, and, or, ilike } from "@repo/database";
+import { db, eq, and, or, ilike, inArray, isNull } from "@repo/database";
 import { flatsTable, towersTable, usersTable } from "@repo/database/schema";
-import type { FlatSearchResult } from "./model";
+import type { FlatSearchResult, SocietyContact } from "./model";
 
 class ResidentService {
   async search(societyId: string, query: string): Promise<FlatSearchResult[]> {
@@ -78,6 +78,24 @@ class ResidentService {
     }
 
     return Array.from(byFlat.values());
+  }
+
+  /** Society staff (guards + admin) a resident can reach — call or chat. */
+  async societyContacts(societyId: string): Promise<SocietyContact[]> {
+    const rows = await db
+      .select({ id: usersTable.id, fullName: usersTable.fullName, phone: usersTable.phone, role: usersTable.role })
+      .from(usersTable)
+      .where(
+        and(
+          eq(usersTable.societyId, societyId),
+          inArray(usersTable.role, ["guard", "admin"]),
+          eq(usersTable.isActive, true),
+          isNull(usersTable.deletedAt),
+        ),
+      )
+      .orderBy(usersTable.role, usersTable.fullName);
+
+    return rows.map((r) => ({ id: r.id, fullName: r.fullName, phone: r.phone, role: r.role as "guard" | "admin" }));
   }
 }
 

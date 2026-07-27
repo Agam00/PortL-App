@@ -1,7 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { zodUndefinedModel } from "../../schema";
 import { residentService } from "../../services";
-import { searchResidentsInputSchema, searchResidentsOutputSchema } from "@repo/services/resident/model";
+import {
+  searchResidentsInputSchema,
+  searchResidentsOutputSchema,
+  societyContactsOutputSchema,
+} from "@repo/services/resident/model";
 import { guardProcedure, protectedProcedure, router } from "../../trpc";
 import { generatePath } from "../../utils/path-generator";
 
@@ -32,5 +36,17 @@ export const residentsRouter = router({
         throw new TRPCError({ code: "BAD_REQUEST", message: "No society assigned to this account" });
       }
       return residentService.directory(ctx.user.societyId);
+    }),
+
+  // Society staff (guards + admin) a resident can call or chat.
+  societyContacts: protectedProcedure
+    .meta({ openapi: { method: "GET", path: getPath("/society-contacts"), tags: TAGS } })
+    .input(zodUndefinedModel)
+    .output(societyContactsOutputSchema)
+    .query(async ({ ctx }) => {
+      if (!ctx.user.societyId) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "No society assigned to this account" });
+      }
+      return residentService.societyContacts(ctx.user.societyId);
     }),
 });
