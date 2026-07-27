@@ -412,25 +412,21 @@ function ComposeModal({ open, onClose }: { open: boolean; onClose: () => void })
 type RoleFilter = "resident" | "guard" | "admin" | null;
 const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
   { label: "All", value: null },
-  { label: "🏠 Residents", value: "resident" },
-  { label: "🛡️ Guards", value: "guard" },
-  { label: "⭐ Admin", value: "admin" },
+  { label: "Residents", value: "resident" },
+  { label: "Guards", value: "guard" },
+  { label: "Admin", value: "admin" },
 ];
 
 function RoleFilterChips({ value, onChange }: { value: RoleFilter; onChange: (v: RoleFilter) => void }) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 8, paddingTop: 2, alignItems: "center" }}
-    >
+    <View className="flex-row gap-2 px-4 pb-2 pt-1">
       {ROLE_FILTERS.map((f) => {
         const active = value === f.value;
         return (
           <Pressable
             key={f.label}
             onPress={() => onChange(f.value)}
-            className="rounded-full px-3.5 py-1.5"
+            className="rounded-full px-3 py-1.5"
             style={{ backgroundColor: active ? "#F5821F" : "#1A1A1A", borderWidth: 1, borderColor: active ? "#F5821F" : "#333333" }}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
@@ -441,7 +437,7 @@ function RoleFilterChips({ value, onChange }: { value: RoleFilter; onChange: (v:
           </Pressable>
         );
       })}
-    </ScrollView>
+    </View>
   );
 }
 
