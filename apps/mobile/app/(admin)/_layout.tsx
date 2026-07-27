@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { Tabs } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRoleGuard } from "../../hooks/use-role-guard";
 import { LoadingScreen } from "../../components/ui/loading-screen";
 import { StaffAlertPopup } from "../../components/staff-alert-popup";
@@ -8,14 +9,25 @@ import { tabBarScreenOptions } from "../../lib/tab-bar-options";
 
 export default function AdminLayout() {
   const { hasHydrated, user } = useRoleGuard("admin");
+  const insets = useSafeAreaInsets();
 
   if (!hasHydrated || !user || user.role !== "admin") {
     return <LoadingScreen />;
   }
 
+  const bottomPad = insets.bottom > 0 ? insets.bottom : 10;
+
   return (
     <Fragment>
-    <Tabs backBehavior="history" screenOptions={{ ...tabBarScreenOptions, tabBarShowLabel: false }}>
+    <Tabs
+      backBehavior="history"
+      screenOptions={{
+        ...tabBarScreenOptions,
+        tabBarShowLabel: false,
+        // Match the resident bar: respect the home-indicator safe area instead of a fixed height.
+        tabBarStyle: { ...tabBarScreenOptions.tabBarStyle, height: 58 + bottomPad, paddingTop: 10, paddingBottom: bottomPad },
+      }}
+    >
       <Tabs.Screen
         name="dashboard"
         options={{

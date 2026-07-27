@@ -419,7 +419,11 @@ const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
 
 function RoleFilterChips({ value, onChange }: { value: RoleFilter; onChange: (v: RoleFilter) => void }) {
   return (
-    <View className="flex-row flex-wrap gap-2 px-4 pb-2 pt-1">
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 8, paddingTop: 2, alignItems: "center" }}
+    >
       {ROLE_FILTERS.map((f) => {
         const active = value === f.value;
         return (
@@ -437,7 +441,7 @@ function RoleFilterChips({ value, onChange }: { value: RoleFilter; onChange: (v:
           </Pressable>
         );
       })}
-    </View>
+    </ScrollView>
   );
 }
 

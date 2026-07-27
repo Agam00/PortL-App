@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -7,6 +7,7 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticError } from "../../lib/haptics";
+import { useKeyboardVisible } from "../../hooks/use-keyboard-visible";
 import { Avatar } from "../../components/ui/avatar";
 
 function timeLabel(iso: string | null) {
@@ -20,7 +21,9 @@ export default function GuardChatScreen() {
   const showToast = useUiStore((s) => s.showToast);
   const { peerId, name } = useLocalSearchParams<{ peerId?: string; name?: string }>();
   const [draft, setDraft] = useState("");
+  const [headerHeight, setHeaderHeight] = useState(insets.top + 56);
   const scrollRef = useRef<ScrollView>(null);
+  const keyboardVisible = useKeyboardVisible();
   const utils = trpc.useUtils();
 
   const threadQuery = trpc.chat.thread.useQuery({ peerId: peerId ?? "" }, { enabled: !!peerId, refetchInterval: 4000 });
@@ -47,6 +50,7 @@ export default function GuardChatScreen() {
     <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       {/* Header */}
       <View
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         className="flex-row items-center gap-3 px-4 pb-3"
         style={{ paddingTop: insets.top + 10, borderBottomWidth: 1, borderBottomColor: "#1A1A1A" }}
       >
@@ -59,10 +63,15 @@ export default function GuardChatScreen() {
         </Text>
       </View>
 
-      <View className="flex-1">
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={headerHeight}
+      >
         <ScrollView
           ref={scrollRef}
           contentContainerClassName="gap-2 px-4 py-4"
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
         >
@@ -89,7 +98,7 @@ export default function GuardChatScreen() {
 
         <View
           className="flex-row items-center gap-2 px-4 pt-2"
-          style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 12, borderTopWidth: 1, borderTopColor: "#1A1A1A" }}
+          style={{ paddingBottom: keyboardVisible ? 10 : insets.bottom > 0 ? insets.bottom : 12, borderTopWidth: 1, borderTopColor: "#1A1A1A" }}
         >
           <TextInput
             placeholder="Type a message..."
@@ -111,7 +120,7 @@ export default function GuardChatScreen() {
             <MaterialIcons name="send" size={20} color="#141118" />
           </Pressable>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }

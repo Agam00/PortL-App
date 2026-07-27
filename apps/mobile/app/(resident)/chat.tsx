@@ -1,6 +1,5 @@
-import { useRef } from "react";
-import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator } from "react-native";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { View, Text, ScrollView, Pressable, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -8,6 +7,7 @@ import { trpc } from "../../lib/trpc";
 import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticError } from "../../lib/haptics";
+import { useKeyboardVisible } from "../../hooks/use-keyboard-visible";
 import { Avatar } from "../../components/ui/avatar";
 
 function timeLabel(iso: string | null) {
@@ -21,7 +21,9 @@ export default function ChatScreen() {
   const showToast = useUiStore((s) => s.showToast);
   const { peerId, name } = useLocalSearchParams<{ peerId?: string; name?: string }>();
   const [draft, setDraft] = useState("");
+  const [headerHeight, setHeaderHeight] = useState(insets.top + 56);
   const scrollRef = useRef<ScrollView>(null);
+  const keyboardVisible = useKeyboardVisible();
   const utils = trpc.useUtils();
 
   const threadQuery = trpc.chat.thread.useQuery({ peerId: peerId ?? "" }, { enabled: !!peerId, refetchInterval: 4000 });
@@ -47,6 +49,7 @@ export default function ChatScreen() {
     <View className="flex-1" style={{ backgroundColor: "#0D0D0D" }}>
       {/* Header */}
       <View
+        onLayout={(e) => setHeaderHeight(e.nativeEvent.layout.height)}
         className="flex-row items-center gap-3 px-4 pb-3"
         style={{ paddingTop: insets.top + 10, borderBottomWidth: 1, borderBottomColor: "#1A1A1A" }}
       >
@@ -59,10 +62,15 @@ export default function ChatScreen() {
         </Text>
       </View>
 
-      <View className="flex-1">
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        keyboardVerticalOffset={headerHeight}
+      >
         <ScrollView
           ref={scrollRef}
           contentContainerClassName="gap-2 px-4 py-4"
+          keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
         >
@@ -76,10 +84,7 @@ export default function ChatScreen() {
           ) : (
             messages.map((m) => (
               <View key={m.id} className={m.isMine ? "items-end" : "items-start"}>
-                <View
-                  className="max-w-[80%] rounded-2xl px-4 py-2.5"
-                  style={{ backgroundColor: m.isMine ? "#F5821F" : "#242424" }}
-                >
+                <View className="max-w-[80%] rounded-2xl px-4 py-2.5" style={{ backgroundColor: m.isMine ? "#F5821F" : "#242424" }}>
                   <Text className="text-body-md" style={{ color: m.isMine ? "#141118" : "#F5F5F5" }}>
                     {m.body}
                   </Text>
@@ -92,7 +97,7 @@ export default function ChatScreen() {
 
         <View
           className="flex-row items-center gap-2 px-4 pt-2"
-          style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 12, borderTopWidth: 1, borderTopColor: "#1A1A1A" }}
+          style={{ paddingBottom: keyboardVisible ? 10 : insets.bottom > 0 ? insets.bottom : 12, borderTopWidth: 1, borderTopColor: "#1A1A1A" }}
         >
           <TextInput
             placeholder="Type a message..."
@@ -114,7 +119,7 @@ export default function ChatScreen() {
             <MaterialIcons name="send" size={20} color="#141118" />
           </Pressable>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
