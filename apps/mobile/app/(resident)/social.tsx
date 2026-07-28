@@ -22,6 +22,7 @@ import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { RoleTag } from "../../components/ui/role-tag";
 import { useManualRefresh } from "../../hooks/use-manual-refresh";
+import { useModeration } from "../../lib/use-moderation";
 import { hapticSuccess, hapticError, hapticTap } from "../../lib/haptics";
 import { captureVisitorPhoto, pickImageFromGallery } from "../../lib/capture-visitor-photo";
 import { Avatar } from "../../components/ui/avatar";
@@ -112,6 +113,8 @@ export default function ResidentSocial() {
 function PostsFeed() {
   const utils = trpc.useUtils();
   const showToast = useUiStore((s) => s.showToast);
+  const meId = useAuthStore((s) => s.user?.id);
+  const { openMenu } = useModeration();
   const [composeOpen, setComposeOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [commentBody, setCommentBody] = useState("");
@@ -189,6 +192,17 @@ function PostsFeed() {
                     {post.flatNumber && <Text className="text-body-sm text-text-muted">{post.flatNumber}</Text>}
                   </View>
                   <Text className="text-body-sm text-text-muted">{timeAgo(post.createdAt)}</Text>
+                  {post.authorId !== meId && (
+                    <Pressable
+                      onPress={() => openMenu({ userId: post.authorId, targetType: "post", targetId: post.id, name: post.authorName })}
+                      hitSlop={8}
+                      className="pl-1"
+                      accessibilityLabel="Report or block"
+                      accessibilityRole="button"
+                    >
+                      <MaterialIcons name="more-vert" size={20} color="#8A8A8A" />
+                    </Pressable>
+                  )}
                 </View>
 
                 <Text className="text-body-md text-on-surface-variant">{post.body}</Text>
@@ -249,6 +263,17 @@ function PostsFeed() {
                                   {c.flatNumber ? ` · ${c.flatNumber}` : ""}
                                 </Text>
                                 <RoleTag role={c.authorRole} size="sm" />
+                                {c.authorId !== meId && (
+                                  <Pressable
+                                    onPress={() => openMenu({ userId: c.authorId, targetType: "comment", targetId: c.id, name: c.authorName })}
+                                    hitSlop={8}
+                                    className="ml-auto"
+                                    accessibilityLabel="Report or block"
+                                    accessibilityRole="button"
+                                  >
+                                    <MaterialIcons name="more-vert" size={16} color="#8A8A8A" />
+                                  </Pressable>
+                                )}
                               </View>
                               <Text className="text-body-sm text-on-surface-variant">{c.body}</Text>
                             </View>

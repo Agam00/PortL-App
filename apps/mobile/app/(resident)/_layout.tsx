@@ -30,6 +30,7 @@ export default function ResidentLayout() {
       <Tabs.Screen name="pre-approve" options={{ href: null }} />
       <Tabs.Screen name="pre-approvals" options={{ href: null }} />
       <Tabs.Screen name="visitor-pass" options={{ href: null }} />
+      <Tabs.Screen name="blocked" options={{ href: null }} />
       <Tabs.Screen name="amenity-pass" options={{ href: null }} />
       <Tabs.Screen name="alerts-history" options={{ href: null }} />
       <Tabs.Screen name="polls" options={{ href: null }} />

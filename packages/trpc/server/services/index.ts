@@ -17,6 +17,7 @@ import PushTokenService from "@repo/services/push-token";
 import PostService from "@repo/services/post";
 import ServiceRequestService from "@repo/services/service-request";
 import ChatService from "@repo/services/chat";
+import ModerationService from "@repo/services/moderation";
 import DutyService from "@repo/services/duty";
 import VehicleService from "@repo/services/vehicle";
 
@@ -39,5 +40,6 @@ export const pushTokenService = new PushTokenService();
 export const postService = new PostService();
 export const serviceRequestService = new ServiceRequestService();
 export const chatService = new ChatService();
+export const moderationService = new ModerationService();
 export const dutyService = new DutyService();
 export const vehicleService = new VehicleService();

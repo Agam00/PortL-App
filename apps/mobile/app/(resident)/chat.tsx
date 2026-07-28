@@ -8,6 +8,7 @@ import { useUiStore } from "../../stores/ui-store";
 import { getErrorMessage } from "../../lib/error-message";
 import { hapticError } from "../../lib/haptics";
 import { useKeyboardVisible } from "../../hooks/use-keyboard-visible";
+import { useModeration } from "../../lib/use-moderation";
 import { Avatar } from "../../components/ui/avatar";
 
 function timeLabel(iso: string | null) {
@@ -24,6 +25,7 @@ export default function ChatScreen() {
   const [headerHeight, setHeaderHeight] = useState(insets.top + 56);
   const scrollRef = useRef<ScrollView>(null);
   const keyboardVisible = useKeyboardVisible();
+  const { openMenu } = useModeration();
   const utils = trpc.useUtils();
 
   const threadQuery = trpc.chat.thread.useQuery({ peerId: peerId ?? "" }, { enabled: !!peerId, refetchInterval: 4000 });
@@ -60,6 +62,16 @@ export default function ChatScreen() {
         <Text className="flex-1 text-body-lg font-extrabold text-on-surface" numberOfLines={1}>
           {name ?? "Resident"}
         </Text>
+        {peerId && (
+          <Pressable
+            onPress={() => openMenu({ userId: peerId, targetType: "user", targetId: peerId, name, onBlocked: () => router.back() })}
+            hitSlop={8}
+            accessibilityLabel="Report or block"
+            accessibilityRole="button"
+          >
+            <MaterialIcons name="more-vert" size={24} color="#8A8A8A" />
+          </Pressable>
+        )}
       </View>
 
       <KeyboardAvoidingView

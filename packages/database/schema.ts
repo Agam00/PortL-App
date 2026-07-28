@@ -26,3 +26,5 @@ export * from "./models/staff-directory";
 export * from "./models/vehicle";
 export * from "./models/push-token";
 export * from "./models/notification";
+export * from "./models/user-block";
+export * from "./models/content-report";

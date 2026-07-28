@@ -1,13 +1,22 @@
 import { TRPCError } from "@trpc/server";
 import { db, eq, and, inArray, desc, sql } from "@repo/database";
-import { postsTable, postLikesTable, postCommentsTable, usersTable, flatsTable } from "@repo/database/schema";
+import { postsTable, postLikesTable, postCommentsTable, usersTable, flatsTable, userBlocksTable } from "@repo/database/schema";
 import type { PostOutput, PostCommentOutput } from "./model";
 
 type Role = "resident" | "guard" | "admin";
 
 class PostService {
-  async list(societyId: string, userId: string): Promise<PostOutput[]> {
+  /** Users the caller has blocked — their posts/comments are hidden from the caller. */
+  private async blockedByMe(userId: string): Promise<Set<string>> {
     const rows = await db
+      .select({ id: userBlocksTable.blockedId })
+      .from(userBlocksTable)
+      .where(eq(userBlocksTable.blockerId, userId));
+    return new Set(rows.map((r) => r.id));
+  }
+
+  async list(societyId: string, userId: string): Promise<PostOutput[]> {
+    const allRows = await db
       .select({
         id: postsTable.id,
         authorId: postsTable.authorId,
@@ -26,6 +35,9 @@ class PostService {
       // Pinned posts float to the top (NULLS LAST so unpinned don't sort first), otherwise newest first.
       .orderBy(sql`${postsTable.pinnedAt} desc nulls last`, desc(postsTable.createdAt))
       .limit(50);
+
+    const blocked = await this.blockedByMe(userId);
+    const rows = allRows.filter((r) => !blocked.has(r.authorId));
 
     const ids = rows.map((r) => r.id);
     if (ids.length === 0) return [];
@@ -114,7 +126,8 @@ class PostService {
     return { liked: true };
   }
 
-  async listComments(postId: string): Promise<PostCommentOutput[]> {
+  async listComments(postId: string, userId: string): Promise<PostCommentOutput[]> {
+    const blocked = await this.blockedByMe(userId);
     const rows = await db
       .select({
         id: postCommentsTable.id,
@@ -132,12 +145,14 @@ class PostService {
       .where(eq(postCommentsTable.postId, postId))
       .orderBy(postCommentsTable.createdAt);
 
-    return rows.map((r) => ({
-      ...r,
-      authorRole: r.authorRole as Role,
-      flatNumber: r.flatNumber ?? null,
-      createdAt: r.createdAt?.toISOString() ?? null,
-    }));
+    return rows
+      .filter((r) => !blocked.has(r.authorId))
+      .map((r) => ({
+        ...r,
+        authorRole: r.authorRole as Role,
+        flatNumber: r.flatNumber ?? null,
+        createdAt: r.createdAt?.toISOString() ?? null,
+      }));
   }
 
   async addComment(postId: string, userId: string, body: string): Promise<PostCommentOutput> {

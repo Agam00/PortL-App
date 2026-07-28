@@ -1,6 +1,6 @@
 import { TRPCError } from "@trpc/server";
 import { db, eq, and, or, isNull, desc, ne } from "@repo/database";
-import { messagesTable, usersTable, flatsTable } from "@repo/database/schema";
+import { messagesTable, usersTable, flatsTable, userBlocksTable } from "@repo/database/schema";
 import type { MessageOutput, ConversationOutput, StaffContactOutput } from "./model";
 
 class ChatService {
@@ -21,6 +21,21 @@ class ChatService {
     const [recipient] = await db.select().from(usersTable).where(eq(usersTable.id, recipientId)).limit(1);
     if (!recipient || recipient.societyId !== societyId) {
       throw new TRPCError({ code: "NOT_FOUND", message: "Recipient not found in your society" });
+    }
+
+    // Can't message someone you've blocked, or who has blocked you.
+    const [blocked] = await db
+      .select({ id: userBlocksTable.id })
+      .from(userBlocksTable)
+      .where(
+        or(
+          and(eq(userBlocksTable.blockerId, senderId), eq(userBlocksTable.blockedId, recipientId)),
+          and(eq(userBlocksTable.blockerId, recipientId), eq(userBlocksTable.blockedId, senderId)),
+        ),
+      )
+      .limit(1);
+    if (blocked) {
+      throw new TRPCError({ code: "FORBIDDEN", message: "You can't message this user." });
     }
 
     const [msg] = await db.insert(messagesTable).values({ societyId, senderId, recipientId, body }).returning();
@@ -90,6 +105,15 @@ class ChatService {
       }
       if (m.recipientId === userId && !m.readAt) entry.unreadCount += 1;
     }
+
+    // Hide conversations with users blocked in either direction.
+    const blockRows = await db
+      .select({ blockerId: userBlocksTable.blockerId, blockedId: userBlocksTable.blockedId })
+      .from(userBlocksTable)
+      .where(or(eq(userBlocksTable.blockerId, userId), eq(userBlocksTable.blockedId, userId)));
+    const hidden = new Set<string>();
+    for (const b of blockRows) hidden.add(b.blockerId === userId ? b.blockedId : b.blockerId);
+    for (const id of hidden) byPeer.delete(id);
 
     const peerIds = Array.from(byPeer.keys());
     if (peerIds.length === 0) return [];

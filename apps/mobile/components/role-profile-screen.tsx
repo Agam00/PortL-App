@@ -184,6 +184,15 @@ export function RoleProfileScreen() {
               iconBg="#333333"
               label="Society Directory"
               onPress={() => router.push("/(resident)/staff-directory")}
+            />
+          )}
+          {user.role === "resident" && (
+            <MenuRow
+              icon="block"
+              iconColor="#FF5F5F"
+              iconBg="#3A1A1A"
+              label="Blocked Users"
+              onPress={() => router.push("/(resident)/blocked")}
               isLast
             />
           )}

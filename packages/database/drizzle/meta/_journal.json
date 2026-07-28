@@ -120,6 +120,13 @@
       "when": 1785022885816,
       "tag": "0016_pretty_moondragon",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1785242590394,
+      "tag": "0017_exotic_cable",
+      "breakpoints": true
     }
   ]
 }

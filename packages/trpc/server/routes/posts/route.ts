@@ -48,7 +48,7 @@ export const postsRouter = router({
     .meta({ openapi: { method: "GET", path: getPath("/comments"), tags: TAGS } })
     .input(postIdInputSchema)
     .output(listPostCommentsOutputSchema)
-    .query(async ({ input }) => postService.listComments(input.postId)),
+    .query(async ({ ctx, input }) => postService.listComments(input.postId, ctx.user.sub)),
 
   addComment: protectedProcedure
     .meta({ openapi: { method: "POST", path: getPath("/comments/add"), tags: TAGS } })
