@@ -197,7 +197,9 @@ export default function GuardProfile() {
             iconColor="#5B8DEF"
             iconBg="#1E2A44"
             label="Support"
-            onPress={() => Linking.openURL("mailto:support@portl.dev")}
+            // portl.dev is the seeded demo domain — no mailbox exists there, so the
+            // support address has to be the real one used in privacy.html/terms.html.
+            onPress={() => Linking.openURL("mailto:agamxpro69@gmail.com?subject=Portl%20support")}
           />
           <MenuRow
             icon="description"
