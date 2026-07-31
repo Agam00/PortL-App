@@ -52,6 +52,7 @@
     "typescript": "~5.9.3"
   },
   "scripts": {
+    "eas-build-pre-install": "npm install -g pnpm@9.0.0",
     "dev": "expo start",
     "start": "expo start",
     "android": "expo start --android",
