@@ -6,11 +6,15 @@ services:
 
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: dev
 
+    # Bound to loopback on purpose — the API talks to Postgres over localhost, so
+    # there is no reason to expose the database to the internet. Publishing this
+    # as "5432:5432" once left the server reachable by anyone with the default
+    # credentials.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
 
     volumes:
       - pg_data:/var/lib/postgresql/data

@@ -1,317 +1,446 @@
 <div align="center">
 
-# 🏙️ Portl — Society Management App
+<img src="apps/mobile/assets/icon.png" alt="Portl logo" width="112" height="112" />
 
-**The conversations that used to happen at the society gate now happen inside one community app.**
+# **Portl**
 
-A production-ready, mobile-first society management platform for modern apartment communities — built with **Expo + React Native**, backed by a **tRPC + Express + PostgreSQL** API. Three fully separated roles (Resident · Security Guard · Society Admin), each with their own dashboard, permissions and workflows.
+### *The gate, the flat, and the committee — one app*
+
+**A society management platform for gated communities** — one system for the guard
+at the gate, the resident on their phone, and the admin running the place.
+
+<br />
+
+![Expo](https://img.shields.io/badge/Expo-SDK%2054-000020?style=flat-square&logo=expo&logoColor=white)
+![React Native](https://img.shields.io/badge/React%20Native-0.81-61DAFB?style=flat-square&logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![tRPC](https://img.shields.io/badge/tRPC-end--to--end%20types-2596BE?style=flat-square&logo=trpc&logoColor=white)
+![Drizzle](https://img.shields.io/badge/Drizzle-PostgreSQL%2015-C5F74F?style=flat-square&logo=drizzle&logoColor=black)
+![Expo Push](https://img.shields.io/badge/Expo%20Push-live-4630EB?style=flat-square)
+<br />
+![API](https://img.shields.io/badge/API-126%20operations%20·%2023%20routers-8250DF?style=flat-square)
+![Screens](https://img.shields.io/badge/mobile-55%20screens-1F6FEB?style=flat-square)
+![Data model](https://img.shields.io/badge/data%20model-30%20tables-F59E0B?style=flat-square)
+![Roles](https://img.shields.io/badge/roles-resident%20·%20guard%20·%20admin-3FB950?style=flat-square)
+
+<br />
+
+**[🌐 Live API](https://139.84.177.188.sslip.io/health)** · **[📦 Repository](https://github.com/Agam00/PortL-App)**
+
+**[Architecture](docs/ARCHITECTURE.md)** · **[Security](SECURITY.md)** · **[Demo logins](CREDENTIALS.md)** · **[Runbook](docs/RUNBOOK.md)**
 
 </div>
 
 ---
 
-## 🔗 Quick Links (everything you need to evaluate)
+## Try it in two minutes
 
-| What | Link |
-|---|---|
-| 📱 **Install the APK** (Android) | [Latest build → Install](https://expo.dev/accounts/agam142/projects/portl/builds) *(open the newest build, scan the QR or download the `.apk`)* |
-| 🌐 **Live Backend API** | **https://portl-app.onrender.com** |
-| ❤️ Backend health check | https://portl-app.onrender.com/health |
-| 📖 Interactive API docs (OpenAPI/Scalar) | https://portl-app.onrender.com/docs |
-| 📦 GitHub repository | https://github.com/Agam00/PortL-App |
+1. Install the app (TestFlight / APK build from EAS — see [Deployment](#deployment)).
+2. Open it and log in — **no setup, no local server**. It points at the live API by
+   default and a full demo society is already seeded:
 
-> The APK is a standalone build that talks to the **live cloud backend** (Render) and a **live Postgres database** (Neon), pre-loaded with realistic demo data. Just install and log in — no local setup required.
+   ```
+   admin@portl.dev   ·   Portl@123
+   ```
+3. Log out and back in as `guard1@portl.dev` or `resident1@portl.dev` to see the
+   same society from the other two sides.
+
+> [!NOTE]
+> The app resolves its backend URL at runtime from [`mobile-config.json`](mobile-config.json)
+> on `main` — the server can move without shipping a new build.
+
+> [!TIP]
+> You can sign in with **either an email address or a phone number**. Both resolve
+> to the same account server-side.
 
 ---
 
-## 🔑 Demo Credentials
+## The problem
 
-All accounts share the password: **`Portl@123`**
+A gated community runs on three things that don't talk to each other: a **paper
+register** at the gate, a **WhatsApp group** for notices, and an **admin chasing
+maintenance dues by phone**.
 
-| Role | Login (email) | Who |
+A delivery partner reaches the gate. The guard calls the flat. The resident misses
+the call. The visitor waits. Nobody can answer *who visited A-101 last Tuesday*. A
+notice reaches whoever happens to scroll. A payment is a screenshot in someone's
+gallery. A complaint is a message that scrolls away.
+
+Portl replaces all of it with one system, seen from three sides.
+
+| | Role | What they do |
+|:--:|---|---|
+| 🏠 | **Resident** | Approve visitors from their phone, pre-approve guests with a QR pass, raise complaints, book amenities, pay dues, vote in polls, trigger an emergency alert |
+| 🛡️ | **Guard** | Register walk-in visitors, verify passes by QR or 6-digit code, mark entry and exit, run the in-out board, go on/off duty |
+| ⚙️ | **Admin** | Run the society — towers, flats, residents, guards, staff, notices, polls, complaints, dues, payment approval, moderation |
+
+---
+
+## Contents
+
+**[Features](#feature-catalogue)** · **[Tech stack](#tech-stack)** · **[Architecture](#architecture)** · **[Security](#security)** · **[Layout](#repository-layout)** · **[Quick start](#quick-start)** · **[API](#the-api)** · **[Deployment](#deployment)** · **[Demo logins](#demo-logins)** · **[Limitations](#known-limitations)**
+
+---
+
+# Feature catalogue
+
+Every feature below is **implemented and deployed**. Each states what it does and
+*why it exists* — the purpose is the part that matters.
+
+## 🔐 Authentication and onboarding
+
+### Email *or* phone + password login
+A single identifier field accepting either an email address or a phone number,
+resolved server-side. Passwords hashed with **bcrypt**; sessions issued as a short
+**JWT access token** plus a rotating **refresh token** stored hashed in the database.
+
+> **Purpose.** Residents in Indian societies are reached by phone far more reliably
+> than by email — many have no working email at all. Making phone a first-class
+> identifier rather than a profile field keeps them from being locked out.
+
+### Invite codes with QR
+An admin creates the account; the resident or guard redeems a **12-character invite
+code** — typed, or scanned from a QR the admin shows them — and chooses their own
+password. The code is cleared the moment the account is claimed.
+
+> **Purpose.** A society is a closed membership. Open self-signup would let anyone
+> claim a flat. The invite makes the admin the gatekeeper, while still letting the
+> resident pick a password the admin never sees.
+
+### Public society registration
+A founding admin can register a brand-new society and the first admin account
+together, without an existing invite.
+
+> **Purpose.** Every closed system needs one door in, or no society could ever be
+> created in the first place.
+
+### Account deletion, in-app
+Any role can delete their own account. The row is **soft-deleted** — credentials are
+wiped and the email and phone are released for reuse, but the record survives so
+authored posts, complaints and gate logs keep their attribution.
+
+> **Purpose.** Hard-deleting a user would tear holes in the gate log, which is the
+> one record a society may genuinely need months later. Soft deletion satisfies the
+> user's right to leave without falsifying history.
+
+---
+
+## 🚪 Visitor and gate management
+
+### Walk-in registration → resident approval
+The guard registers a visitor against a flat; the resident gets a **push notification**
+and approves or rejects from their phone. The guard's board updates live.
+
+> **Purpose.** This is the phone call that never gets answered, turned into something
+> with a record and a timestamp.
+
+### Pre-approved guests — QR pass + 6-digit code
+Residents pre-approve guests, deliveries, cabs and services ahead of time. The pass
+carries both a **scannable QR** and a **6-digit code** for when the camera fails or
+the guest has no smartphone.
+
+> **Purpose.** Two redemption paths because a gate is a bad place to debug a camera.
+> The code works when the QR doesn't.
+
+### Keep-at-gate parcels with collection OTP
+A resident can tell the gate to hold a delivery. The parcel is released later against
+an **OTP the resident holds**.
+
+> **Purpose.** Deliveries arrive when nobody is home. Without this the parcel either
+> goes back or sits unaccounted for at the gate — the OTP makes the handover provable.
+
+### In-out board and gate log
+A live board of **Waiting / Approved / Inside / Out** with entry and exit timings, plus
+full searchable history for residents and admins.
+
+> **Purpose.** "Who is inside the society right now" is a security question a paper
+> register can only answer by being read cover to cover.
+
+---
+
+## 🏢 Community and operations
+
+### Notices with reactions and comments, scoped by audience
+Admins post notices targeted at the whole society or a subset; residents react and
+comment inline.
+
+> **Purpose.** A notice in a WhatsApp group has no idea who read it. Reactions and
+> comments turn a broadcast into something with measurable reach.
+
+### Polls — single and multi-choice
+Admins run polls; residents vote; results close on demand.
+
+> **Purpose.** Society decisions currently happen by whoever shouts loudest in the
+> group. A poll produces a countable result with one vote per resident, enforced
+> server-side.
+
+### Complaints with status tracking and threaded comments
+Residents raise complaints; admins move them through statuses; both sides comment on
+the thread.
+
+> **Purpose.** A complaint in a chat scrolls away. A complaint with a status is either
+> open or closed, and somebody owns it.
+
+### Amenity booking with slots
+Residents see available slots, book, receive a booking pass and can cancel; admins
+oversee bookings per amenity and set open hours and capacity.
+
+> **Purpose.** The clubhouse double-booking argument, prevented at the point of
+> booking rather than settled afterwards.
+
+### Community feed
+Posts, comments and likes across the society, with role tags on every author.
+
+> **Purpose.** The social half of the WhatsApp group, kept inside the app where it is
+> attributable and moderatable.
+
+### Chat — resident ↔ guard ↔ admin
+Direct messaging across all three roles, with role tags and a residents/society split.
+
+> **Purpose.** Reaching the gate should not require knowing someone's personal number.
+
+---
+
+## 💰 Dues and payments
+
+### Dues issued per flat or to everyone
+Admins raise a due against a single flat or apply it to all residents at once.
+
+> **Purpose.** Maintenance is charged society-wide on the same cycle; issuing it one
+> flat at a time is the kind of manual work that produces missed flats.
+
+### UPI payment with screenshot proof, approved by admin
+The society sets its **UPI collection ID**. Residents pay and upload a screenshot;
+admins review the proof and approve or reject.
+
+> **Purpose.** Real societies already settle dues over UPI and prove it with a
+> screenshot. Portl records the flow that already exists rather than forcing a
+> payment gateway onto a committee that never asked for one.
+
+---
+
+## 📣 Alerts and notifications
+
+### Emergency panic alert
+A resident raises an alarm; guards receive a **full-screen popup** on the gate
+dashboard with one-tap acknowledge and auto-reply.
+
+> **Purpose.** At 2am the difference between a notification and a full-screen takeover
+> is whether anyone actually sees it.
+
+### Real Expo push notifications
+Visitor approvals, alerts, chat messages and notices all push. Devices **unregister on
+logout**, so a signed-out phone stops receiving them.
+
+> **Purpose.** The entire visitor flow depends on the resident being reached within
+> seconds. Unregistering on logout stops a shared or resold phone leaking a society's
+> notifications.
+
+### Guard duty status
+Guards flip themselves on and off duty; residents and admins see who is currently at
+the gate.
+
+> **Purpose.** Residents need to know there is somebody to call before they call.
+
+---
+
+## 🛠️ Moderation and safety
+
+### Report content, block users
+Any user can report a post or comment and block another user. Admins act on reports by
+removing content or ejecting the user.
+
+> **Purpose.** Required by **App Store Guideline 1.2** for any app carrying
+> user-generated content — and independently the right call for a feed where everyone
+> knows where everyone else lives.
+
+---
+
+# Tech stack
+
+| Layer | Choice | Why this one |
 |---|---|---|
-| 👑 **Society Admin** | `admin@portl.dev` | Asha Nair |
-| 🛡️ **Security Guard** | `guard1@portl.dev` (also `guard2@`, `guard3@`) | Ramesh Kumar |
-| 🏠 **Resident** | `resident1@portl.dev` … `resident18@portl.dev` | e.g. resident1 = Priya Sharma, Flat A‑101 |
-
-> You can log in with **email or phone**. Residents 1–18 map to real names across 3 towers (Maple / Orchid / Cedar) and 24 flats in the demo society **“Palm Meadows Residency, Bengaluru.”**
-
-**Pre-staged demo scenarios** (so every screen has real data):
-- A **maintenance payment awaiting admin approval** (Admin → Dues → Approve it live).
-- A **due already paid with a real UPI screenshot** as proof.
-- **Pending visitor requests** to approve/reject, a **package held at the gate** (collection OTP), and **checked-in / checked-out** visitors with full gate logs.
-- Notices with reactions, two live polls, six complaints in various states, amenity bookings, a community feed, guards on duty, and an emergency alert in history.
-
----
-
-## 🎯 The Problem
-
-Apartment communities still run on **gate calls, WhatsApp groups, paper registers and manual approvals**. A delivery partner reaches the gate → the guard calls the flat → the resident misses the call → the visitor waits. The same friction repeats across guest entry, complaints, notices, polls, amenity booking, dues and gate logs.
-
-**Portl** brings the society gate, resident communication and community operations into one seamless mobile experience.
+| Mobile | **Expo SDK 54** · React Native 0.81 · expo-router | File-based routing across three role groups; OTA-friendly builds via EAS |
+| Styling | **NativeWind** | Tailwind semantics in RN, so screens stay readable at 55 files |
+| Client state | **Zustand** (persisted to SecureStore) | Auth and UI state that survives a cold start without a provider tree |
+| Server state | **TanStack Query** via the tRPC client | Caching, refetch and optimistic updates come free with the typed client |
+| API transport | **tRPC 11** on **Express 5** | End-to-end types with no codegen step and no schema drift between client and server |
+| REST surface | **trpc-to-openapi** + Scalar | The same routers also emit an OpenAPI spec, so non-TS clients aren't locked out |
+| Validation | **Zod 4** | One schema validates input and produces the TypeScript type |
+| Domain logic | Framework-agnostic **service classes** | `AuthService`, `VisitorService`, `DueService` … testable without HTTP |
+| ORM | **Drizzle 0.45** | SQL-shaped queries, typed rows, real migration files under version control |
+| Database | **PostgreSQL 15** | 30 tables, 18 migrations |
+| Push | **expo-server-sdk** | Native push without owning APNs/FCM plumbing |
+| Monorepo | **pnpm workspaces** + Turborepo | Shared packages between the app and API with one install |
 
 ---
 
-## ✅ Requirement Compliance Matrix
+# Architecture
 
-Every hackathon requirement, mapped to where it’s implemented. **All functional & technical requirements are met.**
-
-### Tech
-| Requirement | Status | Implementation |
-|---|---|---|
-| Built with Expo & React Native | ✅ | `apps/mobile` — Expo Router, RN, NativeWind |
-| Mobile-first | ✅ | Native mobile app, dark themed, responsive |
-| Free choice of backend & database | ✅ | Express + tRPC API, **PostgreSQL** via Drizzle ORM |
-| Proper state management | ✅ | **Zustand** (auth/UI stores) + **TanStack React Query** (server state via tRPC) |
-| Push notifications (recommended) | ✅ | **Real Expo push** via `expo-server-sdk` (approvals, alerts, messages) |
-
-### Roles & Authentication
-| Requirement | Status | Implementation |
-|---|---|---|
-| Resident / Security Guard / Society Admin roles | ✅ | Three separate route groups + dashboards |
-| Each role has its own permissions & workflows | ✅ | Role-scoped navigation + server-enforced access |
-| Secure authentication | ✅ | **bcrypt** password hashing + **JWT** access/refresh tokens (rotating) |
-| Role-based access control | ✅ | Server-side `requireRole` → returns **FORBIDDEN**; not just hidden in the UI |
-
-### Visitor Management
-| Requirement | Status |
-|---|---|
-| Visitor entry requests | ✅ |
-| Visitor approval & rejection (by resident, from the app) | ✅ |
-| Guest pre-approval (with QR + 6-digit gate code) | ✅ |
-| Delivery / cab / service-staff approvals | ✅ |
-| Entry & exit logs | ✅ |
-| Visitor history | ✅ |
-| **Bonus:** keep-at-gate parcels with OTP collection | ✅ |
-
-### Community Management (Residents)
-| Requirement | Status |
-|---|---|
-| View society notices (react + comment) | ✅ |
-| Participate in polls (single & multi-select) | ✅ |
-| Raise helpdesk complaints & track status | ✅ |
-| Book amenities (with booking pass + history) | ✅ |
-| View visitor history | ✅ |
-| Pay maintenance dues | ✅ (UPI + screenshot proof, admin-approved) |
-
-### Society Administration (Admin manages)
-| Towers | Flats | Residents | Amenities | Notices | Polls | Complaints | Staff / Service Providers |
-|---|---|---|---|---|---|---|---|
-| ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-
-### Guard Operations
-| Register visitors | Search residents | Raise approval requests | Verify approvals | Mark entry | Mark exit | Visitor history |
-|---|---|---|---|---|---|---|
-| ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-
-### Mobile Experience
-Clean navigation ✅ · Fast approval flows ✅ · Responsive layouts ✅ · Loading & empty states ✅ · Error handling (toasts) ✅ · Polished dark UI ✅
-
----
-
-## ✨ Feature Highlights
-
-- **Visitor lifecycle** — walk-in registration, resident approve/reject, guest/delivery/cab/service pre-approvals with **QR gate passes** + 6-digit codes, entry/exit logging, and full history.
-- **Keep-at-gate parcels** — resident can have a delivery held at the gate; the guard releases it only after entering the resident’s **collection OTP**.
-- **Maintenance dues** — admin issues a charge to **one flat or all residents**; the resident pays externally and uploads a **payment screenshot**; the payment sits **“Under review”** until the **admin approves** it → then it shows **Paid** with the proof viewable.
-- **Community** — notice board (with reactions/comments), single & multi-select polls, helpdesk complaints with status tracking, and a **social feed** (posts, comments, likes, admin pin/delete).
-- **Amenities** — browse, book time slots, cancel, and get a booking pass; past bookings roll into a read-only history.
-- **Emergency alerts** — residents can raise a **panic alert** that pops up full-screen for guards and admins.
-- **Guard duty status** — guards toggle on/off duty; visible to admins and residents.
-- **Self-service onboarding** — public **“Create admin account”** (society signup) and **in-app account deletion** for every role.
-- **Real push notifications** for approval requests, alerts and messages.
-
----
-
-## 🏗️ Architecture
-
-```mermaid
-flowchart TD
-  subgraph Mobile["Expo / React Native app — apps/mobile"]
-    UI["Resident / Guard / Admin dashboards"]
-    ZS["Zustand — auth & UI state"]
-    RQ["React Query + tRPC client"]
-  end
-
-  subgraph Server["Backend on Render — apps/api"]
-    EX["Express host"]
-    TRPC["tRPC router + REST via trpc-to-openapi"]
-    SVC["Domain services — packages/services"]
-    PUSH["Expo Push — expo-server-sdk"]
-  end
-
-  DB[("PostgreSQL on Neon<br/>Drizzle ORM")]
-
-  UI --> ZS
-  UI --> RQ
-  RQ -->|"HTTPS /trpc"| EX
-  EX --> TRPC
-  TRPC --> SVC
-  SVC --> DB
-  SVC --> PUSH
-  PUSH -.->|"device notifications"| Mobile
+```
+apps/mobile ──tRPC/HTTPS──▶ apps/api ──▶ packages/trpc ──▶ packages/services ──▶ packages/database ──▶ PostgreSQL
+   (Expo RN)                (Express)     (routers/RBAC)     (business logic)      (Drizzle schema)
 ```
 
-> **Request lifecycle:** the app calls a tRPC procedure → Express + `trpc-to-openapi` route it → the procedure runs `requireRole` (RBAC) → a domain **service** executes the business logic via **Drizzle** against **Postgres** → side effects (e.g. push notifications) fire → a fully typed response returns to React Query. See [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for sequence diagrams.
+The layering rule: **each layer only knows the one beneath it.** Routers do
+authorization and shape; services hold the domain rules and never import HTTP; the
+database package owns the schema and nothing else.
 
-**Type-safe, end-to-end monorepo (pnpm workspaces):**
+- **Authorization is server-side.** `packages/trpc/server/trpc.ts` defines
+  `publicProcedure`, `protectedProcedure`, and `residentProcedure` / `guardProcedure`
+  / `adminProcedure`. A role check that fails returns `FORBIDDEN` — the UI hiding a
+  button is a convenience, not the control.
+- **Tenancy is society-scoped.** Users, flats, notices, dues and visitors all hang off
+  a `societyId`, so one deployment serves many societies.
+- **Soft deletes on users.** `deletedAt` keeps authorship intact while releasing the
+  email and phone.
 
-| Package | Responsibility |
-|---|---|
-| `apps/mobile` | Expo / React Native app (expo-router, NativeWind) |
-| `apps/api` | Thin Express server that hosts the tRPC router + auto-generated REST/OpenAPI |
-| `packages/trpc` | tRPC routers, context, procedures (`publicProcedure`, `residentProcedure`, `guardProcedure`, `adminProcedure`) |
-| `packages/services` | Domain logic (auth, visitors, dues, complaints, polls, notices, amenities, chat, alerts, duty…) |
-| `packages/database` | Drizzle schema, migrations & seed |
-
-### Tech Stack
-| Layer | Technology |
-|---|---|
-| Mobile | Expo, React Native, expo-router, NativeWind (Tailwind), expo-camera, expo-image-picker, react-native-qrcode-svg |
-| State | Zustand + TanStack React Query |
-| API | Node.js, Express, **tRPC v11**, `trpc-to-openapi` (REST + Swagger/Scalar docs) |
-| Auth | bcrypt, JWT (access + rotating refresh tokens) |
-| Database | PostgreSQL (Neon) + Drizzle ORM |
-| Push | `expo-server-sdk` (Expo Push) |
-| Hosting | **Backend:** Render (Docker) · **DB:** Neon · **Builds:** EAS |
+Full detail — component diagram, request lifecycle, data model — lives in
+**[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** and **[docs/DATA-MODEL.md](docs/DATA-MODEL.md)**.
 
 ---
 
-## 🔐 Security & Access Control
+# Security
 
-- Passwords are **bcrypt-hashed**; auth uses short-lived **JWT access tokens** + **rotating refresh tokens** (stored server-side, revocable).
-- **Role-based access is enforced on the server**, not just hidden in the UI: `requireRole('admin' | 'guard' | 'resident')` rejects mismatched roles with `FORBIDDEN`, and unauthenticated calls with `UNAUTHORIZED`.
-- All society data is **scoped to the caller’s society**, so tenants can’t see each other’s data.
-- **In-app account deletion** (wipes credentials, releases email/phone, revokes all sessions) and public admin/society signup are supported.
+Summary; the full write-up is in **[SECURITY.md](SECURITY.md)**.
+
+- **Passwords** hashed with bcrypt — never stored or logged in the clear.
+- **Sessions** are a short-lived JWT access token plus a rotating refresh token,
+  stored **hashed** in `refresh_tokens` and revocable per device.
+- **Authorization** enforced on the server per procedure, by role.
+- **Input validation** with Zod on every procedure boundary.
+- **Deactivation** is distinct from bad credentials, so a revoked resident is told why.
+- **The database is not internet-facing** — Postgres binds to `127.0.0.1` and is
+  reached only from the API on the same host.
 
 ---
 
-## 🚀 Run It Locally
+# Repository layout
 
-### Prerequisites
-- **Node.js ≥ 18**, **pnpm 9**, **Docker** (for local Postgres) or any Postgres instance.
+```
+Portl/
+├── apps/
+│   ├── api/                  Express server — mounts tRPC at /trpc, OpenAPI in dev
+│   ├── mobile/               Expo app — 55 screens across resident/guard/admin
+│   └── web/
+├── packages/
+│   ├── trpc/                 23 routers, context (JWT → ctx.user), role procedures
+│   ├── services/             Domain logic — Auth, Visitor, Due, Notice, Chat …
+│   └── database/             Drizzle schema (30 models), 18 migrations, seed
+├── docs/                     Architecture · API · Data model · Features · QA · Runbook
+├── docker-compose.yml        Postgres 15, bound to loopback
+└── mobile-config.json        Runtime backend URL the app reads from main
+```
 
-### 1. Install
+---
+
+# Quick start
+
 ```bash
-git clone https://github.com/Agam00/PortL-App.git
-cd PortL-App
+# 1. install
 pnpm install
-```
 
-### 2. Environment
-Create a root `.env` (used by the API + database packages):
-```env
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/dev
-ACCESS_TOKEN_SECRET=change-me-to-a-long-random-string
-NODE_ENV=development
-BASE_URL=http://localhost:8000
-```
-Then sync it to the workspaces:
-```bash
+# 2. environment — one root .env, then fan it out to the packages that need it
+cp .env.example .env
 pnpm env:sync
+
+# 3. database
+docker compose up -d
+pnpm db:migrate
+pnpm db:seed
+
+# 4. run the API and the app together
+pnpm start:all
 ```
 
-### 3. Database (Postgres + schema + demo data)
-```bash
-docker compose up -d            # starts local Postgres
-pnpm --filter @repo/database db:migrate   # create tables
-pnpm --filter @repo/database db:seed      # load the rich demo dataset
-```
-
-### 4. Run the backend
-```bash
-pnpm --filter @repo/api dev     # http://localhost:8000  (health: /health, docs: /docs)
-```
-
-### 5. Run the mobile app
-Point the app at your API in `apps/mobile/.env`:
-```env
-# Android emulator → 10.0.2.2 · iOS simulator → localhost · physical device → your LAN IP
-EXPO_PUBLIC_API_URL=http://10.0.2.2:8000
-```
-```bash
-pnpm --filter mobile dev -- --clear
-```
-Open it in Expo Go / a dev build, and log in with the demo credentials above.
-
-> **Note:** the API is a pnpm monorepo — after editing anything in `packages/*`, restart the API server (`tsx watch` only watches `apps/api/src`).
+> [!IMPORTANT]
+> There are **four** `.env` files — the root one plus a copy in `apps/api`,
+> `packages/database` and `packages/services`. Each package loads the one nearest its
+> own working directory. **Always edit the root `.env` and run `pnpm env:sync`** —
+> editing a copy by hand leads to the exact outage documented in
+> [docs/RUNBOOK.md](docs/RUNBOOK.md).
 
 ---
 
-## 🧪 Testing
+# The API
 
-The backend contract is covered by automated end-to-end suites that run against the live tRPC API:
+**Base URL** — `https://139.84.177.188.sslip.io`
+
+| Surface | Path | Notes |
+|---|---|---|
+| tRPC | `/trpc/*` | What the mobile app uses — fully typed end to end |
+| REST / OpenAPI | generated from the same routers | Spec and Scalar docs served in **development only** |
+| Health | `/health` | Liveness only — see the caveat below |
+
+**126 operations across 23 routers:** `admin` · `alerts` · `amenities` ·
+`amenity-bookings` · `auth` · `chat` · `complaints` · `dues` · `duty` · `flats` ·
+`health` · `moderation` · `notices` · `notifications` · `polls` · `posts` ·
+`push-tokens` · `residents` · `service-requests` · `staff-directory` · `towers` ·
+`vehicles` · `visitors`
 
 ```bash
-apps/api/node_modules/.bin/tsx apps/api/_qa.ts      # auth, RBAC, visitors, keep-at-gate OTP, admin CRUD, community, amenities, dues, chat, alerts, duty
-apps/api/node_modules/.bin/tsx apps/api/_qa2.ts     # guard invite, polls, staff CRUD, cancel pre-approval, posts, chat threads, RBAC negatives
+curl -X POST https://139.84.177.188.sslip.io/trpc/auth.login \
+  -H "Content-Type: application/json" \
+  -d '{"identifier":"admin@portl.dev","password":"Portl@123"}'
 ```
-These exercise every role, the full visitor + payment-approval flows, and negative access-control cases (FORBIDDEN / UNAUTHORIZED) — **all passing**.
+
+> [!WARNING]
+> `/health` is a **liveness check only** — it returns static JSON and never touches the
+> database. It stays green during a total database outage. To check the system is
+> actually working, call a real endpoint like the one above.
 
 ---
 
-## ☁️ Deployment
+# Deployment
 
-- **Backend** → Render (Docker; `Dockerfile` at repo root bundles the API into a standalone Node image).
-- **Database** → Neon (managed Postgres); `DATABASE_URL` points the API at it.
-- **Mobile builds** → EAS (`eas build -p android --profile preview` produces the APK).
-
-### Change the backend without rebuilding the app
-The app reads its backend URL at launch from a small remote config file — `mobile-config.json` in this repo — so you can **move the backend (e.g., to another host) by editing one line and pushing**, with **no new APK required**. Resolution order: remote config → last cached value → the URL baked in at build time.
-
----
-
-## 📚 Documentation
-
-Deep-dive docs for reviewers (and AI evaluation):
-
-| Doc | What's inside |
+| Piece | Target |
 |---|---|
-| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | System design, request lifecycle, sequence diagrams (visitor approval & dues approval), monorepo & type-safety story, key design decisions |
-| [`docs/FEATURES.md`](./docs/FEATURES.md) | Full feature catalogue per role, each mapped to the exact requirement it satisfies |
-| [`docs/API.md`](./docs/API.md) | The 120-endpoint API reference grouped by domain, auth model, RBAC, and example requests |
-| [`docs/DATA-MODEL.md`](./docs/DATA-MODEL.md) | Database schema, all tables & relationships, entity-relationship diagram |
-| [`docs/QA-PLAN.md`](./docs/QA-PLAN.md) | End-to-end manual + automated QA plan |
-| [`docs/DEPLOY-GCP.md`](./docs/DEPLOY-GCP.md) | Alternative cloud deployment guide |
+| API | **Vultr VPS** (Ubuntu 24.04) under **PM2**, process `portl-api` |
+| Database | **PostgreSQL 15** in Docker on the same host, bound to `127.0.0.1` |
+| TLS / hostname | `139.84.177.188.sslip.io` — sslip.io maps the IP to a hostname so HTTPS works without a purchased domain |
+| Mobile | **EAS Build** → TestFlight / App Store, Android APK |
+| Backend URL | Read at runtime from `mobile-config.json` on `main` — the server can move without a new build |
+
+Operating the server — deploys, outages, error-code triage — is documented in
+**[docs/RUNBOOK.md](docs/RUNBOOK.md)**.
 
 ---
 
-## 📁 Repository Structure
+# Demo logins
 
-```
-PortL-App/
-├─ apps/
-│  ├─ mobile/            # Expo / React Native app (Resident · Guard · Admin)
-│  └─ api/               # Express host for the tRPC router + OpenAPI
-├─ packages/
-│  ├─ trpc/              # tRPC routers, context, role procedures
-│  ├─ services/          # Domain logic (auth, visitors, dues, community…)
-│  └─ database/          # Drizzle schema, migrations, seed
-├─ Dockerfile            # builds the backend for Render
-├─ render.yaml           # Render blueprint
-├─ mobile-config.json    # runtime backend URL (change host without a new APK)
-└─ docs/                 # QA plan, deploy guide
-```
+All demo accounts share the password **`Portl@123`**. Full list and suggested walkthroughs
+in **[CREDENTIALS.md](CREDENTIALS.md)**.
+
+| Role | Login | Who |
+|---|---|---|
+| ⚙️ Admin | `admin@portl.dev` | Asha Nair |
+| 🛡️ Guard | `guard1@portl.dev` | Ramesh Kumar |
+| 🏠 Resident | `resident1@portl.dev` | Priya Sharma, Flat A-101 |
+
+The seeded society is **Palm Meadows Residency, Bengaluru** — 3 towers, 24 flats,
+18 residents, with visitor requests pending, a parcel held at the gate, dues awaiting
+approval, live polls, complaints in mixed states and a populated gate log.
 
 ---
 
-## 📋 Submission Checklist
+# Known limitations
 
-- [x] Public GitHub repository — https://github.com/Agam00/PortL-App
-- [x] Installable **APK** — see Quick Links
-- [x] **Live backend + database** (bonus) — https://portl-app.onrender.com
-- [x] README with setup instructions (this file)
-- [x] Demo credentials (above)
-- [x] Comprehensive documentation ([`docs/`](./docs))
-- [x] Demo video *(recorded separately and added to the submission)*
-- [x] Screenshots *(added to the submission folder)*
+Stated plainly rather than left to be discovered.
+
+| Gap | Detail |
+|---|---|
+| **No automated test suite** | There are no unit or integration tests. Verification is manual, against [docs/QA-PLAN.md](docs/QA-PLAN.md). This is the single largest piece of missing engineering work. |
+| **Migrations have drifted** | `drizzle-kit push` has been run against the live database, so the committed migrations may not reproduce the schema from scratch. A fresh deploy from migrations alone is not guaranteed. |
+| **No server-side error logging** | `packages/trpc/server/trpc.ts` has no `errorFormatter`, so errors are returned to the client and never written to the server log — and production currently leaks SQL and stack traces to the client. |
+| **`/health` is cosmetic** | It does not check the database, so it cannot detect the most likely outage. |
+| **Payments are proof-of-payment, not a gateway** | UPI plus a screenshot reviewed by an admin. Deliberate, but it means no automatic reconciliation. |
+| **Single region, single host** | One VPS running both the API and the database. No replica, no failover, no automated backups yet. |
+| **i18n** | English only. |
 
 ---
 
 <div align="center">
 
-**Portl — making truly modern apartment communities.**
-
-Built with Expo · React Native · tRPC · PostgreSQL
+**[Architecture](docs/ARCHITECTURE.md)** · **[Security](SECURITY.md)** · **[API](docs/API.md)** · **[Data model](docs/DATA-MODEL.md)** · **[Features](docs/FEATURES.md)** · **[QA plan](docs/QA-PLAN.md)** · **[Runbook](docs/RUNBOOK.md)** · **[Demo logins](CREDENTIALS.md)**
 
 </div>
