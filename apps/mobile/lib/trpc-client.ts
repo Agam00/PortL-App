@@ -3,23 +3,52 @@ import { trpc } from "./trpc";
 import { getApiBase } from "./runtime-config";
 import { useAuthStore } from "../stores/auth-store";
 
-const REQUEST_TIMEOUT_MS = 10_000;
+/**
+ * 30s, not the 10s this used to be. 10s is fine on a warm connection from the
+ * same region, but the first request of a session also pays DNS, the TCP
+ * handshake and a full TLS negotiation from wherever the user is — and if the
+ * API happens to be restarting, everything queues behind that. App Review
+ * rejected a build for "unable to login" that was a 10s timeout firing on the
+ * very first request; nothing was actually wrong with the credentials.
+ */
+const REQUEST_TIMEOUT_MS = 30_000;
 
-/** Fails fast with a clear error instead of hanging when the API is unreachable. */
-async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+/** One retry, because the failure this guards against is usually momentary. */
+const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 1_000;
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function fetchOnce(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-
   try {
     return await fetch(input, { ...init, signal: controller.signal });
-  } catch (err) {
-    if (err instanceof Error && err.name === "AbortError") {
-      throw new Error("Request timed out — check that the server is reachable.");
-    }
-    throw new Error("Network error — check your connection and that the server is running.");
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** Fails with a clear error instead of hanging when the API is unreachable. */
+async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await fetchOnce(input, init);
+    } catch (err) {
+      lastError = err;
+      // A caller-initiated abort must not be retried — only our own timeout and
+      // transport errors are worth a second attempt.
+      if (init?.signal?.aborted) break;
+      if (attempt < MAX_ATTEMPTS) await sleep(RETRY_DELAY_MS);
+    }
+  }
+
+  if (lastError instanceof Error && lastError.name === "AbortError") {
+    throw new Error("Request timed out — check that the server is reachable.");
+  }
+  throw new Error("Network error — check your connection and that the server is running.");
 }
 
 let refreshPromise: Promise<string | null> | null = null;
