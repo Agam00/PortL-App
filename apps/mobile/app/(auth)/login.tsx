@@ -225,10 +225,16 @@ export default function LoginScreen() {
                     render={({ field: { onChange, onBlur, value } }) => (
                       <Input
                         autoCapitalize="none"
+                        // iOS autocorrect happily "fixes" an email address into
+                        // something that no longer matches an account, and the
+                        // failure surfaces only as "Invalid credentials".
+                        autoCorrect={false}
+                        spellCheck={false}
+                        textContentType="username"
                         keyboardType="email-address"
                         placeholder="Enter your email"
                         onBlur={onBlur}
-                        onChangeText={onChange}
+                        onChangeText={(text) => onChange(text.trim())}
                         value={value}
                         error={errors.identifier?.message}
                         leftElement={<MaterialIcons name="person-outline" size={20} color="#8A8A8A" />}

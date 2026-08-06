@@ -26,7 +26,12 @@ export const authUserSchema = z.object({
 export type AuthUser = z.infer<typeof authUserSchema>;
 
 export const loginInputSchema = z.object({
-  identifier: z.string().min(3).describe("Phone number or email"),
+  // Trimmed because the identifier is very often pasted (from a password manager,
+  // or from the demo credentials in App Store Connect), and a trailing space or
+  // newline would otherwise fail as "Invalid credentials" with nothing to show
+  // the user why. The password is deliberately NOT trimmed — leading/trailing
+  // whitespace can be a legitimate part of it.
+  identifier: z.string().trim().min(3).describe("Phone number or email"),
   password: z.string().min(6),
 });
 

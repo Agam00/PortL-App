@@ -2,7 +2,7 @@ import { randomBytes, createHash } from "node:crypto";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { TRPCError } from "@trpc/server";
-import { db, eq, and, or, isNull } from "@repo/database";
+import { db, eq, and, or, isNull, sql } from "@repo/database";
 import { usersTable, refreshTokensTable, flatsTable, towersTable, societiesTable } from "@repo/database/schema";
 import { env } from "../env";
 import type { AccessTokenPayload, AuthUser } from "./model";
@@ -76,7 +76,15 @@ class AuthService {
       .from(usersTable)
       .where(
         and(
-          or(eq(usersTable.email, identifier), eq(usersTable.phone, identifier)),
+          or(
+            // Case-insensitive on both sides: email is case-insensitive by
+            // convention, but this compared raw strings, so "Resident1@..." was
+            // rejected while "resident1@..." worked — a login failure the user
+            // has no way to understand. Phone stays an exact match; digits have
+            // no case, and loosening it would risk matching the wrong row.
+            sql`lower(${usersTable.email}) = lower(${identifier})`,
+            eq(usersTable.phone, identifier),
+          ),
           isNull(usersTable.deletedAt),
         ),
       )
